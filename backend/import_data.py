@@ -214,7 +214,9 @@ def parse_excel_files():
         
         # Normalizăm numele companiei
         company_name = company_name.strip()
-        if company_name not in companies_dict:
+        company_name = normalize_company_name(company_name)
+        
+        if company_name and company_name not in companies_dict:
             companies_dict[company_name] = {
                 'name': company_name,
                 'cui': None,
