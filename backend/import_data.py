@@ -241,7 +241,7 @@ def parse_excel_files():
                 'job_type': str(row[4]).strip() if pd.notna(row[4]) else None,
                 'passport_number': str(row[7]).strip() if pd.notna(row[7]) else None,
                 'passport_expiry': None,
-                'company_name': company_name,
+                'company_name': normalize_company_name(company_name),
                 'status': 'activ',
                 'source': 'apr2025'
             }
