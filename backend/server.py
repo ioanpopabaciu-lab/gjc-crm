@@ -233,9 +233,9 @@ async def get_dashboard():
             "total_cases": total_cases,
             "pending_cases": pending_cases,
             "pipeline_value": total_pipeline_value,
-            "expiring_passports": expiring_passports,
-            "expiring_permits": expiring_permits,
-            "total_alerts": expiring_passports + expiring_permits
+            "expiring_passports": passport_alerts,
+            "expiring_permits": permit_alerts,
+            "total_alerts": passport_alerts + permit_alerts
         },
         "nationalities": [{"nationality": n["_id"] or "Necunoscut", "count": n["count"]} for n in nationalities],
         "top_companies": [{"company": c["_id"], "placements": c["count"]} for c in top_companies]
