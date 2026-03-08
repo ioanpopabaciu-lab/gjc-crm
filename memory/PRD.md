@@ -4,6 +4,7 @@
 **Project Name:** GJC AI-CRM (Global Jobs Consulting CRM)
 **Purpose:** CRM system for a Romanian recruitment and immigration agency
 **Tech Stack:** React (Frontend) + FastAPI (Backend) + MongoDB (Database)
+**Last Updated:** 2025-03-08
 
 ## Original Problem Statement
 Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immigration agency. The system manages:
@@ -18,25 +19,25 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
 
 ---
 
-## Core Features
+## Implemented Features ✅
 
-### 1. Dashboard (IMPLEMENTED ✅)
-- KPIs: Total candidates, companies, immigration cases, pipeline value, alerts
-- Top nationalities chart
+### 1. Dashboard
+- KPIs: Total candidates (315), companies (37), immigration cases (75), pipeline value (€312,000), alerts (1)
+- Top nationalities chart (Nepal, Nigeria, India, Filipine)
 - Top companies by placements
 
-### 2. B2B Companies Module (IMPLEMENTED ✅)
+### 2. B2B Companies Module
 - CRUD operations for companies
 - ANAF CUI lookup integration
 - Search and filter functionality
 
-### 3. B2C Candidates Module (IMPLEMENTED ✅)
+### 3. B2C Candidates Module
 - CRUD operations for candidates
 - Nationality, passport, permit tracking
 - Company assignment
 - Expiry date tracking with alerts
 
-### 4. Immigration Cases Module (IMPLEMENTED ✅)
+### 4. Immigration Cases Module
 - Case creation and management
 - 8-stage workflow:
   1. Recrutat
@@ -49,106 +50,29 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
   8. Permis Sedere
 - Stage advancement functionality
 
-### 5. Document Alerts (IMPLEMENTED ✅)
+### 5. Document Alerts
 - Automatic alerts for expiring/expired documents
 - Grouped by priority:
   - **Critical:** Expired or <30 days
   - **Urgent:** 30-60 days
   - **Attention:** 60-90 days
-- Quick link to candidate profile
+- Quick link to candidate profile ("Vezi Dosar" button)
 
-### 6. Sales Pipeline (IMPLEMENTED ✅)
+### 6. Sales Pipeline
 - Kanban-style pipeline board
 - 5 stages: Lead, Contact, Negociere, Contract, Câștigat
 - Opportunity value tracking
 
-### 7. Reports Module (IMPLEMENTED ✅)
+### 7. Reports Module
 - Statistics overview
 - Nationality distribution
 - Pipeline performance
 
----
-
-## Data Import (COMPLETED ✅)
-**Date:** 2025-03-08
-
-### Imported Data
-- **Source Files:**
-  - `Baza de date_Ioan Baciu_07 04 2025.xlsx` (27 sheets, company-specific data)
-  - `Baza de date noua, 18-Feb-2026.xlsx` (2 sheets, immigration status)
-
-- **Results:**
-  - 315 candidates imported (deduplicated)
-  - 37 companies imported (normalized, no duplicates)
-  - 75 immigration cases created
-
-- **Nationality Distribution:**
-  - Nepal: 299
-  - Nigeria: 7
-  - India: 3
-  - Filipine: 3
-  - Sri Lanka: 1
-  - Others: 2
-
----
-
-## API Endpoints
-
-### Dashboard
-- `GET /api/dashboard` - Complete dashboard KPIs
-
-### Companies
-- `GET /api/companies` - List companies
-- `POST /api/companies` - Create company
-- `PUT /api/companies/{id}` - Update company
-- `DELETE /api/companies/{id}` - Delete company
-- `GET /api/anaf/{cui}` - ANAF CUI lookup
-
-### Candidates
-- `GET /api/candidates` - List candidates
-- `POST /api/candidates` - Create candidate
-- `PUT /api/candidates/{id}` - Update candidate
-- `DELETE /api/candidates/{id}` - Delete candidate
-
-### Immigration
-- `GET /api/immigration` - List cases
-- `POST /api/immigration` - Create case
-- `PATCH /api/immigration/{id}/advance` - Advance stage
-- `DELETE /api/immigration/{id}` - Delete case
-- `GET /api/immigration/stages` - Get stage list
-
-### Alerts
-- `GET /api/alerts` - Get all document expiry alerts
-
-### Pipeline
-- `GET /api/pipeline` - List opportunities
-- `POST /api/pipeline` - Create opportunity
-- `PUT /api/pipeline/{id}` - Update opportunity
-- `DELETE /api/pipeline/{id}` - Delete opportunity
-
----
-
-## Completed Tasks
-
-### Phase 1 - Foundation (DONE ✅)
-- [x] FastAPI backend setup
-- [x] MongoDB integration
-- [x] React frontend with light theme
-- [x] 8-module navigation
-- [x] Basic CRUD for all entities
-
-### Phase 2 - Data Import (DONE ✅)
-- [x] Excel file parsing (Apr 2025 file)
-- [x] Excel file parsing (Feb 2026 file)
-- [x] Company name normalization
-- [x] Candidate deduplication
-- [x] Immigration case creation from status
-
-### Phase 3 - Alerts System (DONE ✅)
-- [x] Document expiry detection
-- [x] Alert priority grouping
-- [x] Dashboard KPI integration
-- [x] Quick navigation to candidate
+### 8. Data Import (Completed 2025-03-08)
+- Imported from `Baza de date_Ioan Baciu_07 04 2025.xlsx` (27 sheets)
+- Imported from `Baza de date noua, 18-Feb-2026.xlsx` (2 sheets)
+- Results: 315 candidates, 37 companies, 75 immigration cases
+- Company name normalization and deduplication
 
 ---
 
@@ -159,75 +83,23 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
   - User registration/login
   - Role-based access (admin, operator)
   - Protected API endpoints
-  - Token refresh
 
-### P1 - Medium Priority
-- [ ] **Resend Email Integration**
-  - Email notifications for status changes
-  - Template system for Romanian emails
-  - Configurable triggers
-
-- [ ] **ANAF CUI Enhancement**
-  - Auto-populate company fields
-  - VAT status verification
+### P1 - Medium Priority  
+- [ ] **Resend Email Integration** - Notifications for status changes
+- [ ] **ANAF CUI Enhancement** - Auto-populate company fields
 
 ### P2 - Lower Priority
-- [ ] **Document Generation**
-  - Angajament de plată (Payment Commitment)
-  - Contract de mediere (Mediation Contract)
-  - PDF export
-
+- [ ] **Document Generation** - Angajament de plată, Contract de mediere
 - [ ] **Automated Stage Advancement**
-  - Rule-based progression
-  - Deadline tracking
-  - Automatic notifications
 
-### P3 - Future Enhancements
-- [ ] Document upload functionality
+### P3 - Future
+- [ ] Document upload
 - [ ] PDF report export
-- [ ] Audit logging
-- [ ] SMS notifications (Twilio)
-- [ ] Calendar integration
+- [ ] SMS notifications
 
 ---
 
-## File Structure
-
-```
-/app/
-├── backend/
-│   ├── server.py          # FastAPI application (736 lines)
-│   ├── import_data.py     # Excel import script
-│   ├── requirements.txt
-│   ├── data/              # Excel files
-│   └── .env
-├── frontend/
-│   ├── src/
-│   │   ├── App.js         # Main React component
-│   │   └── App.css        # Light theme styles
-│   └── package.json
-└── memory/
-    └── PRD.md             # This file
-```
-
----
-
-## Configuration
-
-### Environment Variables
-**Backend (.env):**
-- `MONGO_URL` - MongoDB connection string
-- `DB_NAME` - Database name
-
-**Frontend (.env):**
-- `REACT_APP_BACKEND_URL` - API base URL
-
----
-
-## Known Issues
-- None currently reported
-
-## Notes
-- UI language: Romanian
-- Default user displayed: Ioan Baciu (Administrator)
-- Pipeline values in EUR (€)
+## Test Results (2025-03-08)
+- Backend: 100% (28/28 tests passed)
+- Frontend: 100% (all 8 modules working)
+- Report: `/app/test_reports/iteration_1.json`
