@@ -94,6 +94,91 @@ def normalize_nationality(nat):
     
     return mapping.get(nat.lower(), nat.title())
 
+def normalize_company_name(name):
+    """Normalizează numele companiei pentru a evita duplicate"""
+    if not name:
+        return None
+    
+    name = str(name).strip()
+    
+    # Normalizare - convertim la lowercase pentru comparație
+    name_lower = name.lower()
+    
+    # Mapping pentru companii cunoscute cu variante de denumire
+    company_mapping = {
+        'da vinci construct proiect srl': 'Da Vinci Construct Proiect SRL',
+        'da vinci construct&proiect srl': 'Da Vinci Construct Proiect SRL',
+        'da vinci construct & proiect srl': 'Da Vinci Construct Proiect SRL',
+        'davinci': 'Da Vinci Construct Proiect SRL',
+        'allegria turism srl': 'Allegria Turism SRL',
+        'allegria': 'Allegria Turism SRL',
+        'araly exim srl': 'Araly Exim SRL',
+        'araly exim srl ': 'Araly Exim SRL',
+        'babuiesti srl': 'Babuiesti SRL',
+        'babuiesti  srl': 'Babuiesti SRL',
+        'babuiesti  srl ': 'Babuiesti SRL',
+        'balearia food srl': 'Balearia Food SRL',
+        'balearia': 'Balearia Food SRL',
+        'bonavilla complex srl': 'Bonavilla Complex SRL',
+        'bonavilla': 'Bonavilla Complex SRL',
+        'complex adorianis srl': 'Complex Adorianis SRL',
+        'adorianis': 'Complex Adorianis SRL',
+        'covaliciuc mariana': 'Covaliciuc Mariana',
+        'covaliciuc': 'Covaliciuc Mariana',
+        'danessa impex srl': 'Danessa Impex SRL',
+        'danessa': 'Danessa Impex SRL',
+        'euroimpact srl': 'Euroimpact SRL',
+        'euroimpact': 'Euroimpact SRL',
+        'fnk garage srl': 'FNK Garage SRL',
+        'fnk garage srl ': 'FNK Garage SRL',
+        'fnk': 'FNK Garage SRL',
+        'giulio impex srl': 'Giulio Impex SRL',
+        'giulio': 'Giulio Impex SRL',
+        'global clean magic srl': 'Global Clean Magic SRL',
+        'global clean magic  srl': 'Global Clean Magic SRL',
+        'global': 'Global Clean Magic SRL',
+        'hortifruct srl': 'Hortifruct SRL',
+        'hortifruct': 'Hortifruct SRL',
+        'lari s legend food srl': 'Laris Legend Food SRL',
+        'laris': 'Laris Legend Food SRL',
+        'lider internațional srl': 'Lider International SRL',
+        'lider internațional srl ': 'Lider International SRL',
+        'lider international srl': 'Lider International SRL',
+        'lider': 'Lider International SRL',
+        'novarom tour felix srl': 'Novarom Tour Felix SRL',
+        'novarom': 'Novarom Tour Felix SRL',
+        'only build residence srl': 'Only Build Residence SRL',
+        'only build residence  srl': 'Only Build Residence SRL',
+        'only': 'Only Build Residence SRL',
+        'pepiniera takacs csaba ii': 'Pepiniera Takacs Csaba II',
+        'pepiniera': 'Pepiniera Takacs Csaba II',
+        'pfl facility services srl': 'PFL Facility Services SRL',
+        'pfl facility services srl ': 'PFL Facility Services SRL',
+        'pfl': 'PFL Facility Services SRL',
+        'premium martin construct srl': 'Premium Martin Construct SRL',
+        'martin': 'Premium Martin Construct SRL',
+        'pro smart cleaning srl': 'Pro Smart Cleaning SRL',
+        'smart': 'Pro Smart Cleaning SRL',
+        'repede pleasure srl': 'Repede Pleasure SRL',
+        'repede': 'Repede Pleasure SRL',
+        'semarc a-z construct srl': 'Semarc A-Z Construct SRL',
+        'semarc': 'Semarc A-Z Construct SRL',
+        'luca veterinaru srl': 'Luca Veterinaru SRL',
+        'luca veterinary srl': 'Luca Veterinaru SRL',
+    }
+    
+    # Căutăm match exact sau parțial
+    if name_lower in company_mapping:
+        return company_mapping[name_lower]
+    
+    # Căutare parțială - dacă conține un pattern cunoscut
+    for pattern, normalized in company_mapping.items():
+        if pattern in name_lower or name_lower in pattern:
+            return normalized
+    
+    # Dacă nu găsim mapping, returnăm numele curățat
+    return name.strip()
+
 def parse_excel_files():
     """Parsează ambele fișiere Excel și returnează datele"""
     
