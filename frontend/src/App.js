@@ -1,54 +1,1438 @@
-import { useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import {
+  Users, Building2, FileText, TrendingUp, Bell, BarChart3,
+  Plus, Search, Filter, ChevronRight, AlertTriangle, CheckCircle,
+  Clock, MapPin, Phone, Mail, Globe, Briefcase, Calendar,
+  Edit, Trash2, Eye, RefreshCw, X, Menu, Home, Settings,
+  ChevronDown, ArrowUpRight, ArrowDownRight, User
+} from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
+// ===================== MAIN APP =====================
+function App() {
+  const [activeModule, setActiveModule] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
+
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const modules = [
+    { id: "dashboard", name: "Dashboard", icon: Home },
+    { id: "companies", name: "Clienți B2B", icon: Building2 },
+    { id: "candidates", name: "Candidați B2C", icon: Users },
+    { id: "immigration", name: "Dosare Imigrare", icon: FileText },
+    { id: "pipeline", name: "Pipeline Vânzări", icon: TrendingUp },
+    { id: "documents", name: "Documente", icon: FileText },
+    { id: "reports", name: "Rapoarte AI", icon: BarChart3 },
+    { id: "alerts", name: "Centru Alerte", icon: Bell },
+  ];
+
+  return (
+    <div className="app-container" data-testid="gjc-crm-app">
+      {/* Notification */}
+      {notification && (
+        <div className={`notification ${notification.type}`} data-testid="notification">
+          {notification.type === "success" ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+          <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <aside className={`sidebar ${sidebarOpen ? "open" : "collapsed"}`} data-testid="sidebar">
+        <div className="sidebar-header">
+          <div className="logo">
+            <Globe className="logo-icon" />
+            {sidebarOpen && <span>GJC AI-CRM</span>}
+          </div>
+          <button className="toggle-btn" onClick={() => setSidebarOpen(!sidebarOpen)} data-testid="toggle-sidebar">
+            <Menu size={20} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          {modules.map((module) => (
+            <button
+              key={module.id}
+              className={`nav-item ${activeModule === module.id ? "active" : ""}`}
+              onClick={() => setActiveModule(module.id)}
+              data-testid={`nav-${module.id}`}
+            >
+              <module.icon size={20} />
+              {sidebarOpen && <span>{module.name}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          {sidebarOpen && (
+            <div className="user-info">
+              <div className="user-avatar">
+                <User size={20} />
+              </div>
+              <div className="user-details">
+                <span className="user-name">Ioan Baciu</span>
+                <span className="user-role">Administrator</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="main-content" data-testid="main-content">
+        <header className="content-header">
+          <h1>{modules.find(m => m.id === activeModule)?.name}</h1>
+          <div className="header-actions">
+            <span className="date-display">
+              <Calendar size={16} />
+              {new Date().toLocaleDateString("ro-RO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </span>
+          </div>
+        </header>
+
+        <div className="content-body">
+          {activeModule === "dashboard" && <DashboardModule showNotification={showNotification} />}
+          {activeModule === "companies" && <CompaniesModule showNotification={showNotification} />}
+          {activeModule === "candidates" && <CandidatesModule showNotification={showNotification} />}
+          {activeModule === "immigration" && <ImmigrationModule showNotification={showNotification} />}
+          {activeModule === "pipeline" && <PipelineModule showNotification={showNotification} />}
+          {activeModule === "documents" && <DocumentsModule showNotification={showNotification} />}
+          {activeModule === "reports" && <ReportsModule showNotification={showNotification} />}
+          {activeModule === "alerts" && <AlertsModule showNotification={showNotification} />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ===================== DASHBOARD MODULE =====================
+const DashboardModule = ({ showNotification }) => {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDashboard = useCallback(async () => {
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      setLoading(true);
+      const response = await axios.get(`${API}/dashboard`);
+      setDashboard(response.data);
+    } catch (error) {
+      console.error("Error fetching dashboard:", error);
+      showNotification("Eroare la încărcarea dashboard-ului", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  const seedData = async () => {
+    try {
+      await axios.post(`${API}/seed`);
+      showNotification("Date demo încărcate cu succes!");
+      fetchDashboard();
+    } catch (error) {
+      showNotification("Eroare la încărcarea datelor demo", "error");
     }
   };
 
   useEffect(() => {
-    helloWorldApi();
-  }, []);
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  if (loading) return <LoadingSpinner />;
+
+  const kpis = dashboard?.kpis || {};
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="dashboard-module" data-testid="dashboard-module">
+      <div className="dashboard-actions">
+        <button className="btn btn-primary" onClick={seedData} data-testid="seed-data-btn">
+          <RefreshCw size={16} /> Încarcă Date Demo
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="kpi-grid">
+        <KPICard
+          title="Total Candidați"
+          value={kpis.total_candidates || 0}
+          subtitle={`${kpis.active_candidates || 0} activi`}
+          icon={Users}
+          color="blue"
+        />
+        <KPICard
+          title="Companii Partenere"
+          value={kpis.total_companies || 0}
+          subtitle={`${kpis.active_companies || 0} active`}
+          icon={Building2}
+          color="green"
+        />
+        <KPICard
+          title="Dosare Imigrare"
+          value={kpis.total_cases || 0}
+          subtitle={`${kpis.pending_cases || 0} în procesare`}
+          icon={FileText}
+          color="purple"
+        />
+        <KPICard
+          title="Valoare Pipeline"
+          value={`€${(kpis.pipeline_value || 0).toLocaleString()}`}
+          subtitle="Valoare ponderată"
+          icon={TrendingUp}
+          color="orange"
+        />
+        <KPICard
+          title="Alerte Active"
+          value={kpis.total_alerts || 0}
+          subtitle={`${kpis.expiring_passports || 0} pașapoarte, ${kpis.expiring_permits || 0} permise`}
+          icon={Bell}
+          color="red"
+          highlight={kpis.total_alerts > 0}
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="charts-row">
+        <div className="chart-card">
+          <h3>Top Naționalități</h3>
+          <div className="nationality-list">
+            {(dashboard?.nationalities || []).map((nat, idx) => (
+              <div key={idx} className="nationality-item">
+                <span className="nat-name">{nat.nationality}</span>
+                <div className="nat-bar-container">
+                  <div
+                    className="nat-bar"
+                    style={{ width: `${(nat.count / (dashboard?.kpis?.total_candidates || 1)) * 100}%` }}
+                  />
+                </div>
+                <span className="nat-count">{nat.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="chart-card">
+          <h3>Top Companii (Plasări)</h3>
+          <div className="company-list">
+            {(dashboard?.top_companies || []).map((comp, idx) => (
+              <div key={idx} className="company-item">
+                <span className="rank">#{idx + 1}</span>
+                <span className="comp-name">{comp.company}</span>
+                <span className="comp-count">{comp.placements} plasări</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-function App() {
+// ===================== COMPANIES MODULE =====================
+const CompaniesModule = ({ showNotification }) => {
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [cuiLookup, setCuiLookup] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+
+  const fetchCompanies = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = search ? `?search=${encodeURIComponent(search)}` : "";
+      const response = await axios.get(`${API}/companies${params}`);
+      setCompanies(response.data);
+    } catch (error) {
+      showNotification("Eroare la încărcarea companiilor", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [search, showNotification]);
+
+  useEffect(() => {
+    const timer = setTimeout(fetchCompanies, 300);
+    return () => clearTimeout(timer);
+  }, [fetchCompanies]);
+
+  const lookupCUI = async () => {
+    if (!cuiLookup) return;
+    setLookupLoading(true);
+    try {
+      const response = await axios.get(`${API}/anaf/${cuiLookup}`);
+      if (response.data.success) {
+        setEditingCompany(prev => ({
+          ...prev,
+          name: response.data.data.name,
+          cui: response.data.data.cui,
+          city: response.data.data.city
+        }));
+        showNotification("Date ANAF preluate cu succes!");
+      } else {
+        showNotification("CUI negăsit în baza ANAF", "error");
+      }
+    } catch (error) {
+      showNotification("Eroare la interogarea ANAF", "error");
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editingCompany?.id) {
+        await axios.put(`${API}/companies/${editingCompany.id}`, editingCompany);
+        showNotification("Companie actualizată!");
+      } else {
+        await axios.post(`${API}/companies`, editingCompany);
+        showNotification("Companie adăugată!");
+      }
+      setShowModal(false);
+      setEditingCompany(null);
+      fetchCompanies();
+    } catch (error) {
+      showNotification("Eroare la salvare", "error");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Sigur doriți să ștergeți această companie?")) return;
+    try {
+      await axios.delete(`${API}/companies/${id}`);
+      showNotification("Companie ștearsă!");
+      fetchCompanies();
+    } catch (error) {
+      showNotification("Eroare la ștergere", "error");
+    }
+  };
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+    <div className="module-container" data-testid="companies-module">
+      <div className="module-toolbar">
+        <div className="search-box">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Caută companie, CUI, oraș..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="company-search"
+          />
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => { setEditingCompany({}); setShowModal(true); }}
+          data-testid="add-company-btn"
+        >
+          <Plus size={16} /> Adaugă Companie
+        </button>
+      </div>
+
+      {loading ? <LoadingSpinner /> : (
+        <div className="data-table-container">
+          <table className="data-table" data-testid="companies-table">
+            <thead>
+              <tr>
+                <th>Companie</th>
+                <th>CUI</th>
+                <th>Oraș</th>
+                <th>Industrie</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {companies.map((company) => (
+                <tr key={company.id}>
+                  <td className="company-name-cell">
+                    <Building2 size={16} />
+                    {company.name}
+                  </td>
+                  <td>{company.cui || "-"}</td>
+                  <td>{company.city || "-"}</td>
+                  <td>{company.industry || "-"}</td>
+                  <td>
+                    <div className="contact-info">
+                      <span>{company.contact_person || "-"}</span>
+                      {company.phone && <small><Phone size={12} /> {company.phone}</small>}
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${company.status}`}>{company.status}</span>
+                  </td>
+                  <td className="actions-cell">
+                    <button className="icon-btn" onClick={() => { setEditingCompany(company); setShowModal(true); }} data-testid={`edit-company-${company.id}`}>
+                      <Edit size={16} />
+                    </button>
+                    <button className="icon-btn danger" onClick={() => handleDelete(company.id)} data-testid={`delete-company-${company.id}`}>
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {companies.length === 0 && (
+            <div className="empty-state">
+              <Building2 size={48} />
+              <p>Nu există companii. Adăugați prima companie!</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Company Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} data-testid="company-modal">
+            <div className="modal-header">
+              <h2>{editingCompany?.id ? "Editare Companie" : "Companie Nouă"}</h2>
+              <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="cui-lookup">
+                <input
+                  type="text"
+                  placeholder="Introdu CUI pentru lookup ANAF"
+                  value={cuiLookup}
+                  onChange={(e) => setCuiLookup(e.target.value)}
+                  data-testid="cui-lookup-input"
+                />
+                <button className="btn btn-secondary" onClick={lookupCUI} disabled={lookupLoading} data-testid="cui-lookup-btn">
+                  {lookupLoading ? <RefreshCw size={16} className="spin" /> : <Search size={16} />}
+                  Caută ANAF
+                </button>
+              </div>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Nume Companie *</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.name || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
+                    data-testid="company-name-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>CUI</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.cui || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, cui: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Oraș</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.city || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, city: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Industrie</label>
+                  <select
+                    value={editingCompany?.industry || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, industry: e.target.value })}
+                  >
+                    <option value="">Selectează...</option>
+                    <option value="Construcții">Construcții</option>
+                    <option value="HoReCa">HoReCa</option>
+                    <option value="Agricultură">Agricultură</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Industrie">Industrie</option>
+                    <option value="IT">IT</option>
+                    <option value="Altele">Altele</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Persoană Contact</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.contact_person || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, contact_person: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Telefon</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.phone || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, phone: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={editingCompany?.email || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, email: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    value={editingCompany?.status || "activ"}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, status: e.target.value })}
+                  >
+                    <option value="activ">Activ</option>
+                    <option value="inactiv">Inactiv</option>
+                    <option value="prospect">Prospect</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group full-width">
+                <label>Note</label>
+                <textarea
+                  value={editingCompany?.notes || ""}
+                  onChange={(e) => setEditingCompany({ ...editingCompany, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Anulează</button>
+              <button className="btn btn-primary" onClick={handleSave} data-testid="save-company-btn">Salvează</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+// ===================== CANDIDATES MODULE =====================
+const CandidatesModule = ({ showNotification }) => {
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterNationality, setFilterNationality] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingCandidate, setEditingCandidate] = useState(null);
+  const [companies, setCompanies] = useState([]);
+
+  const fetchCandidates = useCallback(async () => {
+    try {
+      setLoading(true);
+      let params = [];
+      if (search) params.push(`search=${encodeURIComponent(search)}`);
+      if (filterNationality) params.push(`nationality=${encodeURIComponent(filterNationality)}`);
+      const queryString = params.length > 0 ? `?${params.join("&")}` : "";
+      const response = await axios.get(`${API}/candidates${queryString}`);
+      setCandidates(response.data);
+    } catch (error) {
+      showNotification("Eroare la încărcarea candidaților", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [search, filterNationality, showNotification]);
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await axios.get(`${API}/companies`);
+      setCompanies(response.data);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(fetchCandidates, 300);
+    return () => clearTimeout(timer);
+  }, [fetchCandidates]);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      if (editingCandidate?.id) {
+        await axios.put(`${API}/candidates/${editingCandidate.id}`, editingCandidate);
+        showNotification("Candidat actualizat!");
+      } else {
+        await axios.post(`${API}/candidates`, editingCandidate);
+        showNotification("Candidat adăugat!");
+      }
+      setShowModal(false);
+      setEditingCandidate(null);
+      fetchCandidates();
+    } catch (error) {
+      showNotification("Eroare la salvare", "error");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Sigur doriți să ștergeți acest candidat?")) return;
+    try {
+      await axios.delete(`${API}/candidates/${id}`);
+      showNotification("Candidat șters!");
+      fetchCandidates();
+    } catch (error) {
+      showNotification("Eroare la ștergere", "error");
+    }
+  };
+
+  const getDaysUntilExpiry = (date) => {
+    if (!date) return null;
+    const today = new Date();
+    const expiry = new Date(date);
+    const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
+  const getExpiryClass = (days) => {
+    if (days === null) return "";
+    if (days <= 30) return "urgent";
+    if (days <= 60) return "warning";
+    if (days <= 90) return "info";
+    return "";
+  };
+
+  return (
+    <div className="module-container" data-testid="candidates-module">
+      <div className="module-toolbar">
+        <div className="search-box">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Caută după nume, pașaport..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="candidate-search"
+          />
+        </div>
+        <select
+          className="filter-select"
+          value={filterNationality}
+          onChange={(e) => setFilterNationality(e.target.value)}
+          data-testid="nationality-filter"
+        >
+          <option value="">Toate naționalitățile</option>
+          <option value="Nepal">Nepal</option>
+          <option value="India">India</option>
+          <option value="Filipine">Filipine</option>
+          <option value="Sri Lanka">Sri Lanka</option>
+          <option value="Nigeria">Nigeria</option>
+        </select>
+        <button
+          className="btn btn-primary"
+          onClick={() => { setEditingCandidate({}); setShowModal(true); }}
+          data-testid="add-candidate-btn"
+        >
+          <Plus size={16} /> Adaugă Candidat
+        </button>
+      </div>
+
+      {loading ? <LoadingSpinner /> : (
+        <div className="data-table-container">
+          <table className="data-table" data-testid="candidates-table">
+            <thead>
+              <tr>
+                <th>Nume</th>
+                <th>Naționalitate</th>
+                <th>Pașaport</th>
+                <th>Expirare Pașaport</th>
+                <th>Expirare Permis</th>
+                <th>Job</th>
+                <th>Companie</th>
+                <th>Status</th>
+                <th>Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((candidate) => {
+                const passportDays = getDaysUntilExpiry(candidate.passport_expiry);
+                const permitDays = getDaysUntilExpiry(candidate.permit_expiry);
+                return (
+                  <tr key={candidate.id}>
+                    <td className="candidate-name-cell">
+                      <User size={16} />
+                      {candidate.first_name} {candidate.last_name}
+                    </td>
+                    <td>
+                      <span className="nationality-badge">{candidate.nationality || "-"}</span>
+                    </td>
+                    <td>{candidate.passport_number || "-"}</td>
+                    <td>
+                      <span className={`expiry-badge ${getExpiryClass(passportDays)}`}>
+                        {candidate.passport_expiry || "-"}
+                        {passportDays !== null && passportDays <= 90 && (
+                          <small> ({passportDays} zile)</small>
+                        )}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`expiry-badge ${getExpiryClass(permitDays)}`}>
+                        {candidate.permit_expiry || "-"}
+                        {permitDays !== null && permitDays <= 90 && (
+                          <small> ({permitDays} zile)</small>
+                        )}
+                      </span>
+                    </td>
+                    <td>{candidate.job_type || "-"}</td>
+                    <td>{candidate.company_name || "-"}</td>
+                    <td>
+                      <span className={`status-badge ${candidate.status}`}>{candidate.status}</span>
+                    </td>
+                    <td className="actions-cell">
+                      <button className="icon-btn" onClick={() => { setEditingCandidate(candidate); setShowModal(true); }}>
+                        <Edit size={16} />
+                      </button>
+                      <button className="icon-btn danger" onClick={() => handleDelete(candidate.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {candidates.length === 0 && (
+            <div className="empty-state">
+              <Users size={48} />
+              <p>Nu există candidați. Adăugați primul candidat!</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Candidate Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal large" onClick={e => e.stopPropagation()} data-testid="candidate-modal">
+            <div className="modal-header">
+              <h2>{editingCandidate?.id ? "Editare Candidat" : "Candidat Nou"}</h2>
+              <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Prenume *</label>
+                  <input
+                    type="text"
+                    value={editingCandidate?.first_name || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, first_name: e.target.value })}
+                    data-testid="candidate-firstname-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nume *</label>
+                  <input
+                    type="text"
+                    value={editingCandidate?.last_name || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, last_name: e.target.value })}
+                    data-testid="candidate-lastname-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Naționalitate</label>
+                  <select
+                    value={editingCandidate?.nationality || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, nationality: e.target.value })}
+                  >
+                    <option value="">Selectează...</option>
+                    <option value="Nepal">Nepal</option>
+                    <option value="India">India</option>
+                    <option value="Filipine">Filipine</option>
+                    <option value="Sri Lanka">Sri Lanka</option>
+                    <option value="Nigeria">Nigeria</option>
+                    <option value="Bangladesh">Bangladesh</option>
+                    <option value="Pakistan">Pakistan</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Nr. Pașaport</label>
+                  <input
+                    type="text"
+                    value={editingCandidate?.passport_number || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, passport_number: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Expirare Pașaport</label>
+                  <input
+                    type="date"
+                    value={editingCandidate?.passport_expiry || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, passport_expiry: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Expirare Permis Muncă</label>
+                  <input
+                    type="date"
+                    value={editingCandidate?.permit_expiry || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, permit_expiry: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Telefon</label>
+                  <input
+                    type="text"
+                    value={editingCandidate?.phone || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, phone: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={editingCandidate?.email || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, email: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Tip Job</label>
+                  <select
+                    value={editingCandidate?.job_type || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, job_type: e.target.value })}
+                  >
+                    <option value="">Selectează...</option>
+                    <option value="Muncitor construcții">Muncitor construcții</option>
+                    <option value="Bucătar">Bucătar</option>
+                    <option value="Ospătar">Ospătar</option>
+                    <option value="Șofer">Șofer</option>
+                    <option value="Muncitor agricol">Muncitor agricol</option>
+                    <option value="Sudor">Sudor</option>
+                    <option value="Electrician">Electrician</option>
+                    <option value="Instalator">Instalator</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Companie</label>
+                  <select
+                    value={editingCandidate?.company_id || ""}
+                    onChange={(e) => {
+                      const comp = companies.find(c => c.id === e.target.value);
+                      setEditingCandidate({
+                        ...editingCandidate,
+                        company_id: e.target.value,
+                        company_name: comp?.name || ""
+                      });
+                    }}
+                  >
+                    <option value="">Selectează...</option>
+                    {companies.map(comp => (
+                      <option key={comp.id} value={comp.id}>{comp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    value={editingCandidate?.status || "activ"}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, status: e.target.value })}
+                  >
+                    <option value="activ">Activ</option>
+                    <option value="în procesare">În procesare</option>
+                    <option value="plasat">Plasat</option>
+                    <option value="inactiv">Inactiv</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group full-width">
+                <label>Note</label>
+                <textarea
+                  value={editingCandidate?.notes || ""}
+                  onChange={(e) => setEditingCandidate({ ...editingCandidate, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Anulează</button>
+              <button className="btn btn-primary" onClick={handleSave} data-testid="save-candidate-btn">Salvează</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== IMMIGRATION MODULE =====================
+const ImmigrationModule = ({ showNotification }) => {
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stages, setStages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [newCase, setNewCase] = useState({});
+  const [candidates, setCandidates] = useState([]);
+
+  const fetchCases = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [casesRes, stagesRes, candidatesRes] = await Promise.all([
+        axios.get(`${API}/immigration`),
+        axios.get(`${API}/immigration/stages`),
+        axios.get(`${API}/candidates`)
+      ]);
+      setCases(casesRes.data);
+      setStages(stagesRes.data.stages);
+      setCandidates(candidatesRes.data);
+    } catch (error) {
+      showNotification("Eroare la încărcarea dosarelor", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchCases();
+  }, [fetchCases]);
+
+  const advanceCase = async (caseId) => {
+    try {
+      const response = await axios.patch(`${API}/immigration/${caseId}/advance`);
+      showNotification(response.data.message);
+      fetchCases();
+    } catch (error) {
+      showNotification(error.response?.data?.detail || "Eroare la avansare", "error");
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await axios.post(`${API}/immigration`, newCase);
+      showNotification("Dosar creat!");
+      setShowModal(false);
+      setNewCase({});
+      fetchCases();
+    } catch (error) {
+      showNotification("Eroare la salvare", "error");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Sigur doriți să ștergeți acest dosar?")) return;
+    try {
+      await axios.delete(`${API}/immigration/${id}`);
+      showNotification("Dosar șters!");
+      fetchCases();
+    } catch (error) {
+      showNotification("Eroare la ștergere", "error");
+    }
+  };
+
+  return (
+    <div className="module-container" data-testid="immigration-module">
+      <div className="module-toolbar">
+        <div className="stages-legend">
+          {stages.slice(0, 4).map((stage, idx) => (
+            <span key={idx} className="stage-chip">{idx + 1}. {stage}</span>
+          ))}
+          <span className="stage-chip more">+{stages.length - 4} etape</span>
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowModal(true)}
+          data-testid="add-case-btn"
+        >
+          <Plus size={16} /> Dosar Nou
+        </button>
+      </div>
+
+      {loading ? <LoadingSpinner /> : (
+        <div className="immigration-grid">
+          {cases.map((caseItem) => (
+            <div key={caseItem.id} className="case-card" data-testid={`case-${caseItem.id}`}>
+              <div className="case-header">
+                <span className={`case-type ${caseItem.case_type.toLowerCase().replace(/ /g, "-")}`}>
+                  {caseItem.case_type}
+                </span>
+                <span className={`case-status ${caseItem.status}`}>{caseItem.status}</span>
+              </div>
+              <div className="case-body">
+                <h4>{caseItem.candidate_name}</h4>
+                <p className="company">{caseItem.company_name}</p>
+                <div className="stage-progress">
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${(caseItem.current_stage / stages.length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="stage-text">
+                    Etapa {caseItem.current_stage}/{stages.length}: {stages[caseItem.current_stage - 1]}
+                  </span>
+                </div>
+                <div className="case-dates">
+                  <span><Calendar size={14} /> Depus: {caseItem.submitted_date || "-"}</span>
+                  <span><Clock size={14} /> Deadline: {caseItem.deadline || "-"}</span>
+                </div>
+              </div>
+              <div className="case-actions">
+                {caseItem.current_stage < stages.length && (
+                  <button className="btn btn-success" onClick={() => advanceCase(caseItem.id)} data-testid={`advance-${caseItem.id}`}>
+                    <ChevronRight size={16} /> Avansează
+                  </button>
+                )}
+                <button className="icon-btn danger" onClick={() => handleDelete(caseItem.id)}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {cases.length === 0 && (
+            <div className="empty-state full-width">
+              <FileText size={48} />
+              <p>Nu există dosare de imigrare. Creați primul dosar!</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* New Case Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} data-testid="immigration-modal">
+            <div className="modal-header">
+              <h2>Dosar Nou Imigrare</h2>
+              <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Candidat *</label>
+                  <select
+                    value={newCase.candidate_id || ""}
+                    onChange={(e) => {
+                      const cand = candidates.find(c => c.id === e.target.value);
+                      setNewCase({
+                        ...newCase,
+                        candidate_id: e.target.value,
+                        candidate_name: cand ? `${cand.first_name} ${cand.last_name}` : "",
+                        company_id: cand?.company_id,
+                        company_name: cand?.company_name
+                      });
+                    }}
+                    data-testid="case-candidate-select"
+                  >
+                    <option value="">Selectează candidat...</option>
+                    {candidates.map(cand => (
+                      <option key={cand.id} value={cand.id}>{cand.first_name} {cand.last_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Tip Dosar *</label>
+                  <select
+                    value={newCase.case_type || ""}
+                    onChange={(e) => setNewCase({ ...newCase, case_type: e.target.value })}
+                    data-testid="case-type-select"
+                  >
+                    <option value="">Selectează...</option>
+                    <option value="Permis de muncă">Permis de muncă</option>
+                    <option value="Viză de lungă ședere">Viză de lungă ședere</option>
+                    <option value="Reînnoire permis">Reînnoire permis</option>
+                    <option value="Reunificare familială">Reunificare familială</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Data Depunere</label>
+                  <input
+                    type="date"
+                    value={newCase.submitted_date || ""}
+                    onChange={(e) => setNewCase({ ...newCase, submitted_date: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Deadline</label>
+                  <input
+                    type="date"
+                    value={newCase.deadline || ""}
+                    onChange={(e) => setNewCase({ ...newCase, deadline: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Responsabil</label>
+                  <input
+                    type="text"
+                    value={newCase.assigned_to || "Ioan Baciu"}
+                    onChange={(e) => setNewCase({ ...newCase, assigned_to: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="form-group full-width">
+                <label>Note</label>
+                <textarea
+                  value={newCase.notes || ""}
+                  onChange={(e) => setNewCase({ ...newCase, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Anulează</button>
+              <button className="btn btn-primary" onClick={handleSave} data-testid="save-case-btn">Creează Dosar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== PIPELINE MODULE =====================
+const PipelineModule = ({ showNotification }) => {
+  const [opportunities, setOpportunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const pipelineStages = [
+    { id: "lead", name: "Lead", color: "#6b7280" },
+    { id: "contact", name: "Contact", color: "#3b82f6" },
+    { id: "negociere", name: "Negociere", color: "#f59e0b" },
+    { id: "contract", name: "Contract", color: "#8b5cf6" },
+    { id: "câștigat", name: "Câștigat", color: "#10b981" }
+  ];
+
+  const fetchPipeline = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API}/pipeline`);
+      setOpportunities(response.data);
+    } catch (error) {
+      showNotification("Eroare la încărcarea pipeline-ului", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchPipeline();
+  }, [fetchPipeline]);
+
+  const moveOpportunity = async (oppId, newStage) => {
+    try {
+      await axios.put(`${API}/pipeline/${oppId}`, { stage: newStage });
+      showNotification("Oportunitate actualizată!");
+      fetchPipeline();
+    } catch (error) {
+      showNotification("Eroare la actualizare", "error");
+    }
+  };
+
+  const getStageTotal = (stageId) => {
+    return opportunities
+      .filter(o => o.stage === stageId)
+      .reduce((sum, o) => sum + (o.value * (o.probability / 100)), 0);
+  };
+
+  return (
+    <div className="module-container pipeline-module" data-testid="pipeline-module">
+      {loading ? <LoadingSpinner /> : (
+        <div className="pipeline-board">
+          {pipelineStages.map((stage) => (
+            <div key={stage.id} className="pipeline-column" data-testid={`stage-${stage.id}`}>
+              <div className="column-header" style={{ borderColor: stage.color }}>
+                <h3>{stage.name}</h3>
+                <span className="column-total">€{getStageTotal(stage.id).toLocaleString()}</span>
+              </div>
+              <div className="column-body">
+                {opportunities
+                  .filter(o => o.stage === stage.id)
+                  .map((opp) => (
+                    <div key={opp.id} className="opportunity-card">
+                      <h4>{opp.title}</h4>
+                      <p className="company">{opp.company_name}</p>
+                      <div className="opp-details">
+                        <span className="value">€{opp.value.toLocaleString()}</span>
+                        <span className="probability">{opp.probability}%</span>
+                      </div>
+                      <div className="positions-bar">
+                        <div className="filled" style={{ width: `${(opp.filled / opp.positions) * 100}%` }} />
+                        <span>{opp.filled}/{opp.positions} poziții</span>
+                      </div>
+                      <div className="opp-actions">
+                        {pipelineStages.map((s, idx) => (
+                          s.id !== stage.id && (
+                            <button
+                              key={s.id}
+                              className="move-btn"
+                              onClick={() => moveOpportunity(opp.id, s.id)}
+                              title={`Mută la ${s.name}`}
+                            >
+                              {idx > pipelineStages.findIndex(ps => ps.id === stage.id) ? (
+                                <ArrowUpRight size={14} />
+                              ) : (
+                                <ArrowDownRight size={14} />
+                              )}
+                            </button>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== DOCUMENTS MODULE =====================
+const DocumentsModule = ({ showNotification }) => {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDocuments = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API}/documents`);
+      setDocuments(response.data);
+    } catch (error) {
+      showNotification("Eroare la încărcarea documentelor", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  return (
+    <div className="module-container" data-testid="documents-module">
+      <div className="module-toolbar">
+        <h3>Gestionare Documente</h3>
+        <button className="btn btn-primary" data-testid="upload-doc-btn">
+          <Plus size={16} /> Upload Document
+        </button>
+      </div>
+
+      {loading ? <LoadingSpinner /> : (
+        <div className="documents-grid">
+          {documents.length === 0 ? (
+            <div className="empty-state">
+              <FileText size={48} />
+              <p>Nu există documente încărcate.</p>
+              <small>Modulul de upload va fi disponibil în versiunea completă.</small>
+            </div>
+          ) : (
+            documents.map(doc => (
+              <div key={doc.id} className="document-card">
+                <FileText size={32} />
+                <h4>{doc.file_name}</h4>
+                <span className="doc-type">{doc.doc_type}</span>
+                <span className="doc-expiry">{doc.expiry_date || "N/A"}</span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== REPORTS MODULE =====================
+const ReportsModule = ({ showNotification }) => {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${API}/dashboard`);
+        setDashboard(response.data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="module-container" data-testid="reports-module">
+      <div className="reports-grid">
+        <div className="report-card">
+          <h3><BarChart3 size={20} /> Statistici Generale</h3>
+          <div className="stats-list">
+            <div className="stat-item">
+              <span>Total Candidați</span>
+              <strong>{dashboard?.kpis?.total_candidates || 0}</strong>
+            </div>
+            <div className="stat-item">
+              <span>Candidați Activi</span>
+              <strong>{dashboard?.kpis?.active_candidates || 0}</strong>
+            </div>
+            <div className="stat-item">
+              <span>Companii Partenere</span>
+              <strong>{dashboard?.kpis?.total_companies || 0}</strong>
+            </div>
+            <div className="stat-item">
+              <span>Dosare în Procesare</span>
+              <strong>{dashboard?.kpis?.pending_cases || 0}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="report-card">
+          <h3><Globe size={20} /> Distribuție Naționalități</h3>
+          <div className="nationality-chart">
+            {(dashboard?.nationalities || []).map((nat, idx) => (
+              <div key={idx} className="nat-bar-item">
+                <span className="nat-label">{nat.nationality}</span>
+                <div className="nat-bar-wrapper">
+                  <div
+                    className="nat-bar-fill"
+                    style={{
+                      width: `${(nat.count / (dashboard?.kpis?.total_candidates || 1)) * 100}%`,
+                      backgroundColor: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][idx % 5]
+                    }}
+                  />
+                </div>
+                <span className="nat-value">{nat.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="report-card">
+          <h3><TrendingUp size={20} /> Performanță Pipeline</h3>
+          <div className="pipeline-stats">
+            <div className="big-stat">
+              <span className="label">Valoare Totală Ponderată</span>
+              <span className="value">€{(dashboard?.kpis?.pipeline_value || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="report-card">
+          <h3><AlertTriangle size={20} /> Alerte Active</h3>
+          <div className="alerts-summary">
+            <div className="alert-stat urgent">
+              <span>{dashboard?.kpis?.expiring_passports || 0}</span>
+              <small>Pașapoarte</small>
+            </div>
+            <div className="alert-stat warning">
+              <span>{dashboard?.kpis?.expiring_permits || 0}</span>
+              <small>Permise</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="export-section">
+        <h3>Export Rapoarte</h3>
+        <p>Funcționalitatea de export PDF va fi disponibilă în versiunea completă.</p>
+        <button className="btn btn-secondary" disabled>
+          <FileText size={16} /> Export PDF
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ===================== ALERTS MODULE =====================
+const AlertsModule = ({ showNotification }) => {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAlerts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API}/alerts`);
+      setAlerts(response.data);
+    } catch (error) {
+      showNotification("Eroare la încărcarea alertelor", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
+
+  const getPriorityIcon = (priority) => {
+    switch (priority) {
+      case "urgent": return <AlertTriangle className="urgent" size={20} />;
+      case "warning": return <Clock className="warning" size={20} />;
+      default: return <Bell className="info" size={20} />;
+    }
+  };
+
+  return (
+    <div className="module-container" data-testid="alerts-module">
+      <div className="module-toolbar">
+        <div className="alerts-summary-bar">
+          <span className="alert-count urgent">{alerts.filter(a => a.priority === "urgent").length} Urgente</span>
+          <span className="alert-count warning">{alerts.filter(a => a.priority === "warning").length} Atenție</span>
+          <span className="alert-count info">{alerts.filter(a => a.priority === "info").length} Info</span>
+        </div>
+        <button className="btn btn-secondary" onClick={fetchAlerts} data-testid="refresh-alerts">
+          <RefreshCw size={16} /> Reîmprospătează
+        </button>
+      </div>
+
+      {loading ? <LoadingSpinner /> : (
+        <div className="alerts-list">
+          {alerts.map((alert) => (
+            <div key={alert.id} className={`alert-item ${alert.priority}`} data-testid={`alert-${alert.id}`}>
+              <div className="alert-icon">
+                {getPriorityIcon(alert.priority)}
+              </div>
+              <div className="alert-content">
+                <h4>{alert.entity_name}</h4>
+                <p>{alert.message}</p>
+                <div className="alert-meta">
+                  <span className="alert-type">
+                    {alert.type === "passport_expiry" ? "Pașaport" : "Permis de muncă"}
+                  </span>
+                  <span className="alert-date">Expiră: {alert.expiry_date}</span>
+                  <span className={`days-badge ${alert.priority}`}>
+                    {alert.days_until_expiry} zile rămase
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {alerts.length === 0 && (
+            <div className="empty-state">
+              <CheckCircle size={48} />
+              <p>Nu există alerte active!</p>
+              <small>Toate documentele sunt în regulă.</small>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== SHARED COMPONENTS =====================
+const KPICard = ({ title, value, subtitle, icon: Icon, color, highlight }) => (
+  <div className={`kpi-card ${color} ${highlight ? "highlight" : ""}`} data-testid={`kpi-${title.toLowerCase().replace(/ /g, "-")}`}>
+    <div className="kpi-icon">
+      <Icon size={24} />
+    </div>
+    <div className="kpi-content">
+      <span className="kpi-value">{value}</span>
+      <span className="kpi-title">{title}</span>
+      <span className="kpi-subtitle">{subtitle}</span>
+    </div>
+  </div>
+);
+
+const LoadingSpinner = () => (
+  <div className="loading-spinner" data-testid="loading-spinner">
+    <RefreshCw className="spin" size={32} />
+    <span>Se încarcă...</span>
+  </div>
+);
 
 export default App;
