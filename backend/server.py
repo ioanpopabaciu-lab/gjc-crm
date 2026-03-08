@@ -493,56 +493,96 @@ async def delete_document(doc_id: str):
 
 @api_router.get("/alerts")
 async def get_all_alerts():
-    """Get all system alerts"""
+    """Get all system alerts - documents expiring in 90 days or already expired"""
     alerts = []
     today = datetime.now(timezone.utc).date()
-    alert_date = (today + timedelta(days=90)).isoformat()
+    alert_date_future = (today + timedelta(days=90)).isoformat()
+    alert_date_past = (today - timedelta(days=365)).isoformat()  # Include ultimul an de expirări
     
-    # Passport alerts
+    # Get all candidates with passport or permit expiry dates
     candidates = await db.candidates.find({
-        "passport_expiry": {"$lte": alert_date, "$ne": None}
-    }, {"_id": 0}).to_list(100)
+        "$or": [
+            {"passport_expiry": {"$ne": None}},
+            {"permit_expiry": {"$ne": None}}
+        ]
+    }, {"_id": 0}).to_list(1000)
     
     for c in candidates:
+        # Passport alerts
         if c.get('passport_expiry'):
             try:
                 exp_date = datetime.fromisoformat(c['passport_expiry']).date()
                 days = (exp_date - today).days
-                if 0 <= days <= 90:
+                
+                # Include if expiring within 90 days OR already expired (up to 1 year)
+                if days <= 90 and days >= -365:
+                    if days < 0:
+                        priority = "urgent"  # Already expired
+                        message = f"Pașaport EXPIRAT de {abs(days)} zile"
+                    elif days <= 30:
+                        priority = "urgent"  # Critical - under 30 days
+                        message = f"Pașaport expiră în {days} zile"
+                    elif days <= 60:
+                        priority = "warning"  # Warning - 30-60 days
+                        message = f"Pașaport expiră în {days} zile"
+                    else:
+                        priority = "info"  # Info - 60-90 days
+                        message = f"Pașaport expiră în {days} zile"
+                    
                     alerts.append({
                         "id": str(uuid.uuid4()),
                         "type": "passport_expiry",
                         "entity_type": "candidate",
                         "entity_id": c['id'],
                         "entity_name": f"{c['first_name']} {c['last_name']}",
-                        "message": f"Pașaport expiră în {days} zile",
+                        "message": message,
                         "expiry_date": c['passport_expiry'],
                         "days_until_expiry": days,
-                        "priority": "urgent" if days <= 30 else "warning" if days <= 60 else "info"
+                        "priority": priority,
+                        "company_name": c.get('company_name', '')
                     })
             except:
                 pass
         
+        # Permit alerts
         if c.get('permit_expiry'):
             try:
                 exp_date = datetime.fromisoformat(c['permit_expiry']).date()
                 days = (exp_date - today).days
-                if 0 <= days <= 90:
+                
+                # Include if expiring within 90 days OR already expired (up to 1 year)
+                if days <= 90 and days >= -365:
+                    if days < 0:
+                        priority = "urgent"  # Already expired
+                        message = f"Permis de muncă EXPIRAT de {abs(days)} zile"
+                    elif days <= 30:
+                        priority = "urgent"  # Critical - under 30 days
+                        message = f"Permis de muncă expiră în {days} zile"
+                    elif days <= 60:
+                        priority = "warning"  # Warning - 30-60 days
+                        message = f"Permis de muncă expiră în {days} zile"
+                    else:
+                        priority = "info"  # Info - 60-90 days
+                        message = f"Permis de muncă expiră în {days} zile"
+                    
                     alerts.append({
                         "id": str(uuid.uuid4()),
                         "type": "permit_expiry",
                         "entity_type": "candidate",
                         "entity_id": c['id'],
                         "entity_name": f"{c['first_name']} {c['last_name']}",
-                        "message": f"Permis de muncă expiră în {days} zile",
+                        "message": message,
                         "expiry_date": c['permit_expiry'],
                         "days_until_expiry": days,
-                        "priority": "urgent" if days <= 30 else "warning" if days <= 60 else "info"
+                        "priority": priority,
+                        "company_name": c.get('company_name', '')
                     })
             except:
                 pass
     
-    return sorted(alerts, key=lambda x: x['days_until_expiry'])
+    # Sort by priority (urgent first) then by days until expiry
+    priority_order = {"urgent": 0, "warning": 1, "info": 2}
+    return sorted(alerts, key=lambda x: (priority_order.get(x['priority'], 3), x['days_until_expiry']))
 
 # ===================== ANAF CUI LOOKUP =====================
 
