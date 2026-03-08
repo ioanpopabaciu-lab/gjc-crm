@@ -365,14 +365,14 @@ async def delete_candidate(candidate_id: str):
 # ===================== IMMIGRATION CASES =====================
 
 IMMIGRATION_STAGES = [
-    "Inițiat",
-    "Documente colectate",
-    "Depus la autorități",
-    "În procesare",
-    "Interviu programat",
-    "Interviu finalizat",
-    "Decizie primită",
-    "Finalizat"
+    "Recrutat",
+    "Documente Pregatite",
+    "Permis Munca Depus",
+    "Permis Munca Aprobat",
+    "Viza Depusa",
+    "Viza Aprobata",
+    "Sosit Romania",
+    "Permis Sedere"
 ]
 
 @api_router.get("/immigration", response_model=List[ImmigrationCase])
