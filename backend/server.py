@@ -174,16 +174,38 @@ async def get_dashboard():
     pipeline = await db.pipeline.find({}, {"_id": 0}).to_list(100)
     total_pipeline_value = sum(p.get('value', 0) * (p.get('probability', 0) / 100) for p in pipeline)
     
-    # Alerts - documents/passports expiring in 90 days
+    # Alerts - documents/passports expiring in 90 days OR already expired
     today = datetime.now(timezone.utc).date()
-    alert_date = (today + timedelta(days=90)).isoformat()
+    alert_date_future = (today + timedelta(days=90)).isoformat()
     
-    expiring_passports = await db.candidates.count_documents({
-        "passport_expiry": {"$lte": alert_date, "$gte": today.isoformat()}
-    })
-    expiring_permits = await db.candidates.count_documents({
-        "permit_expiry": {"$lte": alert_date, "$gte": today.isoformat()}
-    })
+    # Count expiring/expired passports
+    passport_alerts = 0
+    permit_alerts = 0
+    
+    candidates_with_expiry = await db.candidates.find({
+        "$or": [
+            {"passport_expiry": {"$ne": None}},
+            {"permit_expiry": {"$ne": None}}
+        ]
+    }, {"_id": 0, "passport_expiry": 1, "permit_expiry": 1}).to_list(1000)
+    
+    for c in candidates_with_expiry:
+        if c.get('passport_expiry'):
+            try:
+                exp_date = datetime.fromisoformat(c['passport_expiry']).date()
+                days = (exp_date - today).days
+                if days <= 90 and days >= -365:
+                    passport_alerts += 1
+            except:
+                pass
+        if c.get('permit_expiry'):
+            try:
+                exp_date = datetime.fromisoformat(c['permit_expiry']).date()
+                days = (exp_date - today).days
+                if days <= 90 and days >= -365:
+                    permit_alerts += 1
+            except:
+                pass
     
     # Nationality breakdown
     nationality_pipeline = [
