@@ -291,9 +291,10 @@ def parse_excel_files():
             company_name = str(row['Angajator Initial']).strip()
         
         # Adăugăm compania dacă nu există
-        if company_name and company_name not in companies_dict:
-            companies_dict[company_name] = {
-                'name': company_name,
+        company_name_normalized = normalize_company_name(company_name) if company_name else None
+        if company_name_normalized and company_name_normalized not in companies_dict:
+            companies_dict[company_name_normalized] = {
+                'name': company_name_normalized,
                 'cui': None,
                 'city': None,
                 'industry': None,
@@ -311,7 +312,7 @@ def parse_excel_files():
             'job_type': None,
             'passport_number': None,
             'passport_expiry': None,
-            'company_name': company_name,
+            'company_name': company_name_normalized,
             'status': 'activ',
             'immigration_status': immigration_status,
             'source': 'feb2026'
