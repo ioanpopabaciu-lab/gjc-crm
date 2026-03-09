@@ -115,7 +115,7 @@ body {
   height: 36px;
   object-fit: contain;
   border-radius: 8px;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   padding: 4px;
 }
 
