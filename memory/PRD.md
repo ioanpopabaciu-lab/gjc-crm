@@ -87,6 +87,14 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
 - Successfully fetches company data from Romanian ANAF API
 - Auto-fills company form fields (name, CUI, address, city, TVA status)
 
+### CUI Auto-Validation (Added 2025-03-09) ✅
+- Automatic CUI validation when typing in company form
+- Uses debounce (800ms) to avoid excessive API calls
+- Visual indicators:
+  - ✅ Green border + checkmark + company name for valid CUIs
+  - ❌ Red border + X icon + error message for invalid CUIs
+  - 🔄 Loading spinner while validating
+
 ---
 
 ## Pending Tasks
