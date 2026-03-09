@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "@/App.css";
 import axios from "axios";
 import {
@@ -6,23 +6,169 @@ import {
   Plus, Search, Filter, ChevronRight, AlertTriangle, CheckCircle,
   Clock, MapPin, Phone, Mail, Globe, Briefcase, Calendar,
   Edit, Trash2, Eye, RefreshCw, X, Menu, Home, Settings,
-  ChevronDown, ArrowUpRight, ArrowDownRight, User
+  ChevronDown, ArrowUpRight, ArrowDownRight, User, Upload, Download,
+  LogOut, Lock, Paperclip
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// ===================== AUTH CONTEXT =====================
+const useAuth = () => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('gjc_token'));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const savedToken = localStorage.getItem('gjc_token');
+      if (savedToken) {
+        try {
+          const response = await axios.get(`${API}/auth/me`, {
+            headers: { Authorization: `Bearer ${savedToken}` }
+          });
+          setUser(response.data);
+          setToken(savedToken);
+          axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+        } catch (error) {
+          localStorage.removeItem('gjc_token');
+          setToken(null);
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, []);
+
+  const login = async (email, password) => {
+    const response = await axios.post(`${API}/auth/login`, { email, password });
+    const { access_token, user: userData } = response.data;
+    localStorage.setItem('gjc_token', access_token);
+    setToken(access_token);
+    setUser(userData);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+    return userData;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('gjc_token');
+    setToken(null);
+    setUser(null);
+    delete axios.defaults.headers.common['Authorization'];
+  };
+
+  return { user, token, loading, login, logout, isAuthenticated: !!user };
+};
+
+// ===================== LOGIN PAGE =====================
+const LoginPage = ({ onLogin, showNotification }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      showNotification("Completează toate câmpurile", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onLogin(email, password);
+      showNotification("Autentificare reușită!");
+    } catch (error) {
+      showNotification(error.response?.data?.detail || "Eroare la autentificare", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-page" data-testid="login-page">
+      <div className="login-container">
+        <div className="login-header">
+          <img src="/assets/gjc-logo.png" alt="GJC Logo" className="login-logo" />
+          <h1>GJC AI-CRM</h1>
+          <p>Global Jobs Consulting</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label><Mail size={16} /> Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@gjc.ro"
+              data-testid="login-email"
+            />
+          </div>
+          <div className="form-group">
+            <label><Lock size={16} /> Parolă</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              data-testid="login-password"
+            />
+          </div>
+          <button 
+            type="submit" 
+            className="btn btn-primary btn-block"
+            disabled={loading}
+            data-testid="login-submit"
+          >
+            {loading ? "Se autentifică..." : "Autentificare"}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <p>© 2026 Global Jobs Consulting. Toate drepturile rezervate.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ===================== MAIN APP =====================
 function App() {
+  const { user, loading: authLoading, login, logout, isAuthenticated } = useAuth();
   const [activeModule, setActiveModule] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner-large"></div>
+        <p>Se încarcă...</p>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        {notification && (
+          <div className={`notification ${notification.type}`} data-testid="notification">
+            {notification.type === "success" ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+            <span>{notification.message}</span>
+          </div>
+        )}
+        <LoginPage onLogin={login} showNotification={showNotification} />
+      </>
+    );
+  }
 
   const modules = [
     { id: "dashboard", name: "Dashboard", icon: Home },
