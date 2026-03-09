@@ -274,6 +274,205 @@ def serialize_doc(doc):
         doc['created_at'] = doc['created_at'].isoformat()
     return doc
 
+# ===================== AUTHENTICATION =====================
+
+@api_router.post("/auth/register", response_model=TokenResponse)
+async def register_user(user_data: UserCreate):
+    """Register a new user"""
+    # Check if email already exists
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email-ul este deja înregistrat")
+    
+    # Create user
+    user_id = str(uuid.uuid4())
+    hashed_password = get_password_hash(user_data.password)
+    created_at = datetime.now(timezone.utc).isoformat()
+    
+    user_doc = {
+        "id": user_id,
+        "email": user_data.email,
+        "password_hash": hashed_password,
+        "role": user_data.role,
+        "created_at": created_at
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # Create token
+    access_token = create_access_token({"sub": user_id, "email": user_data.email, "role": user_data.role})
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user_id,
+            email=user_data.email,
+            role=user_data.role,
+            created_at=created_at
+        )
+    )
+
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login_user(credentials: UserLogin):
+    """Login user and return JWT token"""
+    user = await db.users.find_one({"email": credentials.email})
+    
+    if not user or not verify_password(credentials.password, user['password_hash']):
+        raise HTTPException(status_code=401, detail="Email sau parolă incorectă")
+    
+    # Create token
+    access_token = create_access_token({
+        "sub": user['id'],
+        "email": user['email'],
+        "role": user['role']
+    })
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user['id'],
+            email=user['email'],
+            role=user['role'],
+            created_at=user.get('created_at', '')
+        )
+    )
+
+@api_router.get("/auth/me")
+async def get_current_user_info(user = Depends(require_auth)):
+    """Get current authenticated user info"""
+    return UserResponse(
+        id=user['id'],
+        email=user['email'],
+        role=user['role'],
+        created_at=user.get('created_at', '')
+    )
+
+@api_router.get("/auth/users")
+async def get_all_users(user = Depends(require_admin)):
+    """Get all users (admin only)"""
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
+    return users
+
+# ===================== FILE UPLOAD =====================
+
+@api_router.post("/upload/document/{case_id}/{category}/{doc_id}")
+async def upload_document(
+    case_id: str,
+    category: str,
+    doc_id: str,
+    file: UploadFile = File(...)
+):
+    """Upload a document file for an immigration case"""
+    
+    # Verify case exists
+    case = await db.immigration_cases.find_one({"id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Tip fișier nepermis. Tipuri acceptate: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # Validate file size
+    file.file.seek(0, 2)  # Seek to end
+    file_size = file.file.tell()
+    file.file.seek(0)  # Seek back to start
+    
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Fișierul este prea mare. Maxim 10MB.")
+    
+    # Generate unique filename
+    unique_filename = f"{case_id}_{category}_{doc_id}_{uuid.uuid4().hex[:8]}{file_ext}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Update document in case
+    documents = case.get('documents', {})
+    if category in documents:
+        for doc in documents[category].get('docs', []):
+            if doc['id'] == doc_id:
+                doc['status'] = 'present'
+                doc['file_path'] = str(unique_filename)
+                doc['file_name'] = file.filename
+                doc['uploaded_at'] = datetime.now(timezone.utc).isoformat()
+                break
+    
+    # Add to history
+    history = case.get('history', [])
+    doc_name = next(
+        (d['name'] for d in documents.get(category, {}).get('docs', []) if d['id'] == doc_id),
+        doc_id
+    )
+    history.insert(0, {
+        'date': datetime.now(timezone.utc).strftime('%d.%m.%Y'),
+        'action': f'{doc_name} — fișier încărcat ({file.filename})',
+        'user': 'Operator',
+        'icon': '📎'
+    })
+    
+    await db.immigration_cases.update_one(
+        {"id": case_id},
+        {"$set": {"documents": documents, "history": history}}
+    )
+    
+    return {
+        "message": "Fișier încărcat cu succes",
+        "filename": unique_filename,
+        "original_name": file.filename
+    }
+
+@api_router.get("/upload/document/{filename}")
+async def download_document(filename: str):
+    """Download/view a document file"""
+    file_path = UPLOAD_DIR / filename
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Fișierul nu a fost găsit")
+    
+    return FileResponse(
+        path=str(file_path),
+        filename=filename,
+        media_type="application/octet-stream"
+    )
+
+@api_router.delete("/upload/document/{case_id}/{category}/{doc_id}")
+async def delete_document(case_id: str, category: str, doc_id: str):
+    """Delete a document file"""
+    
+    case = await db.immigration_cases.find_one({"id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    documents = case.get('documents', {})
+    file_path = None
+    
+    if category in documents:
+        for doc in documents[category].get('docs', []):
+            if doc['id'] == doc_id and doc.get('file_path'):
+                file_path = UPLOAD_DIR / doc['file_path']
+                doc['status'] = 'missing'
+                doc['file_path'] = None
+                doc['file_name'] = None
+                doc['uploaded_at'] = None
+                break
+    
+    if file_path and file_path.exists():
+        file_path.unlink()
+    
+    await db.immigration_cases.update_one(
+        {"id": case_id},
+        {"$set": {"documents": documents}}
+    )
+    
+    return {"message": "Fișier șters cu succes"}
+
 # ===================== DASHBOARD =====================
 
 @api_router.get("/dashboard")
