@@ -474,6 +474,101 @@ async def delete_document(case_id: str, category: str, doc_id: str):
     
     return {"message": "Fișier șters cu succes"}
 
+# ===================== PDF GENERATION =====================
+
+@api_router.get("/pdf/angajament-plata/{case_id}")
+async def generate_angajament_pdf(case_id: str):
+    """Generate Angajament de Plată PDF for a case"""
+    
+    # Get case data
+    case = await db.immigration_cases.find_one({"id": case_id}, {"_id": 0})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    # Get candidate data
+    candidate = {}
+    if case.get('candidate_id'):
+        candidate = await db.candidates.find_one({"id": case['candidate_id']}, {"_id": 0}) or {}
+    
+    # Get company data
+    company = {}
+    if case.get('company_id'):
+        company = await db.companies.find_one({"id": case['company_id']}, {"_id": 0}) or {}
+    
+    # Generate PDF
+    pdf_buffer = generate_angajament_plata(candidate, company, case)
+    
+    candidate_name = f"{candidate.get('first_name', '')}_{candidate.get('last_name', '')}".strip('_')
+    filename = f"Angajament_Plata_{candidate_name}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/pdf/contract-mediere/{case_id}")
+async def generate_contract_pdf(case_id: str):
+    """Generate Contract de Mediere PDF for a case"""
+    
+    # Get case data
+    case = await db.immigration_cases.find_one({"id": case_id}, {"_id": 0})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    # Get candidate data
+    candidate = {}
+    if case.get('candidate_id'):
+        candidate = await db.candidates.find_one({"id": case['candidate_id']}, {"_id": 0}) or {}
+    
+    # Get company data
+    company = {}
+    if case.get('company_id'):
+        company = await db.companies.find_one({"id": case['company_id']}, {"_id": 0}) or {}
+    
+    # Generate PDF
+    pdf_buffer = generate_contract_mediere(candidate, company, case)
+    
+    candidate_name = f"{candidate.get('first_name', '')}_{candidate.get('last_name', '')}".strip('_')
+    filename = f"Contract_Mediere_{candidate_name}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/pdf/oferta-angajare/{case_id}")
+async def generate_oferta_pdf(case_id: str):
+    """Generate Ofertă Fermă de Angajare PDF for a case"""
+    
+    # Get case data
+    case = await db.immigration_cases.find_one({"id": case_id}, {"_id": 0})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    # Get candidate data
+    candidate = {}
+    if case.get('candidate_id'):
+        candidate = await db.candidates.find_one({"id": case['candidate_id']}, {"_id": 0}) or {}
+    
+    # Get company data
+    company = {}
+    if case.get('company_id'):
+        company = await db.companies.find_one({"id": case['company_id']}, {"_id": 0}) or {}
+    
+    # Generate PDF
+    pdf_buffer = generate_oferta_angajare(candidate, company, case)
+    
+    candidate_name = f"{candidate.get('first_name', '')}_{candidate.get('last_name', '')}".strip('_')
+    filename = f"Oferta_Angajare_{candidate_name}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 # ===================== DASHBOARD =====================
 
 @api_router.get("/dashboard")
