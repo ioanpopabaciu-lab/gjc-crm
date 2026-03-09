@@ -397,6 +397,7 @@ const CompaniesModule = ({ showNotification }) => {
   const [editingCompany, setEditingCompany] = useState(null);
   const [cuiLookup, setCuiLookup] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [cuiValidation, setCuiValidation] = useState({ status: null, loading: false, message: "" }); // null, 'valid', 'invalid'
 
   const fetchCompanies = useCallback(async () => {
     try {
