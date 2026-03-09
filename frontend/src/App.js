@@ -634,11 +634,35 @@ const CompaniesModule = ({ showNotification }) => {
                 </div>
                 <div className="form-group">
                   <label>CUI</label>
-                  <input
-                    type="text"
-                    value={editingCompany?.cui || ""}
-                    onChange={(e) => setEditingCompany({ ...editingCompany, cui: e.target.value })}
-                  />
+                  <div className="cui-input-wrapper">
+                    <input
+                      type="text"
+                      value={editingCompany?.cui || ""}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, cui: e.target.value })}
+                      className={cuiValidation.status === 'valid' ? 'cui-valid' : cuiValidation.status === 'invalid' ? 'cui-invalid' : ''}
+                      data-testid="company-cui-input"
+                    />
+                    {cuiValidation.loading && (
+                      <span className="cui-validation-indicator loading">
+                        <RefreshCw size={14} className="spin" />
+                      </span>
+                    )}
+                    {cuiValidation.status === 'valid' && (
+                      <span className="cui-validation-indicator valid" title={cuiValidation.message}>
+                        <CheckCircle size={14} />
+                      </span>
+                    )}
+                    {cuiValidation.status === 'invalid' && (
+                      <span className="cui-validation-indicator invalid" title={cuiValidation.message}>
+                        <XCircle size={14} />
+                      </span>
+                    )}
+                  </div>
+                  {cuiValidation.message && (
+                    <small className={`cui-validation-message ${cuiValidation.status}`}>
+                      {cuiValidation.message}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Oraș</label>
