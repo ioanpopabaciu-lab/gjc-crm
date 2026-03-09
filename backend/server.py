@@ -1374,6 +1374,26 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_event():
+    """Create default admin user on startup"""
+    # Check if admin user exists
+    admin_email = "ioan@gjc.ro"
+    admin_exists = await db.users.find_one({"email": admin_email})
+    
+    if not admin_exists:
+        admin_user = {
+            "id": str(uuid.uuid4()),
+            "email": admin_email,
+            "password_hash": get_password_hash("GJC2026admin"),
+            "role": "admin",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(admin_user)
+        logger.info(f"Admin user created: {admin_email}")
+    else:
+        logger.info(f"Admin user already exists: {admin_email}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
