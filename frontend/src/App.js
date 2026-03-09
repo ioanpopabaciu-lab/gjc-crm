@@ -1553,8 +1553,9 @@ const ImmigrationModule = ({ showNotification }) => {
               <div className="doc-list two-columns">
                 {caseData.documents.company.docs?.map((doc) => {
                   const expiryDays = getDaysUntilExpiry(doc.expiry_date);
+                  const hasFile = !!doc.file_path;
                   return (
-                    <div key={doc.id} className="doc-row" data-testid={`doc-${doc.id}`}>
+                    <div key={doc.id} className={`doc-row ${hasFile ? 'has-attachment' : ''}`} data-testid={`doc-${doc.id}`}>
                       <div 
                         className="doc-check-wrapper"
                         onClick={() => updateDocument('company', doc.id, doc.status === 'present' ? 'missing' : 'present', doc.issue_date, doc.expiry_date)}
@@ -1565,10 +1566,29 @@ const ImmigrationModule = ({ showNotification }) => {
                       <div className="doc-name">
                         {doc.name}
                         {doc.required && <span className="required">*</span>}
+                        {hasFile && (
+                          <span className="file-indicator" title={doc.file_name}>
+                            <Paperclip size={12} />
+                          </span>
+                        )}
                       </div>
                       <div className="doc-date">{doc.issue_date || '—'}</div>
                       <div className={`doc-date ${expiryDays && expiryDays <= 0 ? 'date-expired' : expiryDays && expiryDays <= 30 ? 'date-warning' : ''}`}>
                         {doc.expiry_date || (doc.has_expiry ? 'necesită dată' : '—')}
+                      </div>
+                      <div className="doc-actions">
+                        {hasFile ? (
+                          <>
+                            <button className="icon-btn small success" onClick={() => downloadFile(doc.file_path)} title="Descarcă fișier">
+                              <Download size={14} />
+                            </button>
+                            <button className="icon-btn small danger" onClick={() => deleteFile('company', doc.id)} title="Șterge fișier">
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <FileUploadButton category="company" docId={doc.id} hasFile={hasFile} />
+                        )}
                       </div>
                     </div>
                   );
