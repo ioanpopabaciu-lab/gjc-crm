@@ -79,10 +79,23 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
 
 ---
 
+## Recently Fixed ✅
+
+### ANAF CUI Lookup (Fixed 2025-03-09) ✅
+- Fixed async/sync compatibility issue
+- Now uses `requests` library with `ThreadPoolExecutor` instead of `httpx`
+- Successfully fetches company data from Romanian ANAF API
+- Auto-fills company form fields (name, CUI, address, city, TVA status)
+
+---
+
 ## Pending Tasks
 
 ### P1 - Medium Priority  
 - [ ] **Resend Email Integration** - Notifications when case status changes
+
+### P2 - Lower Priority
+- [ ] **Refactoring** - Break down monolithic `server.py` and `App.js`
 
 ### P3 - Future
 - [ ] Export reports to Excel
