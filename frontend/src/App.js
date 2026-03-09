@@ -7,7 +7,7 @@ import {
   Clock, MapPin, Phone, Mail, Globe, Briefcase, Calendar,
   Edit, Trash2, Eye, RefreshCw, X, Menu, Home, Settings,
   ChevronDown, ArrowUpRight, ArrowDownRight, User, Upload, Download,
-  LogOut, Lock, Paperclip
+  LogOut, Lock, Paperclip, XCircle
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
