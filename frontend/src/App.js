@@ -224,10 +224,18 @@ function App() {
                 <User size={20} />
               </div>
               <div className="user-details">
-                <span className="user-name">Ioan Baciu</span>
-                <span className="user-role">Administrator</span>
+                <span className="user-name">{user?.email?.split('@')[0] || 'Utilizator'}</span>
+                <span className="user-role">{user?.role === 'admin' ? 'Administrator' : 'Operator'}</span>
               </div>
+              <button className="logout-btn" onClick={logout} title="Deconectare" data-testid="logout-btn">
+                <LogOut size={18} />
+              </button>
             </div>
+          )}
+          {!sidebarOpen && (
+            <button className="logout-btn centered" onClick={logout} title="Deconectare" data-testid="logout-btn-small">
+              <LogOut size={18} />
+            </button>
           )}
         </div>
       </aside>
