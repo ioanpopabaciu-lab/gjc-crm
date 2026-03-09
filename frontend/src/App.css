@@ -915,6 +915,62 @@ body {
   flex: 1;
 }
 
+/* CUI Auto-validation Styles */
+.cui-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cui-input-wrapper input {
+  flex: 1;
+  padding-right: 36px;
+  transition: border-color 0.2s ease;
+}
+
+.cui-input-wrapper input.cui-valid {
+  border-color: var(--success);
+}
+
+.cui-input-wrapper input.cui-invalid {
+  border-color: var(--danger);
+}
+
+.cui-validation-indicator {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cui-validation-indicator.loading {
+  color: var(--primary);
+}
+
+.cui-validation-indicator.valid {
+  color: var(--success);
+}
+
+.cui-validation-indicator.invalid {
+  color: var(--danger);
+}
+
+.cui-validation-message {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+.cui-validation-message.valid {
+  color: var(--success);
+}
+
+.cui-validation-message.invalid {
+  color: var(--danger);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
