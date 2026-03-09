@@ -1,142 +1,174 @@
 <analysis>**original_problem_statement:**
-The user wants to continue the development of a CRM application that was initially conceptualized on another platform (Claude.ai). The user provided a Word document (GJC_Raport_Complet_2026.docx) detailing the project's structure, which includes a React frontend, a Node.js backend, and a PostgreSQL database schema for a recruitment and immigration agency named Global Jobs Consulting.
-
-After a functional demo was created by the agent, the user requested a lighter UI theme and provided another document (GJC_Prompt_Emergent_Automatizare.docx) with requirements for new features and automations. The user also uploaded two Excel files (Baza de date noua, 18-Feb-2026.xlsx, Baza de date_Ioan Baciu_07 04 2025.xlsx) containing real data to be imported into the application.
+The user wants to build a comprehensive AI-CRM for a recruitment and immigration agency named Global Jobs Consulting.
 
 **PRODUCT REQUIREMENTS:**
-1.  **UI:** Change the current dark theme to a lighter one (Completed).
-2.  **Authentication:** Implement a JWT-based authentication system.
-3.  **Notifications:** Integrate Resend for sending email/SMS notifications for events like candidate status changes and immigration stage advancements.
-4.  **Data Import:** Import all real data from the two provided Excel files.
-5.  **Automations (based on the provided doc):**
-    *   ANAF CUI (Company Tax ID) lookup for B2B clients.
-    *   Automatic generation of Angajament de plată (Payment Commitment) and Contract de mediere (Mediation Contract) documents.
-    *   Automatic advancement of immigration case stages.
+1.  **UI:** Start with a light theme. Add the company logo.
+2.  **Data Import (P0 - Partially Completed):** Import all real data from two provided Excel files (, ) into the MongoDB database, replacing all mock data. This involves parsing candidates and companies, cleaning data, and handling duplicates. *Note: This was completed, but the user requested it again. It may need to be re-run or verified.*
+3.  **Immigration Tracker (P0 - Completed):** Implement a detailed immigration case tracker based on a provided HTML file (). This includes 8 progress stages, multiple sections with document checklists, status indicators (present, missing, expiring), and fields for dates.
+4.  **File Uploads (P0 - Completed):** Add functionality to upload a file (PDF, JPG, PNG) for each item in the immigration tracker checklist. An icon should indicate an attached file, with options to preview or download.
+5.  **Authentication (P0 - Completed):** Implement JWT-based authentication with  and  roles. Create a login page and protect all API routes. An implicit admin account ( / ) should be created on startup.
+6.  **Document Expiry Alerts (P1 - Completed):** Create an alert system for candidates whose passports or work permits are expiring in < 90 days, grouped by severity (Critical, Urgent, Attention).
+7.  **PDF Generation (P2 - Completed):** Implement functionality to automatically generate PDF documents for Angajament de plată, Contract de mediere, and Ofertă de angajare, pre-filled with candidate and company data.
+8.  **ANAF CUI Lookup (P2 - In Progress):** Add a feature to look up and verify company data using the Romanian ANAF service for B2B clients. This feature was implemented but is currently broken.
+9.  **Email Notifications (P1 - Not Started):** Integrate Resend to send automatic email notifications to candidates and companies when an immigration case advances to a new stage.
 
 **User's preferred language**: Romanian. The next agent MUST respond in Romanian only.
 
 **what currently exists?**
-A functional demo of the GJC AI-CRM application has been built using React, FastAPI, and MongoDB. The application features a light theme and consists of eight modules: Dashboard, B2B Clients, B2C Candidates, Immigration Cases, Sales Pipeline, Documents, AI Reports, and an Alert Center. All data currently in the application is mock data seeded directly from the backend.
+The application is a full-stack AI-CRM built with a React frontend and a FastAPI/MongoDB backend. The initial demo has been significantly enhanced with real data, core features, and a sophisticated UI.
+
+Key completed features include:
+- A complete JWT authentication system with a dedicated login page.
+- A detailed, multi-tab immigration case tracker that allows for granular tracking of documents and stages.
+- File upload functionality for every document in the tracker, with files stored in .
+- Dynamic PDF generation for three key legal documents.
+- An automated alert system for expiring documents, visible on the dashboard and in a dedicated alert center.
+- All mock data has been replaced by real data imported and cleaned from two user-provided Excel files.
+
+The backend and frontend codebases are largely monolithic (, ), but new backend logic has been separated into , , and .
 
 **Last working item**:
-- **Last item agent was working:** The agent was gathering all user requirements and preparing for the implementation of the next set of features. The immediate next action was to get the integration playbook for Resend to handle email notifications, followed by implementing authentication and data import.
-- **Status:** NOT STARTED
+- **Last item agent was working:** The agent was debugging the Caută ANAF (ANAF Lookup) feature, which was failing. The agent correctly diagnosed that the asynchronous  library was causing s when communicating with the ANAF API. A separate test script confirmed that the synchronous  library works correctly. The agent's final attempts involved trying to integrate the  library into the async FastAPI endpoint.
+- **Status:** IN PROGRESS
 - **Agent Testing Done:** N
-- **Which testing method agent to use?** both
+- **Which testing method agent to use?** backend testing agent
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-There are no pending issues. The project is moving from the demo phase to the feature implementation phase.
+- **Issue 1: ANAF CUI lookup is broken (P0)**
+  - **Description:** The  endpoint fails with a  when trying to fetch data from the official ANAF API. The user reported this with a screenshot showing nu gaseste nimic.
+  - **Attempted fixes:**
+    - The agent confirmed the bug with .
+    - Identified that the  library was failing.
+    - Proved that the synchronous  library can successfully communicate with the ANAF API in a standalone script.
+    - The latest attempt to integrate  into the FastAPI endpoint still resulted in an error.
+  - **Next debug checklist:**
+    1.  Review the latest changes in  at the  endpoint.
+    2.  The correct approach is to run the synchronous  code inside an async-compatible function using  to prevent blocking the event loop. Implement this pattern.
+        
+    3.  Ensure the multi-step polling logic (first POST to get correlation ID, then GET to fetch result) is correctly implemented within the thread pool.
+  - **Why fix this issue and what will be achieved with the fix?** This will fix a key automation feature for B2B clients, allowing users to verify company details automatically, reducing manual data entry and errors.
+  - **Status:** IN PROGRESS
+  - **Is recurring issue?** N
+  - **Should Test frontend/backend/both after fix?** backend
+  - **Blocked on other issue:** None
 
 **In progress Task List**:
-There are no tasks currently in progress.
+- None.
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks (Phase 1 - Core Functionality):**
-    - **Task 1 (P0): Get Integration Playbooks:** Call  to get the implementation plan for **Resend**.
-    - **Task 2 (P0): Implement JWT Authentication:** Set up the entire authentication flow including user registration, login, and securing API endpoints.
-    - **Task 3 (P0): Implement Data Import:**
-        - Analyze the second Excel file ().
-        - Create a script or endpoint to parse both Excel files and populate the MongoDB collections (, ) with the real data, replacing the existing mock data.
-    - **Task 4 (P1): Implement Resend Notifications:** Using the playbook, integrate Resend to send emails based on the automation triggers specified by the user (e.g., changes in immigration case status).
-
-- **Future Tasks (Phase 2 - Automations):**
-    - **Task 5 (P1): Implement ANAF CUI Lookup:** Add functionality to verify company data using the Romanian ANAF service.
-    - **Task 6 (P2): Implement Document Generation:** Create features to automatically generate  and  documents.
-    - **Task 7 (P2): Automate Immigration Stages:** Implement the logic for automatically advancing an immigration case to the next stage upon meeting certain criteria.
+- **Upcoming Tasks:**
+  - **Task 1 (P1): Implement Resend Notifications:**
+    - Call  for Resend.
+    - Ask the user for the API key once they have created their account.
+    - Implement endpoints and logic to trigger emails when an immigration case status is updated in .
+- **Future Tasks:**
+  - **Task 2 (P2): Automate Immigration Stage Advancement:** Implement logic for automatically advancing an immigration case to the next stage upon meeting certain criteria (e.g., all documents in the current stage are checked).
+  - **Task 3 (P2): Verify Data Import:** The user's last request mentioned importing data again. After fixing the ANAF bug, confirm with the user if the current dataset (315 candidates, 33 companies) is correct or if another import pass is needed.
 
 **Completed work in this session**
-- **Functional Demo Creation:**
-  - Built a full-stack CRM demo with a FastAPI backend () and a React frontend ().
-  - Seeded mock data for all 8 modules directly from the backend.
-- **UI Theme Update:**
-  - Modified  to change the application's appearance from a dark theme to a light theme as per the user's request.
-- **UI Verification:**
-  - Used the screenshot tool to visually confirm that all demo modules were rendering correctly.
+- **Data Import & Cleaning:** Successfully imported and normalized data from two large Excel files, creating 315 candidates and 33 unique companies, and populating their details.
+- **JWT Authentication:** Implemented a full, secure authentication flow (, ) with a React login page and protected routes.
+- **Immigration Tracker Overhaul:** Completely redesigned the immigration module into a detailed, multi-tab tracker with document checklists, progress bars, and status indicators, based on a user-provided HTML spec.
+- **File Uploads:** Integrated file upload functionality for each document in the tracker, saving files to the backend.
+- **PDF Generation:** Created a system to generate three different types of pre-filled PDF documents (, , ) on demand.
+- **Document Expiry Alerts:** Implemented a backend and frontend system to display critical, urgent, and warning alerts for expiring documents.
+- **UI Enhancements:** Added the GJC company logo to the sidebar and login page.
 
 **Earlier issues found/mentioned but not fixed**
 - None.
 
 **Known issue recurrence from previous fork**
-- None. This is the first session.
+- None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend:** React.js
-- **Backend:** FastAPI (Python)
+- **Frontend:** React.js (Functional Components, Hooks)
+- **Backend:** FastAPI (Python), JWT Authentication (, , )
 - **Database:** MongoDB
-- **Architecture:** A monorepo containing distinct directories for the frontend and backend.
+- **File Handling:** File uploads (), PDF Generation (, )
+- **API Interaction:** Asynchronous API calls, debugging sync/async library conflicts ( vs. ).
 
 **key DB schema**
-The application uses MongoDB. The following collections are implicitly defined in :
+- **users:** 
 - **companies:** 
 - **candidates:** 
-- **immigration_cases:** 
-- **pipeline:** 
-- **alerts:** 
+- **immigration_cases:**  (The  field is a large nested object containing status and metadata for each required document).
 
 **changes in tech stack**
-- The user's original specification mentioned a **PostgreSQL** database. The agent implemented the demo using the platform's standard **MongoDB** stack, and the user approved the resulting demo.
+- None in this session. The agent correctly continued with the established FastAPI/MongoDB stack despite the user's initial mention of Node.js/PostgreSQL.
 
 **All files of reference**
 - **Created/Modified by Agent:**
-  - : The main FastAPI application file defining all API endpoints and logic for the demo.
-  - : The main React component containing the UI and routing for all modules.
-  - : Global CSS file, updated to a light theme.
+  - : Heavily modified to add auth, file uploads, PDF generation, new immigration models, and the (currently broken) ANAF lookup.
+  - : Heavily modified to add a login screen, auth context, the new immigration tracker UI, file upload handlers, and PDF generation buttons.
+  - : Modified to add styles for the login page, tracker, logo, and alerts.
+  - : New script to perform the initial data import.
+  - : New script to enrich company data.
+  - : New module to handle PDF creation.
+  - : Updated with new dependencies.
+  - : Created and updated to track progress.
 - **Provided by User:**
-  - : The initial, detailed CRM specification.
-  - : A document outlining required automations and new features.
-  - : Excel file with real company and candidate data.
-  - : A second Excel file with more real data.
+  - : Specification for the immigration tracker UI.
+  - , : Source data files.
 
 **Areas that need refactoring**
-- Both the frontend () and backend () are single-file monoliths. As new features are added, they should be broken down into a more modular structure (e.g., separate React components for each page, and separate files for routes, models, and services in the backend) to improve maintainability.
+- **High Priority:** Both  and  are large monoliths and have become difficult to maintain.
+  - **Backend:**  should be broken down into a proper project structure with folders for , , , and .
+  - **Frontend:**  should be refactored into smaller, reusable components. Each main page (Dashboard, Candidates, Companies, Immigration Tracker) should be its own component file.
 
 **key api endpoints**
-- : Fetches dashboard KPIs.
-- : Fetches company data.
-- : Fetches candidate data.
-- : Fetches immigration case data.
-- : Fetches sales pipeline data.
-- : Fetches system alerts.
+- **Auth:** , 
+- **Data:** , , 
+- **Immigration:** , , 
+- **File Upload:** 
+- **PDF Generation:** 
+- **Alerts:** 
+- **ANAF Lookup:**  (Broken)
 
 **Critical Info for New Agent**
-- **Language is Romanian:** You MUST communicate with the user exclusively in Romanian.
-- **Stack Change:** The tech stack was migrated from the user's Node.js/PostgreSQL concept to the platform's standard FastAPI/MongoDB. The user has seen and approved the demo built on this new stack.
-- **Next Step:** The immediate next task is to call  for **Resend** to prepare for implementing notifications.
-- **Data Files:** The user has provided two Excel files with real data that must be imported to replace the current mock data.
+- **Language is Romanian:** All user-facing communication MUST be in Romanian.
+- **ANAF API is Tricky:** The ANAF API is asynchronous and has proven unstable with . The reliable solution is to use the synchronous  library wrapped in . Do not revert to using .
+- **Monolithic Codebase:** Be aware that both frontend and backend are single, large files (, ). Tread carefully when making changes. Proposing a refactor after fixing the current bug would be a valuable next step.
+- **Data Re-import:** Server restarts or data model changes have sometimes cleared the database. Be prepared to re-run the  and  scripts if the application appears to have reverted to mock data.
 
 **documents and test reports created in this job**
-- None.
+- 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Confirmed choices: Resend for notifications, JWT for auth, and wants all requested automations. Uploaded two Excel files with real data. (Status: Received, planning implementation)
-2.  **User:** Confirmed they like the design but want it lighter and to proceed with development. Uploaded a document with automation requirements. (Status: Completed, theme changed to light)
-3.  **User:** Asked for a demo based on the structure provided. (Status: Completed, demo was built and presented)
-4.  **User:** Stated it would be better to continue the work started on Claude.ai and uploaded the initial CRM specification document. (Status: Completed, agent analyzed the document)
-5.  **User:** Initial request asking if the agent can build a CRM from scratch that was started elsewhere. (Status: Acknowledged)
+1.  **User:** Agreed to continue development and testing. (Status: Acknowledged)
+2.  **User:** Selected Generare PDF Documente as the next task. (Status: Completed)
+3.  **User:** Asked what the Deployment window means. (Status: Answered)
+4.  **User:** Provided a screenshot of the nu gaseste nimic error from the ANAF lookup feature. (Status: In Progress, this is the current P0 bug)
+5.  **User:** Confirmed completion of the PDF generation task. (Status: Acknowledged)
+6.  **User:** Requested file upload functionality and JWT authentication to be built next, in parallel. (Status: Completed)
+7.  **User:** Approved the plan to implement the detailed immigration tracker and add the GJC logo. (Status: Completed)
+8.  **User:** Uploaded  and asked for the Dosar Imigrare section to be rebuilt according to the spec. (Status: Completed)
+9.  **User:** Asked the agent to complete all missing company data using the provided Excel files. (Status: Completed)
+10. **User:** Approved the agent's plan and provided extremely detailed technical requirements and priorities, starting with Excel data import. (Status: Completed)
 
 **Project Health Check:**
-- **Working:** The application is a functional demo with a UI and a backend serving mock data.
-- **Broken:** Nothing is broken.
-- **Mocked:** The entire dataset is currently mocked. A key upcoming task is to replace it with real data from the user-provided Excel files.
+- **Working:** The application is largely functional with several major features completed (Auth, Tracker, Uploads, PDF Gen, Alerts).
+- **Broken:** The ANAF CUI lookup feature is not working.
+- **Mocked:** Data is no longer mocked; it's from real Excel files.
 
 **3rd Party Integrations**
-- **To Be Implemented:**
-  - **Resend:** For email notifications. The integration playbook is pending.
-- **Future Integration:**
-  - **ANAF CUI Lookup:** A service for validating Romanian company tax IDs.
+- **ANAF API (Broken):** For Romanian company data lookup.
+- **Resend (Pending):** For email notifications. Integration playbook has not been requested yet.
 
 **Testing status**
-- **Testing agent used:** NO
-- **Troubleshoot agent used:** NO
+- **Testing agent used after significant changes:** YES, once after the initial data import and alert feature was completed.
+- **Troubleshoot agent used after agent stuck in loop:** NO
 - **Test files created:** None.
-- **Known regressions:** None.
+- **Known regressions:** The ANAF lookup feature was likely working at some point and is now broken.
 
 **Credentials to test flow:**
-- No credentials are required as the application does not have an authentication system yet.
+- **Admin User:**
+  - **Email:** 
+  - **Password:** 
 
 **What agent forgot to execute**
-- The agent received two Excel files from the user but only analyzed one (). The agent needs to also analyze the second file () before implementing the data import.</analysis>
+- The agent has been diligent in following the user's prioritized requests. No tasks appear to have been forgotten.</analysis>
