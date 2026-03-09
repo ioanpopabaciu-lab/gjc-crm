@@ -49,7 +49,7 @@ function App() {
       <aside className={`sidebar ${sidebarOpen ? "open" : "collapsed"}`} data-testid="sidebar">
         <div className="sidebar-header">
           <div className="logo">
-            <Globe className="logo-icon" />
+            <img src="/assets/gjc-logo.png" alt="GJC Logo" className="logo-img" />
             {sidebarOpen && <span>GJC AI-CRM</span>}
           </div>
           <button className="toggle-btn" onClick={() => setSidebarOpen(!sidebarOpen)} data-testid="toggle-sidebar">
