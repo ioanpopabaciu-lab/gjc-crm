@@ -1298,85 +1298,87 @@ async def lookup_anaf(cui: str):
         
         today = datetime.now().strftime("%Y-%m-%d")
         
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            # Use the synchronous ANAF endpoint
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Step 1: Submit async request to ANAF
             response = await client.post(
                 "https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva",
                 json=[{"cui": int(clean_cui), "data": today}],
                 headers={"Content-Type": "application/json"}
             )
             
-            logger.info(f"ANAF response status: {response.status_code}")
+            if response.status_code != 200:
+                return {"success": False, "error": f"Eroare ANAF: {response.status_code}"}
             
-            if response.status_code == 200:
-                data = response.json()
-                logger.info(f"ANAF response data: {data}")
+            data = response.json()
+            correlation_id = data.get("correlationId")
+            
+            if not correlation_id:
+                return {"success": False, "error": "Nu s-a putut inițializa cererea ANAF"}
+            
+            # Step 2: Wait for processing
+            import asyncio
+            await asyncio.sleep(3)
+            
+            # Step 3: Get results
+            result_response = await client.get(
+                f"https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva?id={correlation_id}"
+            )
+            
+            if result_response.status_code != 200:
+                return {"success": False, "error": "Nu s-a putut obține răspunsul de la ANAF"}
+            
+            result_data = result_response.json()
+            
+            # Check for found companies
+            found_list = result_data.get("found", [])
+            if found_list and len(found_list) > 0:
+                company_data = found_list[0]
                 
-                # Check if we got a correlation ID (async request)
-                correlation_id = data.get("correlationId")
-                if correlation_id:
-                    # Wait for async processing
-                    import asyncio
-                    await asyncio.sleep(3)
-                    
-                    # Get results using correlation ID
-                    result_url = f"https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva?id={correlation_id}"
-                    result_response = await client.get(result_url)
-                    
-                    logger.info(f"ANAF result status: {result_response.status_code}")
-                    
-                    if result_response.status_code == 200:
-                        result_data = result_response.json()
-                        logger.info(f"ANAF result data: {result_data}")
-                        
-                        found_list = result_data.get("found", [])
-                        if found_list and len(found_list) > 0:
-                            company = found_list[0]
-                            
-                            # Extract city from address
-                            address = company.get("adresa", "") or ""
-                            city = ""
-                            if address:
-                                # Try to extract city from Romanian address format
-                                parts = [p.strip() for p in address.split(",")]
-                                for part in reversed(parts):
-                                    if part and not any(char.isdigit() for char in part[:3]):
-                                        city = part
-                                        break
-                            
-                            return {
-                                "success": True,
-                                "data": {
-                                    "name": company.get("denumire", ""),
-                                    "cui": f"RO{clean_cui}",
-                                    "address": address,
-                                    "city": city or company.get("localitate", "România"),
-                                    "status_tva": "Plătitor TVA" if company.get("scpTVA") else "Neplătitor TVA",
-                                    "status": "inactiv" if company.get("statusInactivi") else "activ"
-                                }
-                            }
-                        
-                        notfound_list = result_data.get("notfound", [])
-                        if notfound_list:
-                            return {"success": False, "error": "CUI nu a fost găsit în baza de date ANAF"}
-                    
-                    return {"success": False, "error": "Nu s-a putut obține răspunsul de la ANAF. Încercați din nou."}
+                # Get general data
+                date_generale = company_data.get("date_generale", {})
                 
-                # Direct response (synchronous)
-                if data.get("found"):
-                    company = data["found"][0]
-                    return {
-                        "success": True,
-                        "data": {
-                            "name": company.get("denumire", ""),
-                            "cui": f"RO{clean_cui}",
-                            "address": company.get("adresa", ""),
-                            "city": "",
-                            "status_tva": "Plătitor TVA" if company.get("scpTVA") else "Neplătitor TVA"
-                        }
+                # Extract address and city
+                adresa = date_generale.get("adresa", "") or ""
+                city = ""
+                if adresa:
+                    # Romanian address format: JUD. X, SAT/ORAȘ Y, STRADA Z
+                    parts = [p.strip() for p in adresa.split(",")]
+                    for part in parts:
+                        if "JUD." in part.upper():
+                            city = part.replace("JUD.", "").replace("jud.", "").strip()
+                            break
+                        elif any(x in part.upper() for x in ["SAT ", "ORAȘ", "ORAȘ", "MUN.", "COM."]):
+                            city = part.strip()
+                            break
+                    if not city and len(parts) > 1:
+                        city = parts[1].strip()
+                
+                # Get TVA status
+                inregistrare_tva = company_data.get("inregistrare_scop_Tva", {})
+                is_tva_payer = inregistrare_tva.get("scpTVA", False) if inregistrare_tva else False
+                
+                return {
+                    "success": True,
+                    "data": {
+                        "name": date_generale.get("denumire", ""),
+                        "cui": f"RO{clean_cui}",
+                        "address": adresa,
+                        "city": city or "România",
+                        "phone": date_generale.get("telefon", ""),
+                        "nrRegCom": date_generale.get("nrRegCom", ""),
+                        "status_tva": "Plătitor TVA" if is_tva_payer else "Neplătitor TVA",
+                        "status": "activ" if "INREGISTRAT" in date_generale.get("stare_inregistrare", "").upper() else "inactiv",
+                        "cod_CAEN": date_generale.get("cod_CAEN", ""),
+                        "data_inregistrare": date_generale.get("data_inregistrare", "")
                     }
+                }
             
-            return {"success": False, "error": f"Eroare ANAF: {response.status_code}"}
+            # Check for not found
+            notfound_list = result_data.get("notfound", [])
+            if notfound_list:
+                return {"success": False, "error": "CUI nu a fost găsit în baza de date ANAF"}
+            
+            return {"success": False, "error": "Răspuns neașteptat de la ANAF"}
             
     except ValueError as e:
         return {"success": False, "error": "CUI invalid - trebuie să conțină doar cifre"}
