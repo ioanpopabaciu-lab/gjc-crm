@@ -82,6 +82,17 @@ class CandidateCreate(BaseModel):
     company_name: Optional[str] = None
     notes: Optional[str] = None
 
+class ImmigrationDocument(BaseModel):
+    """Document în dosarul de imigrare"""
+    doc_id: str
+    name: str
+    category: str  # candidate, igi, visa, permit, employment, company
+    required: bool = True
+    status: str = "missing"  # missing, present, expiring, expired
+    issue_date: Optional[str] = None
+    expiry_date: Optional[str] = None
+    notes: Optional[str] = None
+
 class ImmigrationCase(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -89,12 +100,24 @@ class ImmigrationCase(BaseModel):
     candidate_name: Optional[str] = None
     company_id: Optional[str] = None
     company_name: Optional[str] = None
-    case_type: str
-    status: str = "initiat"
+    case_type: str = "Permis de muncă"
+    status: str = "în procesare"
     current_stage: int = 1
+    current_stage_name: str = "Recrutat"
+    # Statistici documente
+    documents_total: int = 34
+    documents_complete: int = 0
+    # Date importante
+    passport_expiry: Optional[str] = None
+    permit_expiry: Optional[str] = None
+    # Documente pe categorii
+    documents: Optional[dict] = None
+    # Istoric
+    history: Optional[List[dict]] = None
+    # Metadate
     submitted_date: Optional[str] = None
     deadline: Optional[str] = None
-    assigned_to: Optional[str] = None
+    assigned_to: str = "Ioan Baciu"
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -103,11 +126,13 @@ class ImmigrationCaseCreate(BaseModel):
     candidate_name: Optional[str] = None
     company_id: Optional[str] = None
     company_name: Optional[str] = None
-    case_type: str
-    status: str = "initiat"
+    case_type: str = "Permis de muncă"
+    status: str = "în procesare"
+    passport_expiry: Optional[str] = None
+    permit_expiry: Optional[str] = None
     submitted_date: Optional[str] = None
     deadline: Optional[str] = None
-    assigned_to: Optional[str] = None
+    assigned_to: str = "Ioan Baciu"
     notes: Optional[str] = None
 
 class PipelineOpportunity(BaseModel):
