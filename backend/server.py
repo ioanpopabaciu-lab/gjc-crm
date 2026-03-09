@@ -413,14 +413,98 @@ async def delete_candidate(candidate_id: str):
 
 IMMIGRATION_STAGES = [
     "Recrutat",
-    "Documente Pregatite",
-    "Permis Munca Depus",
-    "Permis Munca Aprobat",
-    "Viza Depusa",
-    "Viza Aprobata",
-    "Sosit Romania",
-    "Permis Sedere"
+    "Documente Pregătite",
+    "Aviz Muncă Depus",
+    "Aviz Muncă Aprobat",
+    "Viză Depusă",
+    "Viză Aprobată",
+    "Sosit România",
+    "Permis Ședere"
 ]
+
+# Structura documentelor pentru dosarul de imigrare
+IMMIGRATION_DOCUMENTS = {
+    "candidate": {
+        "title": "Documente Candidat",
+        "icon": "👤",
+        "docs": [
+            {"id": "cv", "name": "CV", "required": True, "has_expiry": False},
+            {"id": "acte_studii", "name": "Acte Studii", "required": True, "has_expiry": False},
+            {"id": "poza_pasaport", "name": "Poză tip Pașaport", "required": True, "has_expiry": False},
+            {"id": "pasaport", "name": "Pașaport", "required": True, "has_expiry": True},
+            {"id": "cazier", "name": "Cazier Judiciar (țară origine + RO)", "required": True, "has_expiry": True},
+            {"id": "adeverinta_medicala", "name": "Adeverință Medicală (apt de muncă)", "required": True, "has_expiry": True}
+        ]
+    },
+    "igi": {
+        "title": "Aviz de Muncă — IGI",
+        "icon": "🏛",
+        "docs": [
+            {"id": "taxa_igi", "name": "Taxă IGI 100 EUR", "required": True, "has_expiry": False},
+            {"id": "inregistrare_igi", "name": "Data Înregistrare Portal IGI", "required": True, "has_expiry": False},
+            {"id": "programare_igi", "name": "Dată Programare Depunere IGI", "required": True, "has_expiry": False},
+            {"id": "adeverinta_ajofm", "name": "Adeverință AJOFM", "required": True, "has_expiry": True},
+            {"id": "permis_rezidenta", "name": "Permis Rezidență (dacă există)", "required": False, "has_expiry": True},
+            {"id": "aviz_munca", "name": "Aviz de Muncă Eliberat (6 luni)", "required": True, "has_expiry": True},
+            {"id": "serie_viza", "name": "Serie E Viză", "required": True, "has_expiry": False}
+        ]
+    },
+    "visa": {
+        "title": "Dosar Viză Consulat",
+        "icon": "✈️",
+        "docs": [
+            {"id": "programare_consulat", "name": "Programare Interviu Consulat", "required": True, "has_expiry": False},
+            {"id": "interviu_rezultat", "name": "Dată Interviu + Rezultat", "required": True, "has_expiry": False},
+            {"id": "asigurare_calatorie", "name": "Asigurare Medicală Călătorie", "required": True, "has_expiry": True},
+            {"id": "scrisoare_garantie", "name": "Scrisoare de Garanție", "required": True, "has_expiry": False},
+            {"id": "contract_comodat_viza", "name": "Contract de Comodat", "required": True, "has_expiry": False},
+            {"id": "draft_contract", "name": "Draft Contract de Muncă", "required": True, "has_expiry": False},
+            {"id": "oferta_angajare", "name": "Ofertă Fermă de Angajare", "required": True, "has_expiry": False},
+            {"id": "bilet_avion", "name": "Rezervare Bilet Avion", "required": True, "has_expiry": False}
+        ]
+    },
+    "permit": {
+        "title": "Permis de Ședere (Card)",
+        "icon": "🪪",
+        "docs": [
+            {"id": "programare_sedere", "name": "Data Programare IGI (Permis Ședere)", "required": True, "has_expiry": False},
+            {"id": "taxa_sedere", "name": "Taxă Emitere Permis Ședere (259 lei)", "required": True, "has_expiry": False},
+            {"id": "copie_viza", "name": "Copie Viză + Ștampilă Intrare", "required": True, "has_expiry": False},
+            {"id": "cim_sedere", "name": "Contract Individual de Muncă", "required": True, "has_expiry": False},
+            {"id": "copie_aviz", "name": "Copie Aviz de Muncă", "required": True, "has_expiry": False},
+            {"id": "revisal_copie", "name": "REVISAL (copie ștampilată)", "required": True, "has_expiry": False},
+            {"id": "data_permis", "name": "Dată Eliberare Permis Ședere", "required": False, "has_expiry": True},
+            {"id": "valabilitate_sedere", "name": "Valabilitate Permis Ședere (1–5 ani)", "required": True, "has_expiry": True}
+        ]
+    },
+    "employment": {
+        "title": "Angajare & Post-Sosire",
+        "icon": "📝",
+        "docs": [
+            {"id": "cim_semnat", "name": "Contract Individual de Muncă (semnat)", "required": True, "has_expiry": True},
+            {"id": "revisal", "name": "REVISAL (înregistrare)", "required": True, "has_expiry": False},
+            {"id": "adeverinta_salariat", "name": "Adeverință Salariat", "required": True, "has_expiry": False},
+            {"id": "contract_comodat", "name": "Contract de Comodat (cazare)", "required": True, "has_expiry": True},
+            {"id": "adeverinta_med_post", "name": "Adeverință Medicală Post-Sosire", "required": True, "has_expiry": True}
+        ]
+    },
+    "company": {
+        "title": "Acte Companie",
+        "icon": "🏢",
+        "docs": [
+            {"id": "cerere_igi", "name": "Cerere către IGI (Bifare)", "required": True, "has_expiry": False},
+            {"id": "imputernicire", "name": "Împuternicire", "required": True, "has_expiry": False},
+            {"id": "cui_doc", "name": "CUI (Cod Unic Înregistrare)", "required": True, "has_expiry": False},
+            {"id": "onrc", "name": "Certificat ONRC (valabil 30 zile)", "required": True, "has_expiry": True},
+            {"id": "anaf", "name": "Certificat Atestare Fiscală ANAF (30 zile)", "required": True, "has_expiry": True},
+            {"id": "cazier_pj", "name": "Cazier Persoană Juridică (6 luni)", "required": True, "has_expiry": True},
+            {"id": "organigrama", "name": "Organigramă", "required": True, "has_expiry": False},
+            {"id": "fisa_post", "name": "Fișa Postului", "required": True, "has_expiry": False},
+            {"id": "anunt_piata", "name": "Dovadă Publicare Anunț Piața Internă", "required": True, "has_expiry": False},
+            {"id": "pv_selectie", "name": "Proces Verbal Selecție + Ofertă Fermă", "required": True, "has_expiry": False}
+        ]
+    }
+}
 
 @api_router.get("/immigration", response_model=List[ImmigrationCase])
 async def get_immigration_cases(status: Optional[str] = None, candidate_id: Optional[str] = None):
