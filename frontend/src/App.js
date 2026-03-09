@@ -1126,6 +1126,78 @@ const ImmigrationModule = ({ showNotification }) => {
     return diff;
   };
 
+  const handleFileUpload = async (category, docId, file) => {
+    if (!selectedCase || !file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      await axios.post(
+        `${API}/upload/document/${selectedCase.id}/${category}/${docId}`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      showNotification(`Fișier încărcat: ${file.name}`);
+      fetchCaseDetails(selectedCase.id);
+    } catch (error) {
+      showNotification(error.response?.data?.detail || "Eroare la încărcare", "error");
+    }
+  };
+
+  const downloadFile = (filename) => {
+    window.open(`${API}/upload/document/${filename}`, '_blank');
+  };
+
+  const deleteFile = async (category, docId) => {
+    if (!selectedCase) return;
+    if (!window.confirm("Sigur doriți să ștergeți acest fișier?")) return;
+    
+    try {
+      await axios.delete(`${API}/upload/document/${selectedCase.id}/${category}/${docId}`);
+      showNotification("Fișier șters!");
+      fetchCaseDetails(selectedCase.id);
+    } catch (error) {
+      showNotification("Eroare la ștergere", "error");
+    }
+  };
+
+  // File upload input ref component
+  const FileUploadButton = ({ category, docId, hasFile }) => {
+    const fileInputRef = useRef(null);
+    
+    const handleClick = () => {
+      if (hasFile) {
+        // Show options - view/delete
+        return;
+      }
+      fileInputRef.current?.click();
+    };
+    
+    return (
+      <>
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept=".pdf,.jpg,.jpeg,.png,.gif"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileUpload(category, docId, file);
+            e.target.value = '';
+          }}
+        />
+        <button 
+          className={`icon-btn small ${hasFile ? 'has-file' : ''}`} 
+          onClick={handleClick}
+          title={hasFile ? "Fișier atașat" : "Încarcă fișier"}
+        >
+          {hasFile ? <Paperclip size={14} /> : <Upload size={14} />}
+        </button>
+      </>
+    );
+  };
+
   // Case List View
   if (!selectedCase) {
     return (
