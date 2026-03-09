@@ -440,6 +440,62 @@ const CompaniesModule = ({ showNotification }) => {
     }
   };
 
+  // Validare automată CUI cu debounce
+  const validateCUI = useCallback(async (cui) => {
+    if (!cui) {
+      setCuiValidation({ status: null, loading: false, message: "" });
+      return;
+    }
+    
+    // Curăță CUI-ul
+    const cleanCui = cui.replace(/RO/gi, "").replace(/\s/g, "").trim();
+    
+    // Verifică dacă e format valid (doar cifre, min 2)
+    if (!cleanCui || cleanCui.length < 2 || !/^\d+$/.test(cleanCui)) {
+      setCuiValidation({ status: null, loading: false, message: "" });
+      return;
+    }
+    
+    setCuiValidation({ status: null, loading: true, message: "Se verifică..." });
+    
+    try {
+      const response = await axios.get(`${API}/anaf/${cleanCui}`);
+      if (response.data.success) {
+        setCuiValidation({ 
+          status: 'valid', 
+          loading: false, 
+          message: `✓ ${response.data.data.name}`,
+          data: response.data.data
+        });
+      } else {
+        setCuiValidation({ 
+          status: 'invalid', 
+          loading: false, 
+          message: response.data.error || "CUI negăsit în ANAF"
+        });
+      }
+    } catch (error) {
+      setCuiValidation({ status: 'invalid', loading: false, message: "Eroare verificare" });
+    }
+  }, [API]);
+
+  // Debounce pentru validare CUI (800ms după ce utilizatorul termină de scris)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (editingCompany?.cui && showModal) {
+        validateCUI(editingCompany.cui);
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [editingCompany?.cui, showModal, validateCUI]);
+
+  // Resetare validare când se deschide/închide modalul
+  useEffect(() => {
+    if (!showModal) {
+      setCuiValidation({ status: null, loading: false, message: "" });
+    }
+  }, [showModal]);
+
   const handleSave = async () => {
     try {
       if (editingCompany?.id) {
