@@ -12,6 +12,7 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
 - B2C candidates (foreign workers, primarily from Nepal, Nigeria, India, Philippines)
 - Immigration cases with detailed document tracking
 - Document management with file uploads and expiry alerts
+- PDF document generation
 - Sales pipeline
 
 ## User Language
@@ -21,119 +22,90 @@ Build a CRM application for Global Jobs Consulting (GJC), a recruitment and immi
 
 ## Implemented Features ✅
 
-### 1. Authentication (JWT) ✅ NEW
+### 1. Authentication (JWT) ✅
 - Login page with email/password
 - JWT tokens with 24h expiration
 - Role-based access (admin/operator)
-- Default admin: ioan@gjc.ro / GJC2026admin
-- Logout functionality
-- Protected API endpoints
+- Default admin: `ioan@gjc.ro` / `GJC2026admin`
+- Logout functionality in sidebar
 
-### 2. Document Upload ✅ NEW
+### 2. Document Upload ✅
 - Upload PDF, JPG, PNG, GIF files (max 10MB)
 - File storage in /backend/uploads/
 - Attachment indicator (📎) on documents
 - Download and delete functionality
-- Automatic status update on upload
-- History tracking for uploads
 
-### 3. Dashboard
-- KPIs: 315 candidates, 37 companies, 75 cases, €312,000 pipeline, 1 alert
-- Top nationalities chart (Nepal 299, Nigeria 7, India 3, Filipine 3)
-- Top companies by placements
+### 3. PDF Generation ✅ NEW
+- **Angajament de Plată** - Payment commitment document
+- **Contract de Mediere** - Mediation contract between parties
+- **Ofertă Fermă de Angajare** - Firm job offer from employer
+- All documents auto-populated with candidate/company data
+- Professional layout with GJC branding
+- Dropdown menu in case tracker for easy access
 
-### 4. Immigration Cases Tracker
-- **8-stage visual pipeline:**
-  1. Recrutat → 2. Documente Pregătite → 3. Aviz Muncă Depus → 4. Aviz Muncă Aprobat
-  5. Viză Depusă → 6. Viză Aprobată → 7. Sosit România → 8. Permis Ședere
-  
-- **4 Tabs per case:**
-  - 📋 Documente Dosar (34 documents with upload)
-  - 🏢 Acte Companie (10 documents)
-  - 👤 Date Personale
-  - 📜 Istoric
+### 4. Immigration Cases Tracker ✅
+- 8-stage visual pipeline (Recrutat → Permis Ședere)
+- 4 Tabs: Documente Dosar, Acte Companie, Date Personale, Istoric
+- 34+ documents organized in 6 categories
+- File upload per document
+- PDF generation buttons
 
-- **6 Document Categories with upload:**
-  - Documente Candidat (CV, Acte Studii, Pașaport, Cazier, Adeverință)
-  - Aviz de Muncă — IGI (Taxă, Portal, AJOFM, Aviz)
-  - Dosar Viză Consulat (Programare, Asigurare, Contract)
-  - Permis de Ședere (Programare, Taxă, REVISAL)
-  - Angajare & Post-Sosire (CIM, Adeverință)
-  - Acte Companie (CUI, ONRC, ANAF, Cazier PJ)
-
-### 5. Document Alerts
-- Expiring/expired document detection
-- Grouped by priority: Critical (<30 days), Urgent (30-60), Attention (60-90)
-
-### 6. B2B Companies & B2C Candidates
-- Full CRUD operations
-- Search and filter functionality
-
-### 7. UI/Branding
-- GJC Logo in sidebar and login page
-- Light professional theme
-- Romanian interface
+### 5. Dashboard, Companies, Candidates, Alerts ✅
+- All modules fully functional
+- 315 candidates, 37 companies imported
 
 ---
 
 ## API Endpoints
 
+### PDF Generation (NEW)
+- `GET /api/pdf/angajament-plata/{case_id}` - Generate payment commitment PDF
+- `GET /api/pdf/contract-mediere/{case_id}` - Generate mediation contract PDF
+- `GET /api/pdf/oferta-angajare/{case_id}` - Generate job offer PDF
+
 ### Authentication
-- `POST /api/auth/register` - Register user
-- `POST /api/auth/login` - Login and get JWT token
-- `GET /api/auth/me` - Get current user info
-- `GET /api/auth/users` - Get all users (admin only)
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
 
 ### File Upload
-- `POST /api/upload/document/{case_id}/{category}/{doc_id}` - Upload file
-- `GET /api/upload/document/{filename}` - Download file
-- `DELETE /api/upload/document/{case_id}/{category}/{doc_id}` - Delete file
-
-### Immigration (Enhanced)
-- `GET /api/immigration/{id}` - Get detailed case with documents
-- `PATCH /api/immigration/{id}/document` - Update document status
+- `POST /api/upload/document/{case_id}/{category}/{doc_id}` - Upload
+- `GET /api/upload/document/{filename}` - Download
+- `DELETE /api/upload/document/{case_id}/{category}/{doc_id}` - Delete
 
 ---
 
 ## Default Credentials
-- **Admin:** ioan@gjc.ro / GJC2026admin
+- **Admin:** `ioan@gjc.ro` / `GJC2026admin`
 
 ---
 
 ## Pending Tasks
 
 ### P1 - Medium Priority  
-- [ ] **Resend Email Integration** - Notifications for status changes (waiting for API key)
-
-### P2 - Lower Priority
-- [ ] **PDF Document Generation** - Angajament de plată, Contract de mediere
-- [ ] **Automated Stage Advancement** - Rules based on documents
+- [ ] **Resend Email Integration** - Notifications when case status changes
 
 ### P3 - Future
-- [ ] Export reports to PDF/Excel
+- [ ] Export reports to Excel
 - [ ] SMS notifications (Twilio)
-- [ ] Calendar integration
+- [ ] Automated stage advancement
 
 ---
 
-## Test Results (2025-03-09)
-- Authentication: Working ✅
-- File Upload: Working ✅
-- All modules: Functional ✅
+## Files Created
+```
+/app/backend/
+├── server.py          # FastAPI with auth, upload, PDF endpoints
+├── pdf_generator.py   # PDF generation (3 document types)
+├── uploads/           # Uploaded documents
+└── .env
 
-## File Structure
+/app/frontend/src/
+├── App.js             # React with login, upload, PDF dropdown
+└── App.css            # Styles including dropdown menu
 ```
-/app/
-├── backend/
-│   ├── server.py          # FastAPI with auth + upload endpoints
-│   ├── uploads/           # Uploaded documents
-│   ├── import_data.py
-│   └── .env
-├── frontend/
-│   ├── public/assets/     # GJC Logo
-│   └── src/
-│       ├── App.js         # React with login + upload
-│       └── App.css        # Light theme + login styles
-└── memory/
-    └── PRD.md
-```
+
+## Test Results (2025-03-09)
+- Authentication: ✅ Working
+- File Upload: ✅ Working  
+- PDF Generation: ✅ Working (3 document types)
+- All modules: ✅ Functional
