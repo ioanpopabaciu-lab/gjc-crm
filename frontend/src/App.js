@@ -1379,7 +1379,40 @@ const ImmigrationModule = ({ showNotification }) => {
             </div>
           </div>
           <div className="candidate-actions">
-            <button className="btn btn-outline"><FileText size={16} /> Export PDF</button>
+            <div className="dropdown-container">
+              <button className="btn btn-outline dropdown-trigger" data-testid="pdf-dropdown-btn">
+                <FileText size={16} /> Generează PDF <ChevronDown size={14} />
+              </button>
+              <div className="dropdown-menu">
+                <a 
+                  href={`${API}/pdf/angajament-plata/${caseData.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dropdown-item"
+                  data-testid="pdf-angajament"
+                >
+                  📄 Angajament de Plată
+                </a>
+                <a 
+                  href={`${API}/pdf/contract-mediere/${caseData.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dropdown-item"
+                  data-testid="pdf-contract"
+                >
+                  📋 Contract de Mediere
+                </a>
+                <a 
+                  href={`${API}/pdf/oferta-angajare/${caseData.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dropdown-item"
+                  data-testid="pdf-oferta"
+                >
+                  📝 Ofertă Fermă de Angajare
+                </a>
+              </div>
+            </div>
             <button className="btn btn-outline"><Mail size={16} /> Trimite Email</button>
             {caseData.current_stage < stages.length && (
               <button className="btn btn-primary" onClick={() => advanceCase(caseData.id)}>
