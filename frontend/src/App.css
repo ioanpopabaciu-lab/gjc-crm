@@ -110,6 +110,15 @@ body {
   color: white;
 }
 
+.logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--primary);
+  padding: 4px;
+}
+
 .logo-icon {
   color: white;
   width: 32px;
