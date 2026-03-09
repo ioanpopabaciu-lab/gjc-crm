@@ -1290,29 +1290,91 @@ async def get_all_alerts():
 async def lookup_anaf(cui: str):
     """Lookup company by CUI from ANAF API"""
     try:
+        # Clean CUI - remove RO prefix and spaces
+        clean_cui = cui.replace("RO", "").replace("ro", "").strip()
+        
+        # First try the synchronous endpoint
         today = datetime.now().strftime("%Y-%m-%d")
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # Try the official ANAF API
             response = await client.post(
-                "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva",
-                json=[{"cui": int(cui.replace("RO", "").strip()), "data": today}]
+                "https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva",
+                json=[{"cui": int(clean_cui), "data": today}],
+                headers={"Content-Type": "application/json"}
             )
+            
             if response.status_code == 200:
                 data = response.json()
-                if data.get("found") and len(data["found"]) > 0:
-                    company = data["found"][0]
+                
+                # Check if we got a correlation ID (async request)
+                if data.get("correlationId"):
+                    # Wait and get results
+                    import asyncio
+                    await asyncio.sleep(2)
+                    
+                    result_response = await client.get(
+                        f"https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva?id={data['correlationId']}"
+                    )
+                    
+                    if result_response.status_code == 200:
+                        result_data = result_response.json()
+                        if result_data.get("found") and len(result_data["found"]) > 0:
+                            company = result_data["found"][0]
+                            
+                            # Extract city from address
+                            address = company.get("adresa", "")
+                            city = ""
+                            if address:
+                                parts = address.split(",")
+                                for part in reversed(parts):
+                                    part = part.strip()
+                                    if part and not any(char.isdigit() for char in part[:3]):
+                                        city = part
+                                        break
+                            
+                            return {
+                                "success": True,
+                                "data": {
+                                    "name": company.get("denumire", ""),
+                                    "cui": f"RO{clean_cui}",
+                                    "address": address,
+                                    "city": city,
+                                    "status_tva": "Platitor TVA" if company.get("scpTVA") else "Neplatitor TVA",
+                                    "status": "activ" if company.get("statusInactivi") is False else "inactiv"
+                                }
+                            }
+                        elif result_data.get("notfound"):
+                            return {"success": False, "error": "CUI nu a fost găsit în baza ANAF"}
+            
+            # Fallback - try alternate service
+            alt_response = await client.get(
+                f"https://termene.ro/api/dateFirmaByJ?cui={clean_cui}",
+                timeout=10.0
+            )
+            
+            if alt_response.status_code == 200:
+                alt_data = alt_response.json()
+                if alt_data and alt_data.get("denumire"):
                     return {
                         "success": True,
                         "data": {
-                            "name": company.get("denumire", ""),
-                            "cui": cui,
-                            "address": company.get("adresa", ""),
-                            "city": company.get("adresa", "").split(",")[-1].strip() if company.get("adresa") else "",
-                            "status_tva": "Platitor TVA" if company.get("scpTVA") else "Neplatitor TVA"
+                            "name": alt_data.get("denumire", ""),
+                            "cui": f"RO{clean_cui}",
+                            "address": alt_data.get("adresa", ""),
+                            "city": alt_data.get("localitate", ""),
+                            "status_tva": "Nedeterminat",
+                            "status": "activ"
                         }
                     }
-            return {"success": False, "error": "CUI nu a fost găsit"}
+            
+            return {"success": False, "error": "CUI nu a fost găsit în baza ANAF. Verificați dacă CUI-ul este corect."}
+            
+    except ValueError:
+        return {"success": False, "error": "CUI invalid - trebuie să conțină doar cifre"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"ANAF lookup error: {e}")
+        return {"success": False, "error": f"Eroare la comunicarea cu ANAF: {str(e)}"}
 
 # ===================== SEED DATA =====================
 
