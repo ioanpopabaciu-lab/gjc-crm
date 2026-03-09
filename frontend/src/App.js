@@ -1483,8 +1483,9 @@ const ImmigrationModule = ({ showNotification }) => {
                     <div className="doc-list">
                       {catData.docs?.map((doc) => {
                         const expiryDays = getDaysUntilExpiry(doc.expiry_date);
+                        const hasFile = !!doc.file_path;
                         return (
-                          <div key={doc.id} className="doc-row" data-testid={`doc-${doc.id}`}>
+                          <div key={doc.id} className={`doc-row ${hasFile ? 'has-attachment' : ''}`} data-testid={`doc-${doc.id}`}>
                             <div 
                               className="doc-check-wrapper"
                               onClick={() => updateDocument(category, doc.id, doc.status === 'present' ? 'missing' : 'present', doc.issue_date, doc.expiry_date)}
@@ -1495,6 +1496,11 @@ const ImmigrationModule = ({ showNotification }) => {
                             <div className="doc-name">
                               {doc.name}
                               {doc.required && <span className="required">*</span>}
+                              {hasFile && (
+                                <span className="file-indicator" title={doc.file_name}>
+                                  <Paperclip size={12} />
+                                </span>
+                              )}
                             </div>
                             <div className="doc-date">
                               {doc.issue_date || (doc.has_expiry ? <input type="date" className="date-input" placeholder="dată emitere" onChange={(e) => updateDocument(category, doc.id, 'present', e.target.value, doc.expiry_date)} /> : '—')}
@@ -1508,7 +1514,18 @@ const ImmigrationModule = ({ showNotification }) => {
                               ) : (doc.has_expiry ? <input type="date" className="date-input" placeholder="dată expirare" onChange={(e) => updateDocument(category, doc.id, 'present', doc.issue_date, e.target.value)} /> : 'fără expirare')}
                             </div>
                             <div className="doc-actions">
-                              <button className="icon-btn small"><Eye size={14} /></button>
+                              {hasFile ? (
+                                <>
+                                  <button className="icon-btn small success" onClick={() => downloadFile(doc.file_path)} title="Descarcă fișier">
+                                    <Download size={14} />
+                                  </button>
+                                  <button className="icon-btn small danger" onClick={() => deleteFile(category, doc.id)} title="Șterge fișier">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              ) : (
+                                <FileUploadButton category={category} docId={doc.id} hasFile={hasFile} />
+                              )}
                             </div>
                           </div>
                         );
