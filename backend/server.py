@@ -1293,42 +1293,53 @@ async def lookup_anaf(cui: str):
         # Clean CUI - remove RO prefix and spaces
         clean_cui = cui.replace("RO", "").replace("ro", "").strip()
         
-        # First try the synchronous endpoint
+        if not clean_cui.isdigit():
+            return {"success": False, "error": "CUI invalid - trebuie să conțină doar cifre"}
+        
         today = datetime.now().strftime("%Y-%m-%d")
         
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            # Try the official ANAF API
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            # Use the synchronous ANAF endpoint
             response = await client.post(
                 "https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva",
                 json=[{"cui": int(clean_cui), "data": today}],
                 headers={"Content-Type": "application/json"}
             )
             
+            logger.info(f"ANAF response status: {response.status_code}")
+            
             if response.status_code == 200:
                 data = response.json()
+                logger.info(f"ANAF response data: {data}")
                 
                 # Check if we got a correlation ID (async request)
-                if data.get("correlationId"):
-                    # Wait and get results
+                correlation_id = data.get("correlationId")
+                if correlation_id:
+                    # Wait for async processing
                     import asyncio
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(3)
                     
-                    result_response = await client.get(
-                        f"https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva?id={data['correlationId']}"
-                    )
+                    # Get results using correlation ID
+                    result_url = f"https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva?id={correlation_id}"
+                    result_response = await client.get(result_url)
+                    
+                    logger.info(f"ANAF result status: {result_response.status_code}")
                     
                     if result_response.status_code == 200:
                         result_data = result_response.json()
-                        if result_data.get("found") and len(result_data["found"]) > 0:
-                            company = result_data["found"][0]
+                        logger.info(f"ANAF result data: {result_data}")
+                        
+                        found_list = result_data.get("found", [])
+                        if found_list and len(found_list) > 0:
+                            company = found_list[0]
                             
                             # Extract city from address
-                            address = company.get("adresa", "")
+                            address = company.get("adresa", "") or ""
                             city = ""
                             if address:
-                                parts = address.split(",")
+                                # Try to extract city from Romanian address format
+                                parts = [p.strip() for p in address.split(",")]
                                 for part in reversed(parts):
-                                    part = part.strip()
                                     if part and not any(char.isdigit() for char in part[:3]):
                                         city = part
                                         break
@@ -1339,42 +1350,41 @@ async def lookup_anaf(cui: str):
                                     "name": company.get("denumire", ""),
                                     "cui": f"RO{clean_cui}",
                                     "address": address,
-                                    "city": city,
-                                    "status_tva": "Platitor TVA" if company.get("scpTVA") else "Neplatitor TVA",
-                                    "status": "activ" if company.get("statusInactivi") is False else "inactiv"
+                                    "city": city or company.get("localitate", "România"),
+                                    "status_tva": "Plătitor TVA" if company.get("scpTVA") else "Neplătitor TVA",
+                                    "status": "inactiv" if company.get("statusInactivi") else "activ"
                                 }
                             }
-                        elif result_data.get("notfound"):
-                            return {"success": False, "error": "CUI nu a fost găsit în baza ANAF"}
-            
-            # Fallback - try alternate service
-            alt_response = await client.get(
-                f"https://termene.ro/api/dateFirmaByJ?cui={clean_cui}",
-                timeout=10.0
-            )
-            
-            if alt_response.status_code == 200:
-                alt_data = alt_response.json()
-                if alt_data and alt_data.get("denumire"):
+                        
+                        notfound_list = result_data.get("notfound", [])
+                        if notfound_list:
+                            return {"success": False, "error": "CUI nu a fost găsit în baza de date ANAF"}
+                    
+                    return {"success": False, "error": "Nu s-a putut obține răspunsul de la ANAF. Încercați din nou."}
+                
+                # Direct response (synchronous)
+                if data.get("found"):
+                    company = data["found"][0]
                     return {
                         "success": True,
                         "data": {
-                            "name": alt_data.get("denumire", ""),
+                            "name": company.get("denumire", ""),
                             "cui": f"RO{clean_cui}",
-                            "address": alt_data.get("adresa", ""),
-                            "city": alt_data.get("localitate", ""),
-                            "status_tva": "Nedeterminat",
-                            "status": "activ"
+                            "address": company.get("adresa", ""),
+                            "city": "",
+                            "status_tva": "Plătitor TVA" if company.get("scpTVA") else "Neplătitor TVA"
                         }
                     }
             
-            return {"success": False, "error": "CUI nu a fost găsit în baza ANAF. Verificați dacă CUI-ul este corect."}
+            return {"success": False, "error": f"Eroare ANAF: {response.status_code}"}
             
-    except ValueError:
+    except ValueError as e:
         return {"success": False, "error": "CUI invalid - trebuie să conțină doar cifre"}
+    except httpx.TimeoutException:
+        return {"success": False, "error": "Timeout la comunicarea cu ANAF. Încercați din nou."}
     except Exception as e:
-        logger.error(f"ANAF lookup error: {e}")
-        return {"success": False, "error": f"Eroare la comunicarea cu ANAF: {str(e)}"}
+        logger.error(f"ANAF lookup error: {type(e).__name__}: {e}")
+        return {"success": False, "error": f"Eroare la comunicarea cu ANAF: {type(e).__name__}"}
 
 # ===================== SEED DATA =====================
 
