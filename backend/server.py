@@ -520,9 +520,128 @@ async def get_immigration_cases(status: Optional[str] = None, candidate_id: Opti
 async def get_immigration_stages():
     return {"stages": IMMIGRATION_STAGES}
 
+@api_router.get("/immigration/documents-template")
+async def get_documents_template():
+    """Returnează structura documentelor pentru un dosar nou"""
+    return IMMIGRATION_DOCUMENTS
+
+@api_router.get("/immigration/{case_id}")
+async def get_immigration_case(case_id: str):
+    """Get detailed immigration case with all documents"""
+    case = await db.immigration_cases.find_one({"id": case_id}, {"_id": 0})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    # Get candidate info
+    if case.get('candidate_id'):
+        candidate = await db.candidates.find_one({"id": case['candidate_id']}, {"_id": 0})
+        if candidate:
+            case['candidate_details'] = {
+                'first_name': candidate.get('first_name'),
+                'last_name': candidate.get('last_name'),
+                'nationality': candidate.get('nationality'),
+                'passport_number': candidate.get('passport_number'),
+                'passport_expiry': candidate.get('passport_expiry'),
+                'job_type': candidate.get('job_type'),
+                'phone': candidate.get('phone'),
+                'email': candidate.get('email')
+            }
+    
+    # Get company info
+    if case.get('company_id'):
+        company = await db.companies.find_one({"id": case['company_id']}, {"_id": 0})
+        if company:
+            case['company_details'] = {
+                'name': company.get('name'),
+                'cui': company.get('cui'),
+                'city': company.get('city'),
+                'industry': company.get('industry'),
+                'contact_person': company.get('contact_person'),
+                'phone': company.get('phone')
+            }
+    
+    # Initialize documents if not present
+    if not case.get('documents'):
+        case['documents'] = {}
+        for category, category_data in IMMIGRATION_DOCUMENTS.items():
+            case['documents'][category] = {
+                'title': category_data['title'],
+                'icon': category_data['icon'],
+                'docs': []
+            }
+            for doc in category_data['docs']:
+                case['documents'][category]['docs'].append({
+                    'id': doc['id'],
+                    'name': doc['name'],
+                    'required': doc['required'],
+                    'has_expiry': doc['has_expiry'],
+                    'status': 'missing',
+                    'issue_date': None,
+                    'expiry_date': None,
+                    'notes': None
+                })
+    
+    # Initialize history if not present
+    if not case.get('history'):
+        case['history'] = [{
+            'date': case.get('created_at', datetime.now(timezone.utc).isoformat())[:10],
+            'action': 'Dosar creat în sistem',
+            'user': case.get('assigned_to', 'Sistem'),
+            'icon': '⚪'
+        }]
+    
+    # Calculate document stats
+    total_docs = 0
+    complete_docs = 0
+    for category in case.get('documents', {}).values():
+        for doc in category.get('docs', []):
+            if doc.get('required', True):
+                total_docs += 1
+                if doc.get('status') in ['present', 'expiring']:
+                    complete_docs += 1
+    
+    case['documents_total'] = total_docs
+    case['documents_complete'] = complete_docs
+    case['completion_percentage'] = round((complete_docs / total_docs * 100) if total_docs > 0 else 0)
+    
+    return serialize_doc(case)
+
 @api_router.post("/immigration", response_model=ImmigrationCase)
 async def create_immigration_case(input: ImmigrationCaseCreate):
-    case = ImmigrationCase(**input.model_dump())
+    # Initialize documents structure
+    documents = {}
+    for category, category_data in IMMIGRATION_DOCUMENTS.items():
+        documents[category] = {
+            'title': category_data['title'],
+            'icon': category_data['icon'],
+            'docs': []
+        }
+        for doc in category_data['docs']:
+            documents[category]['docs'].append({
+                'id': doc['id'],
+                'name': doc['name'],
+                'required': doc['required'],
+                'has_expiry': doc['has_expiry'],
+                'status': 'missing',
+                'issue_date': None,
+                'expiry_date': None,
+                'notes': None
+            })
+    
+    # Initialize history
+    history = [{
+        'date': datetime.now(timezone.utc).strftime('%d.%m.%Y'),
+        'action': 'Dosar creat în sistem GJC CRM',
+        'user': input.assigned_to or 'Sistem',
+        'icon': '⚪'
+    }]
+    
+    case_data = input.model_dump()
+    case_data['documents'] = documents
+    case_data['history'] = history
+    case_data['current_stage_name'] = IMMIGRATION_STAGES[0]
+    
+    case = ImmigrationCase(**case_data)
     doc = case.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     await db.immigration_cases.insert_one(doc)
@@ -540,17 +659,81 @@ async def advance_immigration_case(case_id: str):
     
     new_stage = current_stage + 1
     new_status = "finalizat" if new_stage == len(IMMIGRATION_STAGES) else "în procesare"
+    new_stage_name = IMMIGRATION_STAGES[new_stage - 1]
+    
+    # Add to history
+    history = case.get('history', [])
+    history.insert(0, {
+        'date': datetime.now(timezone.utc).strftime('%d.%m.%Y'),
+        'action': f'Dosar avansat la etapa: {new_stage_name}',
+        'user': case.get('assigned_to', 'Sistem'),
+        'icon': '🟢'
+    })
     
     await db.immigration_cases.update_one(
         {"id": case_id},
-        {"$set": {"current_stage": new_stage, "status": new_status}}
+        {"$set": {
+            "current_stage": new_stage, 
+            "status": new_status,
+            "current_stage_name": new_stage_name,
+            "history": history
+        }}
     )
     
     return {
-        "message": f"Dosar avansat la etapa {new_stage}: {IMMIGRATION_STAGES[new_stage - 1]}",
+        "message": f"Dosar avansat la etapa {new_stage}: {new_stage_name}",
         "current_stage": new_stage,
-        "stage_name": IMMIGRATION_STAGES[new_stage - 1]
+        "stage_name": new_stage_name
     }
+
+@api_router.patch("/immigration/{case_id}/document")
+async def update_case_document(case_id: str, doc_update: dict):
+    """Update a specific document in the case"""
+    case = await db.immigration_cases.find_one({"id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+    
+    category = doc_update.get('category')
+    doc_id = doc_update.get('doc_id')
+    
+    if not category or not doc_id:
+        raise HTTPException(status_code=400, detail="Categoria și ID-ul documentului sunt obligatorii")
+    
+    documents = case.get('documents', {})
+    if category not in documents:
+        raise HTTPException(status_code=404, detail="Categoria nu a fost găsită")
+    
+    # Find and update the document
+    doc_found = False
+    for doc in documents[category].get('docs', []):
+        if doc['id'] == doc_id:
+            doc['status'] = doc_update.get('status', doc.get('status', 'missing'))
+            doc['issue_date'] = doc_update.get('issue_date', doc.get('issue_date'))
+            doc['expiry_date'] = doc_update.get('expiry_date', doc.get('expiry_date'))
+            doc['notes'] = doc_update.get('notes', doc.get('notes'))
+            doc_found = True
+            break
+    
+    if not doc_found:
+        raise HTTPException(status_code=404, detail="Documentul nu a fost găsit")
+    
+    # Add to history
+    history = case.get('history', [])
+    doc_name = next((d['name'] for d in documents[category]['docs'] if d['id'] == doc_id), doc_id)
+    status_text = "adăugat la dosar" if doc_update.get('status') == 'present' else "actualizat"
+    history.insert(0, {
+        'date': datetime.now(timezone.utc).strftime('%d.%m.%Y'),
+        'action': f'{doc_name} — {status_text}',
+        'user': doc_update.get('user', 'Operator'),
+        'icon': '🟢' if doc_update.get('status') == 'present' else '🔵'
+    })
+    
+    await db.immigration_cases.update_one(
+        {"id": case_id},
+        {"$set": {"documents": documents, "history": history}}
+    )
+    
+    return {"message": "Document actualizat cu succes"}
 
 @api_router.delete("/immigration/{case_id}")
 async def delete_immigration_case(case_id: str):
