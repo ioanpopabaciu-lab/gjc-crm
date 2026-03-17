@@ -1549,7 +1549,7 @@ async def apply_candidate_to_job(job_id: str, candidate_id: str):
         raise HTTPException(status_code=404, detail="Candidatul nu a fost găsit")
     
     # Check if application already exists
-    existing = await db.job_applications.find_one({
+    existing = await db.applications.find_one({
         "job_id": job_id,
         "candidate_id": candidate_id
     })
@@ -1563,31 +1563,32 @@ async def apply_candidate_to_job(job_id: str, candidate_id: str):
     avail_score = calculate_availability_match(candidate.get("status"), candidate.get("company_id"))
     compatibility = (skills_score * 0.4) + (exp_score * 0.3) + (avail_score * 0.3)
     
-    # Create application
-    application = JobApplication(
-        job_id=job_id,
-        job_title=job.get("title"),
+    # Create application using new Application model
+    application = Application(
         candidate_id=candidate_id,
         candidate_name=f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}",
+        job_id=job_id,
+        job_title=job.get("title"),
         company_id=job.get("company_id"),
         company_name=job.get("company_name"),
-        compatibility_score=round(compatibility, 1),
+        status="applied",
+        ai_match_score=round(compatibility, 1),
         skills_match=round(skills_score, 1),
         experience_match=round(exp_score, 1),
         availability_match=round(avail_score, 1)
     )
     
-    await db.job_applications.insert_one(application.model_dump())
+    await db.applications.insert_one(application.model_dump())
     
     return {"message": "Candidat aplicat cu succes", "application": application.model_dump()}
 
-@api_router.get("/job-applications")
-async def get_job_applications(
+@api_router.get("/applications")
+async def get_applications(
     job_id: Optional[str] = None,
     candidate_id: Optional[str] = None,
     status: Optional[str] = None
 ):
-    """Get job applications with optional filters"""
+    """Get applications with optional filters"""
     query = {}
     if job_id:
         query["job_id"] = job_id
@@ -1596,17 +1597,18 @@ async def get_job_applications(
     if status:
         query["status"] = status
     
-    applications = await db.job_applications.find(query, {"_id": 0}).sort("compatibility_score", -1).to_list(100)
+    applications = await db.applications.find(query, {"_id": 0}).sort("ai_match_score", -1).to_list(100)
     return applications
 
-@api_router.put("/job-applications/{application_id}/status")
+@api_router.put("/applications/{application_id}/status")
 async def update_application_status(application_id: str, status_update: dict):
-    """Update job application status"""
+    """Update application status"""
     new_status = status_update.get("status")
-    if new_status not in ["propus", "acceptat", "respins", "interviu", "angajat"]:
-        raise HTTPException(status_code=400, detail="Status invalid")
+    valid_statuses = ["applied", "shortlisted", "hired", "rejected"]
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Status invalid. Valori acceptate: {valid_statuses}")
     
-    result = await db.job_applications.update_one(
+    result = await db.applications.update_one(
         {"id": application_id},
         {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
     )
@@ -1614,9 +1616,9 @@ async def update_application_status(application_id: str, status_update: dict):
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Aplicația nu a fost găsită")
     
-    # If status is "angajat", update candidate and job
-    if new_status == "angajat":
-        app = await db.job_applications.find_one({"id": application_id}, {"_id": 0})
+    # If status is "hired", update candidate and job
+    if new_status == "hired":
+        app = await db.applications.find_one({"id": application_id}, {"_id": 0})
         if app:
             # Update candidate status
             await db.candidates.update_one(
@@ -1630,6 +1632,101 @@ async def update_application_status(application_id: str, status_update: dict):
             )
     
     return {"message": f"Status actualizat la {new_status}"}
+
+# ===================== AUTO JOB & APPLICATION CREATION =====================
+
+async def auto_create_job_and_application(candidate_id: str, company_id: str, company_name: str, candidate_name: str, job_type: str = None):
+    """
+    Automatically create a Job (if not exists) and Application when candidate is assigned to company.
+    This is part of the shadow architecture - non-breaking extension.
+    """
+    # Check if a generic job exists for this company
+    existing_job = await db.jobs.find_one({
+        "company_id": company_id,
+        "status": "activ"
+    }, {"_id": 0})
+    
+    if not existing_job:
+        # Create a generic job for the company
+        job = Job(
+            company_id=company_id,
+            company_name=company_name,
+            title=job_type or "Poziție Generală",
+            description=f"Poziție pentru {company_name}",
+            requirements=job_type,
+            headcount_needed=10,  # Default headcount
+            status="activ"
+        )
+        await db.jobs.insert_one(job.model_dump())
+        job_id = job.id
+        job_title = job.title
+    else:
+        job_id = existing_job["id"]
+        job_title = existing_job.get("title", "Poziție")
+    
+    # Check if application already exists
+    existing_app = await db.applications.find_one({
+        "candidate_id": candidate_id,
+        "job_id": job_id
+    })
+    
+    if not existing_app:
+        # Create application
+        application = Application(
+            candidate_id=candidate_id,
+            candidate_name=candidate_name,
+            job_id=job_id,
+            job_title=job_title,
+            company_id=company_id,
+            company_name=company_name,
+            status="applied",
+            ai_match_score=75.0  # Default score for manual assignment
+        )
+        await db.applications.insert_one(application.model_dump())
+        return application.id
+    
+    return existing_app.get("id")
+
+# ===================== IMMIGRATION STAGE HISTORY =====================
+
+@api_router.get("/immigration-stage-history/{case_id}")
+async def get_immigration_stage_history(case_id: str):
+    """Get stage history for an immigration case"""
+    history = await db.immigration_stage_history.find(
+        {"case_id": case_id},
+        {"_id": 0}
+    ).sort("entered_at", 1).to_list(50)
+    return history
+
+async def record_stage_transition(case_id: str, old_stage: int, old_stage_name: str, new_stage: int, new_stage_name: str):
+    """Record a stage transition in the history collection"""
+    now = datetime.now(timezone.utc)
+    
+    # Close the previous stage entry
+    await db.immigration_stage_history.update_one(
+        {"case_id": case_id, "stage_number": old_stage, "exited_at": None},
+        {"$set": {"exited_at": now}}
+    )
+    
+    # Calculate duration for the closed stage
+    prev_entry = await db.immigration_stage_history.find_one(
+        {"case_id": case_id, "stage_number": old_stage}
+    )
+    if prev_entry and prev_entry.get("entered_at"):
+        duration = (now - prev_entry["entered_at"]).days
+        await db.immigration_stage_history.update_one(
+            {"case_id": case_id, "stage_number": old_stage},
+            {"$set": {"duration_days": duration}}
+        )
+    
+    # Create new stage entry
+    new_entry = ImmigrationStageHistory(
+        case_id=case_id,
+        stage_name=new_stage_name,
+        stage_number=new_stage,
+        entered_at=now
+    )
+    await db.immigration_stage_history.insert_one(new_entry.model_dump())
 
 # ===================== ANAF CUI LOOKUP =====================
 
