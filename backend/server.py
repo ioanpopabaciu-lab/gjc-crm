@@ -1141,6 +1141,8 @@ async def advance_immigration_case(case_id: str):
         raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
     
     current_stage = case.get('current_stage', 1)
+    current_stage_name = case.get('current_stage_name', IMMIGRATION_STAGES[0])
+    
     if current_stage >= len(IMMIGRATION_STAGES):
         raise HTTPException(status_code=400, detail="Dosarul este deja la ultima etapă")
     
@@ -1148,7 +1150,16 @@ async def advance_immigration_case(case_id: str):
     new_status = "finalizat" if new_stage == len(IMMIGRATION_STAGES) else "în procesare"
     new_stage_name = IMMIGRATION_STAGES[new_stage - 1]
     
-    # Add to history
+    # SHADOW ARCHITECTURE: Record stage transition in new history collection
+    await record_stage_transition(
+        case_id=case_id,
+        old_stage=current_stage,
+        old_stage_name=current_stage_name,
+        new_stage=new_stage,
+        new_stage_name=new_stage_name
+    )
+    
+    # Add to existing history (backward compatibility)
     history = case.get('history', [])
     history.insert(0, {
         'date': datetime.now(timezone.utc).strftime('%d.%m.%Y'),
