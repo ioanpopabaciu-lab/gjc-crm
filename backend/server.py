@@ -273,20 +273,20 @@ class Job(BaseModel):
     """Job position offered by a company"""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    title: str
     company_id: str
     company_name: Optional[str] = None
+    title: str
     description: Optional[str] = None
-    # Requirements
+    requirements: Optional[str] = None  # Text description of requirements
     required_skills: List[str] = []
     required_experience_years: int = 0
-    required_nationality: Optional[List[str]] = None  # None = any nationality
+    required_nationality: Optional[List[str]] = None
     # Job details
     location: Optional[str] = None
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
     currency: str = "EUR"
-    positions_available: int = 1
+    headcount_needed: int = 1  # Renamed from positions_available
     positions_filled: int = 0
     # Status
     status: str = "activ"  # activ, pauza, inchis
@@ -295,10 +295,11 @@ class Job(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class JobCreate(BaseModel):
-    title: str
     company_id: str
     company_name: Optional[str] = None
+    title: str
     description: Optional[str] = None
+    requirements: Optional[str] = None
     required_skills: List[str] = []
     required_experience_years: int = 0
     required_nationality: Optional[List[str]] = None
@@ -306,30 +307,42 @@ class JobCreate(BaseModel):
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
     currency: str = "EUR"
-    positions_available: int = 1
+    headcount_needed: int = 1
     start_date: Optional[str] = None
 
-class JobApplication(BaseModel):
-    """AI Matching result - candidate matched to job"""
+class Application(BaseModel):
+    """Application linking candidate to job"""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    job_id: str
-    job_title: Optional[str] = None
     candidate_id: str
     candidate_name: Optional[str] = None
+    job_id: str
+    job_title: Optional[str] = None
     company_id: Optional[str] = None
     company_name: Optional[str] = None
-    # AI Matching scores
-    compatibility_score: float = 0.0  # 0-100
+    # Status: applied, shortlisted, hired, rejected
+    status: str = "applied"
+    # AI Matching scores (optional, for compatibility)
+    ai_match_score: float = 0.0  # 0-100
     skills_match: float = 0.0
     experience_match: float = 0.0
     availability_match: float = 0.0
     ai_reasoning: Optional[str] = None
-    # Status
-    status: str = "propus"  # propus, acceptat, respins, interviu, angajat
     # Metadata
-    matched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    applied_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
+
+class ImmigrationStageHistory(BaseModel):
+    """Track history of immigration case stage transitions"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    case_id: str
+    stage_name: str
+    stage_number: int
+    entered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    exited_at: Optional[datetime] = None
+    duration_days: Optional[int] = None
+    notes: Optional[str] = None
 
 # ===================== HELPER FUNCTIONS =====================
 
