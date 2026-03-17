@@ -1348,6 +1348,273 @@ async def get_all_alerts():
     priority_order = {"urgent": 0, "warning": 1, "info": 2}
     return sorted(alerts, key=lambda x: (priority_order.get(x['priority'], 3), x['days_until_expiry']))
 
+# ===================== JOBS MANAGEMENT =====================
+
+@api_router.get("/jobs")
+async def get_jobs(
+    status: Optional[str] = None,
+    company_id: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """Get all jobs with optional filters"""
+    query = {}
+    if status:
+        query["status"] = status
+    if company_id:
+        query["company_id"] = company_id
+    if search:
+        query["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"company_name": {"$regex": search, "$options": "i"}},
+            {"location": {"$regex": search, "$options": "i"}}
+        ]
+    
+    jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return jobs
+
+@api_router.get("/jobs/{job_id}")
+async def get_job(job_id: str):
+    """Get a single job by ID"""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Jobul nu a fost găsit")
+    return job
+
+@api_router.post("/jobs")
+async def create_job(job: JobCreate):
+    """Create a new job"""
+    # Get company name if not provided
+    if job.company_id and not job.company_name:
+        company = await db.companies.find_one({"id": job.company_id}, {"_id": 0, "name": 1})
+        if company:
+            job.company_name = company.get("name")
+    
+    job_data = Job(**job.model_dump())
+    await db.jobs.insert_one(job_data.model_dump())
+    return {"message": "Job creat cu succes", "job": job_data.model_dump()}
+
+@api_router.put("/jobs/{job_id}")
+async def update_job(job_id: str, job_update: dict):
+    """Update a job"""
+    existing = await db.jobs.find_one({"id": job_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Jobul nu a fost găsit")
+    
+    await db.jobs.update_one({"id": job_id}, {"$set": job_update})
+    updated = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/jobs/{job_id}")
+async def delete_job(job_id: str):
+    """Delete a job"""
+    result = await db.jobs.delete_one({"id": job_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Jobul nu a fost găsit")
+    return {"message": "Job șters cu succes"}
+
+# ===================== AI MATCHING SYSTEM =====================
+
+def calculate_skills_match(candidate_skills: List[str], job_skills: List[str]) -> float:
+    """Calculate skills match percentage"""
+    if not job_skills:
+        return 100.0
+    if not candidate_skills:
+        return 0.0
+    
+    # Normalize skills (lowercase)
+    candidate_skills_lower = [s.lower().strip() for s in candidate_skills]
+    job_skills_lower = [s.lower().strip() for s in job_skills]
+    
+    matches = sum(1 for skill in job_skills_lower if any(skill in cs or cs in skill for cs in candidate_skills_lower))
+    return (matches / len(job_skills_lower)) * 100
+
+def calculate_experience_match(candidate_exp: int, required_exp: int) -> float:
+    """Calculate experience match percentage"""
+    if required_exp == 0:
+        return 100.0
+    if candidate_exp >= required_exp:
+        return 100.0
+    return (candidate_exp / required_exp) * 100
+
+def calculate_availability_match(candidate_status: str, candidate_company_id: Optional[str]) -> float:
+    """Calculate availability score based on candidate status"""
+    if candidate_status == "activ" and not candidate_company_id:
+        return 100.0  # Available and not assigned
+    elif candidate_status == "activ":
+        return 70.0   # Active but already assigned
+    elif candidate_status == "plasat":
+        return 30.0   # Already placed
+    return 0.0        # Inactive
+
+@api_router.get("/jobs/{job_id}/matches")
+async def get_job_matches(job_id: str, limit: int = 10):
+    """AI Matching: Get top candidate matches for a job"""
+    
+    # Get job details
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Jobul nu a fost găsit")
+    
+    # Get all active candidates
+    candidates = await db.candidates.find(
+        {"status": {"$in": ["activ", "plasat"]}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    matches = []
+    
+    for candidate in candidates:
+        # Extract candidate skills from job_type field (simplified)
+        candidate_skills = [candidate.get("job_type", "")] if candidate.get("job_type") else []
+        
+        # Calculate match scores
+        skills_score = calculate_skills_match(candidate_skills, job.get("required_skills", []))
+        
+        # Estimate experience from notes or default
+        candidate_exp = 2  # Default assumption
+        exp_score = calculate_experience_match(candidate_exp, job.get("required_experience_years", 0))
+        
+        # Availability
+        avail_score = calculate_availability_match(
+            candidate.get("status", "activ"),
+            candidate.get("company_id")
+        )
+        
+        # Check nationality requirement
+        nationality_ok = True
+        if job.get("required_nationality"):
+            nationality_ok = candidate.get("nationality") in job.get("required_nationality", [])
+        
+        if not nationality_ok:
+            continue  # Skip candidates that don't meet nationality requirement
+        
+        # Calculate overall compatibility score (weighted average)
+        compatibility = (skills_score * 0.4) + (exp_score * 0.3) + (avail_score * 0.3)
+        
+        matches.append({
+            "candidate_id": candidate.get("id"),
+            "candidate_name": f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}",
+            "nationality": candidate.get("nationality"),
+            "job_type": candidate.get("job_type"),
+            "current_status": candidate.get("status"),
+            "compatibility_score": round(compatibility, 1),
+            "skills_match": round(skills_score, 1),
+            "experience_match": round(exp_score, 1),
+            "availability_match": round(avail_score, 1)
+        })
+    
+    # Sort by compatibility score (highest first)
+    matches.sort(key=lambda x: x["compatibility_score"], reverse=True)
+    
+    return {
+        "job": {
+            "id": job.get("id"),
+            "title": job.get("title"),
+            "company_name": job.get("company_name"),
+            "required_skills": job.get("required_skills", []),
+            "positions_available": job.get("positions_available", 1)
+        },
+        "matches": matches[:limit],
+        "total_candidates_evaluated": len(candidates)
+    }
+
+@api_router.post("/jobs/{job_id}/apply/{candidate_id}")
+async def apply_candidate_to_job(job_id: str, candidate_id: str):
+    """Create a job application (match candidate to job)"""
+    
+    # Verify job exists
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Jobul nu a fost găsit")
+    
+    # Verify candidate exists
+    candidate = await db.candidates.find_one({"id": candidate_id}, {"_id": 0})
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidatul nu a fost găsit")
+    
+    # Check if application already exists
+    existing = await db.job_applications.find_one({
+        "job_id": job_id,
+        "candidate_id": candidate_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Candidatul este deja aplicat la acest job")
+    
+    # Calculate match scores
+    candidate_skills = [candidate.get("job_type", "")] if candidate.get("job_type") else []
+    skills_score = calculate_skills_match(candidate_skills, job.get("required_skills", []))
+    exp_score = calculate_experience_match(2, job.get("required_experience_years", 0))
+    avail_score = calculate_availability_match(candidate.get("status"), candidate.get("company_id"))
+    compatibility = (skills_score * 0.4) + (exp_score * 0.3) + (avail_score * 0.3)
+    
+    # Create application
+    application = JobApplication(
+        job_id=job_id,
+        job_title=job.get("title"),
+        candidate_id=candidate_id,
+        candidate_name=f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}",
+        company_id=job.get("company_id"),
+        company_name=job.get("company_name"),
+        compatibility_score=round(compatibility, 1),
+        skills_match=round(skills_score, 1),
+        experience_match=round(exp_score, 1),
+        availability_match=round(avail_score, 1)
+    )
+    
+    await db.job_applications.insert_one(application.model_dump())
+    
+    return {"message": "Candidat aplicat cu succes", "application": application.model_dump()}
+
+@api_router.get("/job-applications")
+async def get_job_applications(
+    job_id: Optional[str] = None,
+    candidate_id: Optional[str] = None,
+    status: Optional[str] = None
+):
+    """Get job applications with optional filters"""
+    query = {}
+    if job_id:
+        query["job_id"] = job_id
+    if candidate_id:
+        query["candidate_id"] = candidate_id
+    if status:
+        query["status"] = status
+    
+    applications = await db.job_applications.find(query, {"_id": 0}).sort("compatibility_score", -1).to_list(100)
+    return applications
+
+@api_router.put("/job-applications/{application_id}/status")
+async def update_application_status(application_id: str, status_update: dict):
+    """Update job application status"""
+    new_status = status_update.get("status")
+    if new_status not in ["propus", "acceptat", "respins", "interviu", "angajat"]:
+        raise HTTPException(status_code=400, detail="Status invalid")
+    
+    result = await db.job_applications.update_one(
+        {"id": application_id},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Aplicația nu a fost găsită")
+    
+    # If status is "angajat", update candidate and job
+    if new_status == "angajat":
+        app = await db.job_applications.find_one({"id": application_id}, {"_id": 0})
+        if app:
+            # Update candidate status
+            await db.candidates.update_one(
+                {"id": app["candidate_id"]},
+                {"$set": {"status": "plasat", "company_id": app["company_id"], "company_name": app["company_name"]}}
+            )
+            # Update job positions filled
+            await db.jobs.update_one(
+                {"id": app["job_id"]},
+                {"$inc": {"positions_filled": 1}}
+            )
+    
+    return {"message": f"Status actualizat la {new_status}"}
+
 # ===================== ANAF CUI LOOKUP =====================
 
 @api_router.get("/anaf/{cui}")
