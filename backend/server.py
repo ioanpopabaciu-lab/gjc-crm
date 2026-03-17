@@ -863,7 +863,28 @@ async def update_candidate(candidate_id: str, input: CandidateCreate):
     existing = await db.candidates.find_one({"id": candidate_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Candidatul nu a fost găsit")
+    
     update_data = input.model_dump()
+    
+    # SHADOW ARCHITECTURE: Auto-create Job + Application when candidate is assigned to company
+    old_company_id = existing.get("company_id")
+    new_company_id = update_data.get("company_id")
+    
+    # If company assignment changed (new assignment or different company)
+    if new_company_id and new_company_id != old_company_id:
+        candidate_name = f"{update_data.get('first_name', existing.get('first_name', ''))} {update_data.get('last_name', existing.get('last_name', ''))}"
+        company_name = update_data.get("company_name", "")
+        job_type = update_data.get("job_type", existing.get("job_type"))
+        
+        # Auto-create job and application
+        await auto_create_job_and_application(
+            candidate_id=candidate_id,
+            company_id=new_company_id,
+            company_name=company_name,
+            candidate_name=candidate_name,
+            job_type=job_type
+        )
+    
     await db.candidates.update_one({"id": candidate_id}, {"$set": update_data})
     updated = await db.candidates.find_one({"id": candidate_id}, {"_id": 0})
     return serialize_doc(updated)
