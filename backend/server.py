@@ -192,6 +192,8 @@ class ImmigrationCase(BaseModel):
     candidate_name: Optional[str] = None
     company_id: Optional[str] = None
     company_name: Optional[str] = None
+    # NEW: Link to application (shadow structure)
+    application_id: Optional[str] = None
     case_type: str = "Permis de muncă"
     status: str = "în procesare"
     current_stage: int = 1
@@ -218,6 +220,7 @@ class ImmigrationCaseCreate(BaseModel):
     candidate_name: Optional[str] = None
     company_id: Optional[str] = None
     company_name: Optional[str] = None
+    application_id: Optional[str] = None  # NEW: optional link
     case_type: str = "Permis de muncă"
     status: str = "în procesare"
     passport_expiry: Optional[str] = None
