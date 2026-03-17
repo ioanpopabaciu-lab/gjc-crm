@@ -1,0 +1,98 @@
+[
+  {
+    "id": "opp-1",
+    "title": "Plasare 5 muncitori - Da Vinci Construct SRL",
+    "company_id": "comp-1",
+    "company_name": "Da Vinci Construct SRL",
+    "stage": "lead",
+    "value": 25000,
+    "positions": 5,
+    "filled": 3,
+    "probability": 20,
+    "created_at": "2026-03-09T07:40:35.403294+00:00"
+  },
+  {
+    "id": "opp-2",
+    "title": "Plasare 10 muncitori - Balearia Food SRL",
+    "company_id": "comp-2",
+    "company_name": "Balearia Food SRL",
+    "stage": "contact",
+    "value": 50000,
+    "positions": 10,
+    "filled": 7,
+    "probability": 40,
+    "created_at": "2026-03-09T07:40:35.403690+00:00"
+  },
+  {
+    "id": "opp-3",
+    "title": "Plasare 15 muncitori - TechBuild Romania",
+    "company_id": "comp-3",
+    "company_name": "TechBuild Romania",
+    "stage": "negociere",
+    "value": 75000,
+    "positions": 15,
+    "filled": 10,
+    "probability": 60,
+    "created_at": "2026-03-09T07:40:35.404191+00:00"
+  },
+  {
+    "id": "opp-4",
+    "title": "Plasare 20 muncitori - AgroFarm SRL",
+    "company_id": "comp-4",
+    "company_name": "AgroFarm SRL",
+    "stage": "contract",
+    "value": 100000,
+    "positions": 20,
+    "filled": 15,
+    "probability": 80,
+    "created_at": "2026-03-09T07:40:35.404661+00:00"
+  },
+  {
+    "id": "opp-5",
+    "title": "Plasare 8 muncitori - MetalWorks SA",
+    "company_id": "comp-5",
+    "company_name": "MetalWorks SA",
+    "stage": "câștigat",
+    "value": 40000,
+    "positions": 8,
+    "filled": 5,
+    "probability": 30,
+    "created_at": "2026-03-09T07:40:35.405053+00:00"
+  },
+  {
+    "id": "opp-6",
+    "title": "Plasare 12 muncitori - TransLog International",
+    "company_id": "comp-6",
+    "company_name": "TransLog International",
+    "stage": "lead",
+    "value": 60000,
+    "positions": 12,
+    "filled": 8,
+    "probability": 50,
+    "created_at": "2026-03-09T07:40:35.405420+00:00"
+  },
+  {
+    "id": "opp-7",
+    "title": "Plasare 6 muncitori - FoodService Plus",
+    "company_id": "comp-7",
+    "company_name": "FoodService Plus",
+    "stage": "contact",
+    "value": 30000,
+    "positions": 6,
+    "filled": 4,
+    "probability": 25,
+    "created_at": "2026-03-09T07:40:35.405770+00:00"
+  },
+  {
+    "id": "opp-8",
+    "title": "Plasare 25 muncitori - BuildPro SRL",
+    "company_id": "comp-8",
+    "company_name": "BuildPro SRL",
+    "stage": "negociere",
+    "value": 125000,
+    "positions": 25,
+    "filled": 18,
+    "probability": 90,
+    "created_at": "2026-03-09T07:40:35.406160+00:00"
+  }
+]

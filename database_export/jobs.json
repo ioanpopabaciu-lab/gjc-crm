@@ -1,0 +1,25 @@
+[
+  {
+    "id": "068eef6e-518e-48d9-917b-52e2c78d4d4d",
+    "company_id": "086f7b18-534b-4f3b-a30a-4ba374752210",
+    "company_name": "Allegria Turism SRL",
+    "title": "Bucătar",
+    "description": null,
+    "requirements": "Experiență minimă 2 ani în HoReCa",
+    "required_skills": [
+      "bucătărie",
+      "HoReCa"
+    ],
+    "required_experience_years": 0,
+    "required_nationality": null,
+    "location": "Oradea",
+    "salary_min": null,
+    "salary_max": null,
+    "currency": "EUR",
+    "headcount_needed": 5,
+    "positions_filled": 1,
+    "status": "activ",
+    "start_date": null,
+    "created_at": "2026-03-17T19:53:44.061000"
+  }
+]
