@@ -83,6 +83,11 @@ const MainLayout = ({ children, notification }) => {
             </button>
           )}
         </div>
+        {sidebarOpen && (
+          <div style={{ marginTop: '16px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            Made by Global Jobs Consulting
+          </div>
+        )}
       </aside>
 
       {/* Main Content */}

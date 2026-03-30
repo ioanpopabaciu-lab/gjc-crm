@@ -111,12 +111,11 @@ body {
 }
 
 .logo-img {
-  width: 36px;
-  height: 36px;
+  max-width: 160px;
+  height: 44px;
   object-fit: contain;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  padding: 4px;
+  background: transparent;
+  padding: 0;
 }
 
 .logo-icon {
