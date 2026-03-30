@@ -111,13 +111,13 @@ body {
 }
 
 .logo-img {
-  width: 100px;
-  height: 100px;
+  width: 70px;
+  height: auto;
+  max-height: 50px;
   object-fit: contain;
-  transform: scale(1.8);
-  transform-origin: left center;
   background: transparent;
   padding: 0;
+  margin-left: -5px;
 }
 
 .logo-icon {
