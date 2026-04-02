@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -17,8 +17,10 @@ const CompaniesPage = ({ showNotification }) => {
   const fetchCompanies = useCallback(async () => {
     try {
       setLoading(true);
-      const params = search ? `?search=${encodeURIComponent(search)}` : "";
-      const response = await axios.get(`${API}/companies${params}`);
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      params.set("with_stats", "true");
+      const response = await axios.get(`${API}/companies?${params.toString()}`);
       setCompanies(response.data);
     } catch (error) {
       showNotification("Eroare la încărcarea companiilor", "error");
@@ -92,7 +94,8 @@ const CompaniesPage = ({ showNotification }) => {
     } catch (error) {
       setCuiValidation({ status: 'invalid', loading: false, message: "Eroare verificare" });
     }
-  }, [API]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounce pentru validare CUI (800ms după ce utilizatorul termină de scris)
   useEffect(() => {
@@ -139,26 +142,50 @@ const CompaniesPage = ({ showNotification }) => {
     }
   };
 
+  const exportCSV = () => {
+    const headers = ["Companie", "CUI", "Oraș", "Industrie", "Contact", "Telefon", "Email", "Status", "Candidați", "Dosare Active"];
+    const rows = companies.map(c => [
+      c.name || "", c.cui || "", c.city || "", c.industry || "",
+      c.contact_person || "", c.phone || "", c.email || "", c.status || "",
+      c.candidates_count || 0, c.active_cases || 0
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `companii_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="module-container" data-testid="companies-module">
       <div className="module-toolbar">
-        <div className="search-box">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Caută companie, CUI, oraș..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            data-testid="company-search"
-          />
+        <div className="toolbar-left">
+          <div className="search-box">
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Caută companie, CUI, oraș..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              data-testid="company-search"
+            />
+            {search && <button className="clear-search" onClick={() => setSearch("")}><X size={14}/></button>}
+          </div>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => { setEditingCompany({}); setShowModal(true); }}
-          data-testid="add-company-btn"
-        >
-          <Plus size={16} /> Adaugă Companie
-        </button>
+        <div className="toolbar-right">
+          <span className="records-count">{companies.length} companii</span>
+          <button className="btn btn-secondary" onClick={exportCSV}>
+            <Download size={16} /> Export CSV
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => { setEditingCompany({}); setShowModal(true); }}
+            data-testid="add-company-btn"
+          >
+            <Plus size={16} /> Adaugă Companie
+          </button>
+        </div>
       </div>
 
       {loading ? <LoadingSpinner /> : (
@@ -171,6 +198,8 @@ const CompaniesPage = ({ showNotification }) => {
                 <th>Oraș</th>
                 <th>Industrie</th>
                 <th>Contact</th>
+                <th>Candidați</th>
+                <th>Dosare Active</th>
                 <th>Status</th>
                 <th>Acțiuni</th>
               </tr>
@@ -190,6 +219,18 @@ const CompaniesPage = ({ showNotification }) => {
                       <span>{company.contact_person || "-"}</span>
                       {company.phone && <small><Phone size={12} /> {company.phone}</small>}
                     </div>
+                  </td>
+                  <td>
+                    {company.candidates_count > 0 ? (
+                      <span className="stat-badge blue"><Users size={12}/> {company.candidates_count}</span>
+                    ) : "-"}
+                  </td>
+                  <td>
+                    {company.active_cases > 0 ? (
+                      <span className="stat-badge green"><FileText size={12}/> {company.active_cases}</span>
+                    ) : company.approved_cases > 0 ? (
+                      <span className="stat-badge gray"><FileText size={12}/> {company.approved_cases} aprobate</span>
+                    ) : "-"}
                   </td>
                   <td>
                     <span className={`status-badge ${company.status}`}>{company.status}</span>

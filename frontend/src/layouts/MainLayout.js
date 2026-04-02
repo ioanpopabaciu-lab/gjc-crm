@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
-  Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle
+  Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
+  Search, X
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import axios from 'axios';
+import { API } from '../config';
 
 const modules = [
   { id: "dashboard", path: "/", name: "Dashboard", icon: Home },
@@ -16,6 +19,91 @@ const modules = [
   { id: "reports", path: "/reports", name: "Rapoarte AI", icon: BarChart3 },
   { id: "alerts", path: "/alerts", name: "Centru Alerte", icon: Bell },
 ];
+
+const GlobalSearch = () => {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const ref = useRef(null);
+  const navigate = useNavigate();
+
+  const doSearch = useCallback(async (q) => {
+    if (!q || q.length < 2) { setResults(null); return; }
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/search?q=${encodeURIComponent(q)}`);
+      setResults(res.data);
+    } catch { setResults(null); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => doSearch(query), 400);
+    return () => clearTimeout(t);
+  }, [query, doSearch]);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const total = results ? (results.candidates?.length || 0) + (results.companies?.length || 0) + (results.cases?.length || 0) : 0;
+
+  return (
+    <div className="global-search" ref={ref}>
+      <div className="search-box">
+        <Search size={16} className="search-icon" />
+        <input
+          type="text"
+          placeholder="Caută global..."
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          className="search-input"
+        />
+        {query && <button className="clear-search" onClick={() => { setQuery(""); setResults(null); }}><X size={14}/></button>}
+      </div>
+      {open && query.length >= 2 && (
+        <div className="search-dropdown">
+          {loading && <div className="search-loading">Se caută...</div>}
+          {!loading && results && total === 0 && <div className="search-empty">Niciun rezultat pentru „{query}"</div>}
+          {!loading && results?.candidates?.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-title">Candidați ({results.candidates.length})</div>
+              {results.candidates.slice(0, 5).map(c => (
+                <button key={c.id} className="search-result-item" onClick={() => { navigate("/candidates"); setOpen(false); setQuery(""); }}>
+                  <Users size={14}/> {c.first_name} {c.last_name} <small>{c.nationality}</small>
+                </button>
+              ))}
+            </div>
+          )}
+          {!loading && results?.companies?.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-title">Companii ({results.companies.length})</div>
+              {results.companies.slice(0, 5).map(c => (
+                <button key={c.id} className="search-result-item" onClick={() => { navigate("/companies"); setOpen(false); setQuery(""); }}>
+                  <Building2 size={14}/> {c.name} <small>{c.cui}</small>
+                </button>
+              ))}
+            </div>
+          )}
+          {!loading && results?.cases?.length > 0 && (
+            <div className="search-section">
+              <div className="search-section-title">Dosare ({results.cases.length})</div>
+              {results.cases.slice(0, 5).map(c => (
+                <button key={c.id} className="search-result-item" onClick={() => { navigate("/immigration"); setOpen(false); setQuery(""); }}>
+                  <FileText size={14}/> {c.candidate_name} — {c.company_name} <small>{c.igi_number}</small>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MainLayout = ({ children, notification }) => {
   const { user, logout } = useAuth();
@@ -95,6 +183,7 @@ const MainLayout = ({ children, notification }) => {
         <header className="content-header">
           <h1>{activeModule.name}</h1>
           <div className="header-actions">
+            <GlobalSearch />
             <span className="date-display">
               <Calendar size={16} />
               {new Date().toLocaleDateString("ro-RO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}

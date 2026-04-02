@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, Plus, User, Edit, Trash2, X, Users } from 'lucide-react';
+import { Search, Plus, User, Edit, Trash2, X, Users, Download, Filter } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -9,9 +9,12 @@ const CandidatesPage = ({ showNotification }) => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterNationality, setFilterNationality] = useState("");
+  const [filterCompany, setFilterCompany] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchCandidates = useCallback(async () => {
     try {
@@ -19,6 +22,8 @@ const CandidatesPage = ({ showNotification }) => {
       let params = [];
       if (search) params.push(`search=${encodeURIComponent(search)}`);
       if (filterNationality) params.push(`nationality=${encodeURIComponent(filterNationality)}`);
+      if (filterCompany) params.push(`company_id=${encodeURIComponent(filterCompany)}`);
+      if (filterStatus) params.push(`status=${encodeURIComponent(filterStatus)}`);
       const queryString = params.length > 0 ? `?${params.join("&")}` : "";
       const response = await axios.get(`${API}/candidates${queryString}`);
       setCandidates(response.data);
@@ -27,7 +32,7 @@ const CandidatesPage = ({ showNotification }) => {
     } finally {
       setLoading(false);
     }
-  }, [search, filterNationality, showNotification]);
+  }, [search, filterNationality, filterCompany, filterStatus, showNotification]);
 
   const fetchCompanies = async () => {
     try {
@@ -46,6 +51,28 @@ const CandidatesPage = ({ showNotification }) => {
   useEffect(() => {
     fetchCompanies();
   }, []);
+
+  const hasActiveFilters = filterNationality || filterCompany || filterStatus;
+
+  const clearFilters = () => {
+    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus("");
+  };
+
+  const exportCSV = () => {
+    const headers = ["Prenume", "Nume", "Naționalitate", "Nr. Pașaport", "Exp. Pașaport", "Data Nașterii", "Tip Job", "Companie", "Status", "Email", "Telefon"];
+    const rows = candidates.map(c => [
+      c.first_name || "", c.last_name || "", c.nationality || "",
+      c.passport_number || "", c.passport_expiry || "", c.birth_date || "",
+      c.job_type || "", c.company_name || "", c.status || "",
+      c.email || "", c.phone || ""
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `candidati_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
 
   const handleSave = async () => {
     try {
@@ -94,37 +121,78 @@ const CandidatesPage = ({ showNotification }) => {
   return (
     <div className="module-container" data-testid="candidates-module">
       <div className="module-toolbar">
-        <div className="search-box">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Caută după nume, pașaport..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            data-testid="candidate-search"
-          />
+        <div className="toolbar-left">
+          <div className="search-box">
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Caută după nume, pașaport, companie..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              data-testid="candidate-search"
+            />
+            {search && <button className="clear-search" onClick={() => setSearch("")}><X size={14}/></button>}
+          </div>
+          <button
+            className={`btn btn-secondary filter-toggle ${showFilters ? 'active' : ''}`}
+            onClick={() => setShowFilters(f => !f)}
+          >
+            <Filter size={16} /> Filtre
+            {hasActiveFilters && <span className="filter-badge">●</span>}
+          </button>
+          {hasActiveFilters && (
+            <button className="btn btn-ghost btn-sm" onClick={clearFilters}><X size={14}/> Resetează</button>
+          )}
         </div>
-        <select
-          className="filter-select"
-          value={filterNationality}
-          onChange={(e) => setFilterNationality(e.target.value)}
-          data-testid="nationality-filter"
-        >
-          <option value="">Toate naționalitățile</option>
-          <option value="Nepal">Nepal</option>
-          <option value="India">India</option>
-          <option value="Filipine">Filipine</option>
-          <option value="Sri Lanka">Sri Lanka</option>
-          <option value="Nigeria">Nigeria</option>
-        </select>
-        <button
-          className="btn btn-primary"
-          onClick={() => { setEditingCandidate({}); setShowModal(true); }}
-          data-testid="add-candidate-btn"
-        >
-          <Plus size={16} /> Adaugă Candidat
-        </button>
+        <div className="toolbar-right">
+          <span className="records-count">{candidates.length} candidați</span>
+          <button className="btn btn-secondary" onClick={exportCSV}>
+            <Download size={16} /> Export CSV
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => { setEditingCandidate({}); setShowModal(true); }}
+            data-testid="add-candidate-btn"
+          >
+            <Plus size={16} /> Adaugă Candidat
+          </button>
+        </div>
       </div>
+
+      {showFilters && (
+        <div className="filter-bar">
+          <div className="filter-group">
+            <label>Naționalitate</label>
+            <select value={filterNationality} onChange={e => setFilterNationality(e.target.value)} data-testid="nationality-filter">
+              <option value="">Toate</option>
+              <option value="Nepal">Nepal</option>
+              <option value="India">India</option>
+              <option value="Filipine">Filipine</option>
+              <option value="Sri Lanka">Sri Lanka</option>
+              <option value="Nigeria">Nigeria</option>
+              <option value="Bangladesh">Bangladesh</option>
+              <option value="Pakistan">Pakistan</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Companie</label>
+            <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)}>
+              <option value="">Toate companiile</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">Toate statusurile</option>
+              <option value="activ">Activ</option>
+              <option value="în procesare">În procesare</option>
+              <option value="plasat">Plasat</option>
+              <option value="inactiv">Inactiv</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {loading ? <LoadingSpinner /> : (
         <div className="data-table-container">
@@ -134,8 +202,9 @@ const CandidatesPage = ({ showNotification }) => {
                 <th>Nume</th>
                 <th>Naționalitate</th>
                 <th>Pașaport</th>
-                <th>Expirare Pașaport</th>
-                <th>Expirare Permis</th>
+                <th>Data Nașterii</th>
+                <th>Exp. Pașaport</th>
+                <th>Exp. Permis</th>
                 <th>Job</th>
                 <th>Companie</th>
                 <th>Status</th>
@@ -156,11 +225,12 @@ const CandidatesPage = ({ showNotification }) => {
                       <span className="nationality-badge">{candidate.nationality || "-"}</span>
                     </td>
                     <td>{candidate.passport_number || "-"}</td>
+                    <td>{candidate.birth_date || "-"}</td>
                     <td>
                       <span className={`expiry-badge ${getExpiryClass(passportDays)}`}>
                         {candidate.passport_expiry || "-"}
                         {passportDays !== null && passportDays <= 90 && (
-                          <small> ({passportDays} zile)</small>
+                          <small> ({passportDays}z)</small>
                         )}
                       </span>
                     </td>
@@ -168,7 +238,7 @@ const CandidatesPage = ({ showNotification }) => {
                       <span className={`expiry-badge ${getExpiryClass(permitDays)}`}>
                         {candidate.permit_expiry || "-"}
                         {permitDays !== null && permitDays <= 90 && (
-                          <small> ({permitDays} zile)</small>
+                          <small> ({permitDays}z)</small>
                         )}
                       </span>
                     </td>
@@ -193,7 +263,7 @@ const CandidatesPage = ({ showNotification }) => {
           {candidates.length === 0 && (
             <div className="empty-state">
               <Users size={48} />
-              <p>Nu există candidați. Adăugați primul candidat!</p>
+              <p>Nu există candidați{hasActiveFilters || search ? " pentru filtrele selectate" : ""}. {!hasActiveFilters && !search && "Adăugați primul candidat!"}</p>
             </div>
           )}
         </div>

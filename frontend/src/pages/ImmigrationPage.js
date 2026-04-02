@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { FileText, Plus, ChevronRight, Eye, Trash2, X, AlertTriangle, Paperclip, Upload, Download, Globe, Building2, Briefcase, Mail, ChevronDown } from 'lucide-react';
+import { FileText, Plus, ChevronRight, Eye, Trash2, X, AlertTriangle, Paperclip, Upload, Download, Globe, Building2, Briefcase, Mail, ChevronDown, Search, Filter, Calendar, Award, Clock } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -11,26 +11,72 @@ const ImmigrationPage = ({ showNotification }) => {
   const [showModal, setShowModal] = useState(false);
   const [newCase, setNewCase] = useState({});
   const [candidates, setCandidates] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [selectedCase, setSelectedCase] = useState(null);
   const [activeTab, setActiveTab] = useState("documents");
+  // Filtre
+  const [search, setSearch] = useState("");
+  const [filterStage, setFilterStage] = useState("");
+  const [filterCompany, setFilterCompany] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchCases = useCallback(async () => {
     try {
       setLoading(true);
-      const [casesRes, stagesRes, candidatesRes] = await Promise.all([
-        axios.get(`${API}/immigration`),
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (filterStage) params.append("stage", filterStage);
+      if (filterCompany) params.append("company_id", filterCompany);
+      if (filterStatus) params.append("status", filterStatus);
+      if (filterDateFrom) params.append("date_from", filterDateFrom);
+      if (filterDateTo) params.append("date_to", filterDateTo);
+      const [casesRes, stagesRes, candidatesRes, companiesRes] = await Promise.all([
+        axios.get(`${API}/immigration?${params.toString()}`),
         axios.get(`${API}/immigration/stages`),
-        axios.get(`${API}/candidates`)
+        axios.get(`${API}/candidates`),
+        axios.get(`${API}/companies`)
       ]);
       setCases(casesRes.data);
       setStages(stagesRes.data.stages);
       setCandidates(candidatesRes.data);
+      setCompanies(companiesRes.data);
     } catch (error) {
       showNotification("Eroare la încărcarea dosarelor", "error");
     } finally {
       setLoading(false);
     }
-  }, [showNotification]);
+  }, [search, filterStage, filterCompany, filterStatus, filterDateFrom, filterDateTo, showNotification]);
+
+  const exportCSV = () => {
+    const headers = ["Candidat", "Companie", "Tip", "Etapa", "Status", "Nr IGI", "Nr Aviz", "Data Aviz", "Programare", "Data Depunere"];
+    const rows = cases.map(c => [
+      c.candidate_name || "",
+      c.company_name || "",
+      c.case_type || "",
+      c.current_stage_name || "",
+      c.status || "",
+      c.igi_number || "",
+      c.aviz_number || "",
+      c.aviz_date || "",
+      c.appointment_date ? `${c.appointment_date} ${c.appointment_time || ""}` : "",
+      c.submitted_date || ""
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `dosare_imigrare_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const clearFilters = () => {
+    setSearch(""); setFilterStage(""); setFilterCompany("");
+    setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo("");
+  };
+  const hasActiveFilters = search || filterStage || filterCompany || filterStatus || filterDateFrom || filterDateTo;
 
   useEffect(() => {
     fetchCases();
@@ -193,16 +239,99 @@ const ImmigrationPage = ({ showNotification }) => {
   if (!selectedCase) {
     return (
       <div className="module-container" data-testid="immigration-module">
+        {/* Toolbar principal */}
         <div className="module-toolbar">
-          <div className="stages-legend">
-            {stages.slice(0, 4).map((stage, idx) => (
-              <span key={idx} className="stage-chip">{idx + 1}. {stage}</span>
-            ))}
-            {stages.length > 4 && <span className="stage-chip more">+{stages.length - 4} etape</span>}
+          <div className="toolbar-left">
+            <div className="search-box">
+              <Search size={16} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Caută candidat, companie, nr. IGI..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="search-input"
+              />
+              {search && <button className="clear-search" onClick={() => setSearch("")}><X size={14}/></button>}
+            </div>
+            <button
+              className={`btn btn-secondary filter-toggle ${showFilters ? 'active' : ''}`}
+              onClick={() => setShowFilters(f => !f)}
+            >
+              <Filter size={16} />
+              Filtre
+              {hasActiveFilters && <span className="filter-badge">●</span>}
+            </button>
+            {hasActiveFilters && (
+              <button className="btn btn-ghost btn-sm" onClick={clearFilters}>
+                <X size={14} /> Resetează
+              </button>
+            )}
           </div>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)} data-testid="add-case-btn">
-            <Plus size={16} /> Dosar Nou
-          </button>
+          <div className="toolbar-right">
+            <span className="records-count">{cases.length} dosare</span>
+            <button className="btn btn-secondary" onClick={exportCSV} title="Exportă CSV">
+              <Download size={16} /> Export CSV
+            </button>
+            <button className="btn btn-primary" onClick={() => setShowModal(true)} data-testid="add-case-btn">
+              <Plus size={16} /> Dosar Nou
+            </button>
+          </div>
+        </div>
+
+        {/* Filtre extinse */}
+        {showFilters && (
+          <div className="filter-bar">
+            <div className="filter-group">
+              <label>Etapă</label>
+              <select value={filterStage} onChange={e => setFilterStage(e.target.value)}>
+                <option value="">Toate etapele</option>
+                {stages.map((s, i) => (
+                  <option key={i} value={s}>{i+1}. {s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>Companie</label>
+              <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)}>
+                <option value="">Toate companiile</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>Status</label>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="">Toate statusurile</option>
+                <option value="activ">Activ</option>
+                <option value="aprobat">Aprobat</option>
+                <option value="respins">Respins</option>
+                <option value="suspendat">Suspendat</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label><Calendar size={14}/> De la</label>
+              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+            </div>
+            <div className="filter-group">
+              <label><Calendar size={14}/> Până la</label>
+              <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {/* Legenda etape */}
+        <div className="stages-legend-bar">
+          {stages.slice(0, 5).map((stage, idx) => (
+            <span
+              key={idx}
+              className={`stage-chip ${filterStage === stage ? 'active' : ''}`}
+              onClick={() => setFilterStage(filterStage === stage ? "" : stage)}
+            >
+              {idx + 1}. {stage}
+            </span>
+          ))}
+          {stages.length > 5 && <span className="stage-chip more">+{stages.length - 5} etape</span>}
         </div>
 
         {loading ? <LoadingSpinner /> : (
@@ -226,6 +355,18 @@ const ImmigrationPage = ({ showNotification }) => {
                       Etapa {caseItem.current_stage}/{stages.length}: {stages[caseItem.current_stage - 1] || caseItem.current_stage_name}
                     </span>
                   </div>
+                  {/* Date IGI din PDF */}
+                  <div className="case-igi-info">
+                    {caseItem.aviz_number && (
+                      <span className="igi-badge"><Award size={12}/> Aviz #{caseItem.aviz_number}</span>
+                    )}
+                    {caseItem.igi_number && (
+                      <span className="igi-badge"><FileText size={12}/> IGI: {caseItem.igi_number}</span>
+                    )}
+                    {caseItem.appointment_date && (
+                      <span className="igi-badge appointment"><Clock size={12}/> Prog: {caseItem.appointment_date} {caseItem.appointment_time || ""}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="case-actions">
                   <button className="btn btn-secondary" onClick={() => fetchCaseDetails(caseItem.id)} data-testid={`view-case-${caseItem.id}`}>
@@ -245,7 +386,7 @@ const ImmigrationPage = ({ showNotification }) => {
             {cases.length === 0 && (
               <div className="empty-state full-width">
                 <FileText size={48} />
-                <p>Nu există dosare de imigrare. Creați primul dosar!</p>
+                <p>Nu există dosare{hasActiveFilters ? " pentru filtrele selectate" : ""}. {!hasActiveFilters && "Creați primul dosar!"}</p>
               </div>
             )}
           </div>

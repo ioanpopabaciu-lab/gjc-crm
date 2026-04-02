@@ -1,0 +1,707 @@
+RAPORT IGI - 01.04.2026 12:38
+======================================================================
+
+AVIZE EMISE: 211
+SOLUTIONATE: 204
+PROGRAMARI: 218
+ANULATE: 15
+IN PROCESARE: 35
+
+
+AVIZE DE MUNCA EMISE (211):
+======================================================================
+[aviz_emis      ] Nr IGI: ?            | Candidat: schimbarea de                            | Data: Wed, 02 Apr 2025 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5579925 (signed)             | Data: 9 Jul 2024 14:08 | Work permit 5579925 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6418383 (signed)             | Data: 8 May 2025 16:41 | Work permit 6418383 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6418399 (signed)             | Data: 8 May 2025 16:38 | Work permit 6418399 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6418389 (signed)             | Data: 8 May 2025 16:36 | Work permit 6418389 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6418409 (signed)             | Data: 8 May 2025 16:32 | Work permit 6418409 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6419636 (signed)             | Data: 8 May 2025 16:30 | Work permit 6419636 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6419644 (signed)             | Data: 8 May 2025 16:24 | Work permit 6419644 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6419651 (signed)             | Data: 8 May 2025 16:20 | Work permit 6419651 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6425431 (signed)             | Data: 8 May 2025 16:18 | Work permit 6425431 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6425443 (signed)             | Data: 8 May 2025 16:18 | Work permit 6425443 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6425453 (signed)             | Data: 8 May 2025 16:09 | Work permit 6425453 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6426613 (signed)             | Data: 8 May 2025 16:05 | Work permit 6426613 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6426626 (signed)             | Data: 8 May 2025 16:04 | Work permit 6426626 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6426635 (signed)             | Data: 8 May 2025 16:01 | Work permit 6426635 (signed).pdf
+[document_ghiseu] Nr IGI: 1529633      | Candidat: KRISHNA KUMAR VIMAL KUMAR                | Data: 8 Apr 2025 11:07 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6619081 (signed)             | Data: 7 Dec 2025 16:20 | Work permit 6619081 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6619072 (signed)             | Data: 7 Dec 2025 16:20 | Work permit 6619072 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6626916 (signed)             | Data: 7 Dec 2025 16:18 | Work permit 6626916 (signed).pdf
+[document_ghiseu] Nr IGI: 1915244      | Candidat: GIRI KAMAL BAHADUR                       | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1915242      | Candidat: BAN CHITRA KUMAN                         | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1915240      | Candidat: CHAND BIRENDRA BAHADUR                   | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1915238      | Candidat: B K DHAN BAHADUR                         | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1915236      | Candidat: BHUJEL MAN BAHADUR                       | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1915170      | Candidat: KHANAL BADRI                             | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1905580      | Candidat: PITHAKOTE UMESH                          | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1905593      | Candidat: ALE MAGAR TIKA RAM                       | Data: 6 Mar 2026 09:22 | 
+[document_ghiseu] Nr IGI: 1569993      | Candidat: GURUNG UMESH                             | Data: 6 Jun 2025 09:49 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6493742 (signed)             | Data: 5 Aug 2025 14:33 | Work permit 6493742 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6493665 (signed)             | Data: 5 Aug 2025 14:33 | Work permit 6493665 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6493685 (signed)             | Data: 5 Aug 2025 14:31 | Work permit 6493685 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6493797 (signed)             | Data: 5 Aug 2025 14:27 | Work permit 6493797 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5703238 (signed)             | Data: 4 Oct 2024 14:01 | Work permit 5703238 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5639741 (signed)             | Data: 4 Oct 2024 08:43 | Work permit 5639741 (signed).pdf
+[document_ghiseu] Nr IGI: 1921575      | Candidat: DHAMALA HARIHAR                          | Data: 4 Mar 2026 11:50 | 
+[document_ghiseu] Nr IGI: 1910946      | Candidat: TAMANG BIMAL                             | Data: 4 Mar 2026 11:50 | 
+[document_ghiseu] Nr IGI: 1910943      | Candidat: DAHAL BIKASH                             | Data: 4 Mar 2026 11:50 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6363048 (signed)             | Data: 4 Mar 2025 15:02 | Work permit 6363048 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6361418 (signed)             | Data: 4 Mar 2025 15:02 | Work permit 6361418 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6361425 (signed)             | Data: 4 Mar 2025 15:00 | Work permit 6361425 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6361437 (signed)             | Data: 4 Mar 2025 14:37 | Work permit 6361437 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6361446 (signed)             | Data: 4 Mar 2025 14:35 | Work permit 6361446 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6361457 (signed)             | Data: 4 Mar 2025 14:35 | Work permit 6361457 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6360012 (signed)             | Data: 4 Mar 2025 14:29 | Work permit 6360012 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6358534 (signed)             | Data: 4 Mar 2025 14:27 | Work permit 6358534 (signed).pdf
+[document_ghiseu] Nr IGI: 1862714      | Candidat: DARLAMI SUNIL                            | Data: 4 Feb 2026 10:50 | 
+[document_ghiseu] Nr IGI: 1877983      | Candidat: THAPA RANA BAHADUR                       | Data: 4 Feb 2026 10:22 | 
+[document_ghiseu] Nr IGI: 1877923      | Candidat: GURUNG PRAKASH                           | Data: 4 Feb 2026 10:22 | 
+[document_ghiseu] Nr IGI: 1877957      | Candidat: SOTI MAGAR SAMIR                         | Data: 4 Feb 2026 10:08 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5716609 (signed)             | Data: 31 Oct 2024 14:2 | Work permit 5716609 (signed).pdf
+[document_ghiseu] Nr IGI: 1570182      | Candidat: TAMANG SHAMBHU                           | Data: 30 May 2025 10:5 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6633101 (signed)             | Data: 30 Dec 2025 13:5 | Work permit 6633101 (signed).pdf
+[document_ghiseu] Nr IGI: 1973008      | Candidat: THAPA MAGAR ANMOL                        | Data: 3 Mar 2026 09:08 | 
+[document_ghiseu] Nr IGI: 1945768      | Candidat: B K RAMESH                               | Data: 3 Mar 2026 09:08 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6505933 (signed)             | Data: 29 Aug 2025 16:2 | Work permit 6505933 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6656436 (signed)             | Data: 28 Jan 2026 14:2 | Work permit 6656436 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6651529 (signed)             | Data: 28 Jan 2026 14:2 | Work permit 6651529 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6651540 (signed)             | Data: 28 Jan 2026 14:2 | Work permit 6651540 (signed).pdf
+[document_ghiseu] Nr IGI: 1443331      | Candidat: DUWADI SARITA                            | Data: 28 Feb 2025 12:0 | 
+[document_ghiseu] Nr IGI: 1983751      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 27 Mar 2026 10:2 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6345817 (signed)             | Data: 27 Feb 2025 13:2 | Work permit 6345817 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5507366 (signed)             | Data: 27 Apr 2024 12:3 | Work permit 5507366 (signed).pdf
+[document_ghiseu] Nr IGI: 1704548      | Candidat: MAGAR TEJ BAHADUR                        | Data: 26 Sep 2025 13:0 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6342696 (signed)             | Data: 26 Feb 2025 14:0 | Work permit 6342696 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6342689 (signed)             | Data: 26 Feb 2025 14:0 | Work permit 6342689 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6344218 (signed)             | Data: 26 Feb 2025 14:0 | Work permit 6344218 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6344203 (signed)             | Data: 26 Feb 2025 14:0 | Work permit 6344203 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6344239 (signed)             | Data: 26 Feb 2025 13:5 | Work permit 6344239 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6344230 (signed)             | Data: 26 Feb 2025 13:5 | Work permit 6344230 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347296 (signed)             | Data: 26 Feb 2025 13:4 | Work permit 6347296 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347282 (signed)             | Data: 26 Feb 2025 13:4 | Work permit 6347282 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347310 (signed)             | Data: 26 Feb 2025 13:4 | Work permit 6347310 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347422 (signed)             | Data: 26 Feb 2025 13:4 | Work permit 6347422 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347442 (signed)             | Data: 26 Feb 2025 13:4 | Work permit 6347442 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347431 (signed)             | Data: 26 Feb 2025 13:4 | Work permit 6347431 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6347411 (signed)             | Data: 26 Feb 2025 13:3 | Work permit 6347411 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6352182 (signed)             | Data: 26 Feb 2025 13:3 | Work permit 6352182 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6352138 (signed)             | Data: 26 Feb 2025 13:3 | Work permit 6352138 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6352191 (signed)             | Data: 26 Feb 2025 13:2 | Work permit 6352191 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6350607 (signed)             | Data: 26 Feb 2025 13:2 | Work permit 6350607 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6350624 (signed)             | Data: 26 Feb 2025 13:2 | Work permit 6350624 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6350640 (signed)             | Data: 26 Feb 2025 13:2 | Work permit 6350640 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6350656 (signed)             | Data: 26 Feb 2025 13:2 | Work permit 6350656 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6350666 (signed)             | Data: 26 Feb 2025 13:2 | Work permit 6350666 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5708886 (signed)             | Data: 25 Oct 2024 12:0 | Work permit 5708886 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5708906 (signed)             | Data: 25 Oct 2024 12:0 | Work permit 5708906 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5708963 (signed)             | Data: 25 Oct 2024 12:0 | Work permit 5708963 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5708918 (signed)             | Data: 25 Oct 2024 12:0 | Work permit 5708918 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5708982 (signed)             | Data: 25 Oct 2024 12:0 | Work permit 5708982 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6339371 (signed)             | Data: 24 Feb 2025 14:3 | Work permit 6339371 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5797300 (signed)             | Data: 24 Dec 2024 13:4 | Work permit 5797300 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5797289 (signed)             | Data: 24 Dec 2024 13:4 | Work permit 5797289 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5797277 (signed)             | Data: 24 Dec 2024 13:4 | Work permit 5797277 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5793685 (signed)             | Data: 24 Dec 2024 13:4 | Work permit 5793685 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5788505 (signed)             | Data: 24 Dec 2024 13:3 | Work permit 5788505 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6461371 (signed)             | Data: 23 Jun 2025 13:4 | Work permit 6461371 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6461391 (signed)             | Data: 23 Jun 2025 13:3 | Work permit 6461391 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6456626 (signed)             | Data: 23 Jun 2025 13:3 | Work permit 6456626 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6456637 (signed)             | Data: 23 Jun 2025 13:3 | Work permit 6456637 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5797257 (signed)             | Data: 23 Dec 2024 12:1 | Work permit 5797257 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5795508 (signed)             | Data: 23 Dec 2024 12:1 | Work permit 5795508 (signed).pdf
+[document_ghiseu] Nr IGI: 1250438      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 22 Nov 2024 10:3 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6429334 (signed)             | Data: 22 May 2025 14:0 | Work permit 6429334 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6429342 (signed)             | Data: 22 May 2025 14:0 | Work permit 6429342 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6611220 (signed)             | Data: 21 Nov 2025 15:2 | Work permit 6611220 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6609811 (signed)             | Data: 21 Nov 2025 15:1 | Work permit 6609811 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6609739 (signed)             | Data: 21 Nov 2025 15:1 | Work permit 6609739 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6609720 (signed)             | Data: 21 Nov 2025 15:1 | Work permit 6609720 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5753455 (signed)             | Data: 21 Nov 2024 14:1 | Work permit 5753455 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5753473 (signed)             | Data: 21 Nov 2024 14:1 | Work permit 5753473 (signed).pdf
+[document_ghiseu] Nr IGI: 1438803      | Candidat: KUSTEPE FARUK                            | Data: 21 Mar 2025 11:2 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5668844 (signed)             | Data: 20 Sep 2024 13:2 | Work permit 5668844 (signed).pdf
+[document_ghiseu] Nr IGI: 1950074      | Candidat: BHATTARAI KIRAN                          | Data: 20 Mar 2026 10:5 | 
+[document_ghiseu] Nr IGI: 1998185      | Candidat: RAJINA TAMANG                            | Data: 20 Mar 2026 09:3 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5812757 (signed)             | Data: 20 Jan 2025 13:2 | Work permit 5812757 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5809717 (signed)             | Data: 20 Jan 2025 12:3 | Work permit 5809717 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5809703 (signed)             | Data: 20 Jan 2025 12:3 | Work permit 5809703 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5811217 (signed)             | Data: 20 Jan 2025 09:4 | Work permit 5811217 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5811380 (signed)             | Data: 20 Jan 2025 09:4 | Work permit 5811380 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5811366 (signed)             | Data: 20 Jan 2025 09:4 | Work permit 5811366 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5811398 (signed)             | Data: 20 Jan 2025 09:4 | Work permit 5811398 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5811421 (signed)             | Data: 20 Jan 2025 09:2 | Work permit 5811421 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5811429 (signed)             | Data: 20 Jan 2025 09:1 | Work permit 5811429 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5804093 (signed)             | Data: 20 Jan 2025 09:1 | Work permit 5804093 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5804101 (signed)             | Data: 20 Jan 2025 09:1 | Work permit 5804101 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5804073 (signed)             | Data: 20 Jan 2025 09:1 | Work permit 5804073 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5804084 (signed)             | Data: 20 Jan 2025 09:1 | Work permit 5804084 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5804058 (signed)             | Data: 20 Jan 2025 09:0 | Work permit 5804058 (signed).pdf
+[document_ghiseu] Nr IGI: 1295948      | Candidat: SINGAPPULI HEWAGE LAHIRU THILANKA WIJEYARATHNA | Data: 20 Dec 2024 11:0 | 
+[document_ghiseu] Nr IGI: 1620704      | Candidat: RIVERO JANNET SEBASTIAN                  | Data: 2 Jul 2025 10:07 | 
+[document_ghiseu] Nr IGI: 1404566      | Candidat: ADEBAYO JOB ADEDAYO                      | Data: 19 Mar 2025 10:4 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6339147 (signed)             | Data: 19 Feb 2025 13:4 | Work permit 6339147 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6339134 (signed)             | Data: 19 Feb 2025 13:4 | Work permit 6339134 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6339120 (signed)             | Data: 19 Feb 2025 13:4 | Work permit 6339120 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6339105 (signed)             | Data: 19 Feb 2025 13:4 | Work permit 6339105 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6337428 (signed)             | Data: 19 Feb 2025 13:4 | Work permit 6337428 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6337448 (signed)             | Data: 19 Feb 2025 13:4 | Work permit 6337448 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6337464 (signed)             | Data: 19 Feb 2025 13:3 | Work permit 6337464 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6337475 (signed)             | Data: 19 Feb 2025 13:3 | Work permit 6337475 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6332091 (signed)             | Data: 19 Feb 2025 13:3 | Work permit 6332091 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6332100 (signed)             | Data: 19 Feb 2025 13:3 | Work permit 6332100 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6602114 (signed)             | Data: 18 Nov 2025 14:1 | Work permit 6602114 (signed).pdf
+[document_ghiseu] Nr IGI: 1915234      | Candidat: PULAMI MAGAR PREM                        | Data: 18 Mar 2026 09:5 | 
+[document_ghiseu] Nr IGI: 1915247      | Candidat: DAHAL BHIM PRASAD                        | Data: 18 Mar 2026 09:3 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6367704 (signed)             | Data: 18 Mar 2025 13:3 | Work permit 6367704 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6367712 (signed)             | Data: 18 Mar 2025 13:3 | Work permit 6367712 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6337409 (signed)             | Data: 18 Feb 2025 12:2 | Work permit 6337409 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335846 (signed)             | Data: 18 Feb 2025 12:2 | Work permit 6335846 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335828 (signed)             | Data: 18 Feb 2025 12:1 | Work permit 6335828 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335820 (signed)             | Data: 18 Feb 2025 12:1 | Work permit 6335820 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335812 (signed)             | Data: 18 Feb 2025 12:1 | Work permit 6335812 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335800 (signed)             | Data: 18 Feb 2025 12:1 | Work permit 6335800 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335786 (signed)             | Data: 18 Feb 2025 12:1 | Work permit 6335786 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335770 (signed)             | Data: 18 Feb 2025 12:1 | Work permit 6335770 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335756 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6335756 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6335741 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6335741 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6334165 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6334165 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6332026 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6332026 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6332045 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6332045 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6332064 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6332064 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6332081 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6332081 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6330442 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6330442 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6330423 (signed)             | Data: 18 Feb 2025 12:0 | Work permit 6330423 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6330432 (signed)             | Data: 18 Feb 2025 11:5 | Work permit 6330432 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6542289 (signed)             | Data: 17 Sep 2025 14:4 | Work permit 6542289 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5815071 (signed)             | Data: 17 Jan 2025 11:4 | Work permit 5815071 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6388093 (signed)             | Data: 17 Apr 2025 12:5 | Work permit 6388093 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6388100 (signed)             | Data: 17 Apr 2025 12:5 | Work permit 6388100 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6417107 (signed)             | Data: 16 May 2025 12:4 | Work permit 6417107 (signed).pdf
+[document_ghiseu] Nr IGI: 1945736      | Candidat: THAPA NISHAN                             | Data: 16 Feb 2026 09:3 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6528731 (signed)             | Data: 15 Sep 2025 13:3 | Work permit 6528731 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6528321 (signed)             | Data: 15 Sep 2025 13:2 | Work permit 6528321 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6528310 (signed)             | Data: 15 Sep 2025 13:1 | Work permit 6528310 (signed).pdf
+[document_ghiseu] Nr IGI: 1338772      | Candidat: KANKANMAGE RASIKA DILRUKSHI              | Data: 15 Jan 2025 10:5 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6412145 (signed)             | Data: 13 May 2025 15:5 | Work permit 6412145 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6412126 (signed)             | Data: 13 May 2025 15:5 | Work permit 6412126 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5564460 (signed)             | Data: 13 Jun 2024 12:0 | Work permit 5564460 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5779976 (signed)             | Data: 13 Dec 2024 14:1 | Work permit 5779976 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5785162 (signed)             | Data: 13 Dec 2024 14:0 | Work permit 5785162 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5785171 (signed)             | Data: 13 Dec 2024 14:0 | Work permit 5785171 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5783417 (signed)             | Data: 13 Dec 2024 14:0 | Work permit 5783417 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 5783428 (signed)             | Data: 13 Dec 2024 13:5 | Work permit 5783428 (signed).pdf
+[document_ghiseu] Nr IGI: 1279590      | Candidat: TUMANDY JASON DOLOR                      | Data: 13 Dec 2024 10:4 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6363038 (signed)             | Data: 12 Mar 2025 14:1 | Work permit 6363038 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6455343 (signed)             | Data: 12 Jun 2025 14:1 | Work permit 6455343 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6455319 (signed)             | Data: 12 Jun 2025 14:1 | Work permit 6455319 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6455303 (signed)             | Data: 12 Jun 2025 14:1 | Work permit 6455303 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6455285 (signed)             | Data: 12 Jun 2025 14:1 | Work permit 6455285 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6450558 (signed)             | Data: 12 Jun 2025 14:1 | Work permit 6450558 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6450566 (signed)             | Data: 12 Jun 2025 14:1 | Work permit 6450566 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6450578 (signed)             | Data: 12 Jun 2025 14:0 | Work permit 6450578 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6449403 (signed)             | Data: 12 Jun 2025 14:0 | Work permit 6449403 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6449412 (signed)             | Data: 12 Jun 2025 14:0 | Work permit 6449412 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6449421 (signed)             | Data: 12 Jun 2025 13:5 | Work permit 6449421 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6448291 (signed)             | Data: 12 Jun 2025 13:5 | Work permit 6448291 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6448228 (signed)             | Data: 12 Jun 2025 13:5 | Work permit 6448228 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6448240 (signed)             | Data: 12 Jun 2025 13:5 | Work permit 6448240 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6524038 (signed)             | Data: 11 Sep 2025 14:2 | Work permit 6524038 (signed).pdf
+[document_ghiseu] Nr IGI: 1524411      | Candidat: BHATTARAI KIRAN                          | Data: 11 Jun 2025 09:4 | 
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6325437 (signed)             | Data: 11 Feb 2025 14:4 | Work permit 6325437 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6930821 (signed)             | Data: 10 Mar 2026 14:2 | Work permit 6930821 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6934953 (signed)             | Data: 10 Mar 2026 08:2 | Work permit 6934953 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6435902 (signed)             | Data: 10 Jun 2025 13:0 | Work permit 6435902 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6435922 (signed)             | Data: 10 Jun 2025 13:0 | Work permit 6435922 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6435934 (signed)             | Data: 10 Jun 2025 12:5 | Work permit 6435934 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6435952 (signed)             | Data: 10 Jun 2025 12:5 | Work permit 6435952 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6435976 (signed)             | Data: 10 Jun 2025 12:5 | Work permit 6435976 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6435965 (signed)             | Data: 10 Jun 2025 12:5 | Work permit 6435965 (signed).pdf
+[aviz_emis      ] Nr IGI: ?            | Candidat: Work permit 6606465 (signed)             | Data: 10 Dec 2025 15:3 | Work permit 6606465 (signed).pdf
+[document_ghiseu] Nr IGI: 1955072      | Candidat: CHAND SUNIL BAHADUR                      | Data: 1 Apr 2026 11:08 | 
+[document_ghiseu] Nr IGI: 1955063      | Candidat: PARIYAR ASHISH                           | Data: 1 Apr 2026 11:08 | 
+
+SOLUTIONATE - aprobate, permis in pregatire (204):
+======================================================================
+Nr IGI: 1950074      | Candidat: BHATTARAI KIRAN                          | Data: 9 Mar 2026 12:50 | Status: Soluționată
+Nr IGI: 1945768      | Candidat: B K RAMESH                               | Data: 9 Feb 2026 09:50 | Status: În curs de soluționare
+Nr IGI: 1762376      | Candidat: VILLAVERDE AIZEL                         | Data: 7 Oct 2025 09:50 | Status: Soluționată
+Nr IGI: 1570182      | Candidat: TAMANG SHAMBHU                           | Data: 7 May 2025 17:49 | Status: În curs de soluționare
+Nr IGI: 1569993      | Candidat: GURUNG UMESH                             | Data: 7 May 2025 17:42 | Status: În curs de soluționare
+Nr IGI: 1404566      | Candidat: ADEBAYO JOB ADEDAYO                      | Data: 7 Feb 2025 11:07 | Status: În curs de soluționare
+Nr IGI: 1300307      | Candidat: ONKAR ONKAR                              | Data: 6 Nov 2024 12:47 | Status: Soluționată
+Nr IGI: 1279590      | Candidat: TUMANDY JASON DOLOR                      | Data: 6 Nov 2024 12:15 | Status: În curs de soluționare
+Nr IGI: 1300360      | Candidat: HARBAND KUMAR                            | Data: 6 Nov 2024 10:36 | Status: Soluționată
+Nr IGI: 1404566      | Candidat: ADEBAYO JOB ADEDAYO                      | Data: 6 Mar 2025 13:37 | Status: Soluționată
+Nr IGI: 1063354      | Candidat: WALKIE JAMES CHARLES EDWARD              | Data: 6 Jun 2024 12:00 | Status: În curs de soluționare
+Nr IGI: 1309340      | Candidat: SHRESTHA SUBODH                          | Data: 6 Feb 2025 14:00 | Status: În curs de soluționare
+Nr IGI: 1309373      | Candidat: KAMI BALE                                | Data: 6 Feb 2025 13:50 | Status: În curs de soluționare
+Nr IGI: 1309351      | Candidat: B K AMMAR BAHADUR                        | Data: 6 Feb 2025 13:44 | Status: În curs de soluționare
+Nr IGI: 1309347      | Candidat: CHAND SUNIL BAHADUR                      | Data: 6 Feb 2025 13:42 | Status: În curs de soluționare
+Nr IGI: 1309343      | Candidat: DHUNGANA RANJEET                         | Data: 6 Feb 2025 13:35 | Status: În curs de soluționare
+Nr IGI: 1309367      | Candidat: B K ANANDA                               | Data: 6 Feb 2025 12:56 | Status: În curs de soluționare
+Nr IGI: 949342       | Candidat: TUMANDY JASON DOLOR                      | Data: 5 Mar 2024 12:22 | Status: În curs de soluționare
+Nr IGI: 1620704      | Candidat: RIVERO JANNET SEBASTIAN                  | Data: 5 Jun 2025 08:56 | Status: În curs de soluționare
+Nr IGI: 904347       | Candidat: MAJDOUB ISMAIL                           | Data: 5 Jan 2024 12:04 | Status: În curs de soluționare
+Nr IGI: 1221754      | Candidat: KHANAL BADRI                             | Data: 5 Dec 2024 17:00 | Status: În curs de soluționare
+Nr IGI: 1221703      | Candidat: ADHIKARI SAUGAT                          | Data: 5 Dec 2024 14:56 | Status: În curs de soluționare
+Nr IGI: 1221725      | Candidat: POUDEL HERMANTA                          | Data: 5 Dec 2024 13:56 | Status: În curs de soluționare
+Nr IGI: 1762376      | Candidat: VILLAVERDE AIZEL                         | Data: 4 Sep 2025 12:22 | Status: În curs de soluționare
+Nr IGI: 904272       | Candidat: ZEMOUR AHMED                             | Data: 4 Jan 2024 12:02 | Status: În curs de soluționare
+Nr IGI: 904286       | Candidat: EL BACHIR EL HALHALI                     | Data: 4 Jan 2024 12:02 | Status: În curs de soluționare
+Nr IGI: 1307789      | Candidat: DHAKAL KUMAR                             | Data: 4 Feb 2025 15:23 | Status: În curs de soluționare
+Nr IGI: 1305435      | Candidat: CHAND BIRENDRA BAHADUR                   | Data: 4 Feb 2025 13:42 | Status: În curs de soluționare
+Nr IGI: 1305521      | Candidat: B K DHAN BAHADUR                         | Data: 4 Feb 2025 13:36 | Status: În curs de soluționare
+Nr IGI: 1305494      | Candidat: KAMI BISHESH                             | Data: 4 Feb 2025 13:36 | Status: În curs de soluționare
+Nr IGI: 1680865      | Candidat: GHALE SURAJ                              | Data: 4 Dec 2025 13:08 | Status: În curs de soluționare
+Nr IGI: 1338772      | Candidat: KANKANMAGE RASIKA DILRUKSHI              | Data: 4 Dec 2024 17:28 | Status: În curs de soluționare
+Nr IGI: 1175860      | Candidat: OLI BHADRAKALA                           | Data: 31 Oct 2024 13:5 | Status: În curs de soluționare
+Nr IGI: 1176200      | Candidat: TAMATTA B K REKHA                        | Data: 31 Oct 2024 12:5 | Status: În curs de soluționare
+Nr IGI: 1884758      | Candidat: B K BHOLA                                | Data: 31 Mar 2026 13:5 | Status: În curs de soluționare
+Nr IGI: 1884352      | Candidat: BHANDARI RONISH                          | Data: 31 Mar 2026 13:3 | Status: În curs de soluționare
+Nr IGI: 2016645      | Candidat: SUBENI NABIN                             | Data: 31 Mar 2026 09:5 | Status: În curs de soluționare
+Nr IGI: 2016634      | Candidat: THAPA SAMBRAT                            | Data: 31 Mar 2026 09:3 | Status: În curs de soluționare
+Nr IGI: 2016628      | Candidat: THAPA TIKARAM                            | Data: 31 Mar 2026 09:2 | Status: În curs de soluționare
+Nr IGI: 1599173      | Candidat: TAMANG SIM BAHADUR                       | Data: 30 Oct 2025 12:3 | Status: În curs de soluționare
+Nr IGI: 1955063      | Candidat: PARIYAR ASHISH                           | Data: 30 Jan 2026 10:5 | Status: În curs de soluționare
+Nr IGI: 1272490      | Candidat: DHAMALA HARIHAR                          | Data: 30 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1272544      | Candidat: SIJALI MAGAR NETRA KUMAR                 | Data: 30 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1272526      | Candidat: ADHIKARI HEM KUMAR                       | Data: 30 Jan 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1272508      | Candidat: RAI DIP JUNG                             | Data: 30 Jan 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 922246       | Candidat: SAJID MUHAMMAD ZEESHAN                   | Data: 30 Jan 2024 16:0 | Status: În curs de soluționare
+Nr IGI: 1910946      | Candidat: TAMANG BIMAL                             | Data: 30 Dec 2025 09:5 | Status: În curs de soluționare
+Nr IGI: 1401910      | Candidat: GURUNG MAHENDRA                          | Data: 30 Apr 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1401925      | Candidat: THAPA SAMBRAT                            | Data: 30 Apr 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1401917      | Candidat: THAPA TIKARAM                            | Data: 30 Apr 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1915234      | Candidat: PULAMI MAGAR PREM                        | Data: 3 Mar 2026 12:22 | Status: Soluționată
+Nr IGI: 2000047      | Candidat: STOCKDALE GEORGE THOMAS JOSEPH           | Data: 3 Mar 2026 10:22 | Status: În curs de soluționare
+Nr IGI: 904178       | Candidat: AOUIDAT NOUHAYLA                         | Data: 3 Jan 2024 12:06 | Status: În curs de soluționare
+Nr IGI: 1308132      | Candidat: GIRI RAHUL                               | Data: 3 Feb 2025 15:08 | Status: În curs de soluționare
+Nr IGI: 1307964      | Candidat: BHANDARI PRAKASH                         | Data: 3 Feb 2025 13:57 | Status: În curs de soluționare
+Nr IGI: 1443331      | Candidat: DUWADI SARITA                            | Data: 3 Feb 2025 12:09 | Status: În curs de soluționare
+Nr IGI: 1212599      | Candidat: BHATTARAI KAJI                           | Data: 3 Dec 2024 13:35 | Status: În curs de soluționare
+Nr IGI: 1279590      | Candidat: TUMANDY JASON DOLOR                      | Data: 3 Dec 2024 09:14 | Status: Soluționată
+Nr IGI: 982931       | Candidat: MANSOUR YOUSSEF                          | Data: 3 Apr 2024 20:02 | Status: În curs de soluționare
+Nr IGI: 984053       | Candidat: SABBAR AYAOUB                            | Data: 3 Apr 2024 20:02 | Status: În curs de soluționare
+Nr IGI: 1599129      | Candidat: THAPA MAGAR LILA BAHADUR                 | Data: 29 Oct 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1599153      | Candidat: THAPA MAGAR PURNA BAHADUR                | Data: 29 Oct 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1272299      | Candidat: MAJHEE MANITA                            | Data: 29 Jan 2025 15:0 | Status: În curs de soluționare
+Nr IGI: 1272328      | Candidat: DARLAMI MAGAR MANISHA                    | Data: 29 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1272311      | Candidat: THAPA CHANDRAKALA                        | Data: 29 Jan 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1272294      | Candidat: LIMBU BHOJ KUMARI                        | Data: 29 Jan 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 903817       | Candidat: EL OUARRAQ MOUHSSINE                     | Data: 29 Dec 2023 12:0 | Status: În curs de soluționare
+Nr IGI: 1401061      | Candidat: KHATRI KESHAV                            | Data: 29 Apr 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1401099      | Candidat: SUBENI NABIN                             | Data: 29 Apr 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1401119      | Candidat: RAI SAMIR                                | Data: 29 Apr 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1599125      | Candidat: TAMANG KRISHNA KUMAR                     | Data: 28 Oct 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1212515      | Candidat: THAPA RANA BAHADUR                       | Data: 28 Nov 2024 13:5 | Status: În curs de soluționare
+Nr IGI: 1265346      | Candidat: DHAMALA RAMESH                           | Data: 28 Jan 2025 15:2 | Status: În curs de soluționare
+Nr IGI: 1265517      | Candidat: BHATTARAI BHIM KUMAR                     | Data: 28 Jan 2025 15:0 | Status: În curs de soluționare
+Nr IGI: 1265501      | Candidat: RANA MAGAR SUJAN                         | Data: 28 Jan 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1265510      | Candidat: PITHAKOTE UMESH                          | Data: 28 Jan 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1265335      | Candidat: GIRI SITARAM                             | Data: 28 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1265331      | Candidat: B K BHOLA                                | Data: 28 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1265354      | Candidat: KHANAL SUMAN                             | Data: 28 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1265492      | Candidat: PULAMI MAGAR PREM                        | Data: 28 Jan 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1265530      | Candidat: THAPA YOGENDRA                           | Data: 28 Jan 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1524411      | Candidat: BHATTARAI KIRAN                          | Data: 28 Apr 2025 10:2 | Status: În curs de soluționare
+Nr IGI: 1009625      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 27 Mar 2024 20:0 | Status: În curs de soluționare
+Nr IGI: 1157596      | Candidat: BULATHSINHALAGE DANANJANA SAMEERA SAMPATH COORAY | Data: 27 Aug 2024 13:0 | Status: În curs de soluționare
+Nr IGI: 1205830      | Candidat: CHHETRI MILAN                            | Data: 26 Nov 2024 14:0 | Status: În curs de soluționare
+Nr IGI: 1205853      | Candidat: KHATIWADA NIRMAL                         | Data: 26 Nov 2024 14:0 | Status: În curs de soluționare
+Nr IGI: 1524411      | Candidat: BHATTARAI KIRAN                          | Data: 26 May 2025 12:2 | Status: Soluționată
+Nr IGI: 967149       | Candidat: NARINGER SINGH                           | Data: 26 Mar 2024 12:5 | Status: În curs de soluționare
+Nr IGI: 965996       | Candidat: MUGISHA IVAN PADDY                       | Data: 26 Mar 2024 12:5 | Status: În curs de soluționare
+Nr IGI: 1741682      | Candidat: NYAN SORKAR                              | Data: 26 Aug 2025 10:5 | Status: În curs de soluționare
+Nr IGI: 1205900      | Candidat: THAPA MAGAR ANMOL                        | Data: 25 Nov 2024 14:0 | Status: În curs de soluționare
+Nr IGI: 1205804      | Candidat: RANA RAM BAHADUR                         | Data: 25 Nov 2024 14:0 | Status: În curs de soluționare
+Nr IGI: 1438803      | Candidat: KUSTEPE FARUK                            | Data: 25 Feb 2025 12:0 | Status: În curs de soluționare
+Nr IGI: 1808519      | Candidat: THAPA NISHAN                             | Data: 24 Oct 2025 12:5 | Status: În curs de soluționare
+Nr IGI: 1808533      | Candidat: B K RAMESH                               | Data: 24 Oct 2025 12:5 | Status: În curs de soluționare
+Nr IGI: 1300307      | Candidat: ONKAR ONKAR                              | Data: 24 Oct 2024 11:5 | Status: În curs de soluționare
+Nr IGI: 1300360      | Candidat: HARBAND KUMAR                            | Data: 24 Oct 2024 11:4 | Status: În curs de soluționare
+Nr IGI: 2015060      | Candidat: THAPA RAJAN                              | Data: 24 Mar 2026 09:2 | Status: În curs de soluționare
+Nr IGI: 1841727      | Candidat: BULATHSINHALAGE DANANJANA SAMEERA SAMPATH COORAY | Data: 24 Feb 2026 13:3 | Status: În curs de soluționare
+Nr IGI: 1915163      | Candidat: KHANAL SUMAN                             | Data: 24 Feb 2026 13:2 | Status: Soluționată
+Nr IGI: 1905580      | Candidat: PITHAKOTE UMESH                          | Data: 24 Feb 2026 11:2 | Status: Soluționată
+Nr IGI: 1905593      | Candidat: ALE MAGAR TIKA RAM                       | Data: 24 Feb 2026 10:5 | Status: Soluționată
+Nr IGI: 1443331      | Candidat: DUWADI SARITA                            | Data: 24 Feb 2025 10:1 | Status: Soluționată
+Nr IGI: 1269190      | Candidat: RAI DIKSHA                               | Data: 23 Jan 2025 14:5 | Status: În curs de soluționare
+Nr IGI: 1265316      | Candidat: BHUJEL MAN BAHADUR                       | Data: 23 Jan 2025 14:3 | Status: În curs de soluționare
+Nr IGI: 1269166      | Candidat: RAI SUSILA                               | Data: 23 Jan 2025 13:5 | Status: În curs de soluționare
+Nr IGI: 1266767      | Candidat: ALE MAGAR TIKA RAM                       | Data: 23 Jan 2025 13:4 | Status: În curs de soluționare
+Nr IGI: 1264799      | Candidat: BAN CHITRA KUMAN                         | Data: 23 Jan 2025 13:4 | Status: În curs de soluționare
+Nr IGI: 1264737      | Candidat: DADAL AAN SINGH                          | Data: 23 Jan 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 950142       | Candidat: GARCIA EMIE LADDARAN                     | Data: 23 Jan 2024 16:1 | Status: În curs de soluționare
+Nr IGI: 1973008      | Candidat: THAPA MAGAR ANMOL                        | Data: 23 Feb 2026 13:3 | Status: Soluționată
+Nr IGI: 1338772      | Candidat: KANKANMAGE RASIKA DILRUKSHI              | Data: 23 Dec 2024 15:1 | Status: Soluționată
+Nr IGI: 1569993      | Candidat: GURUNG UMESH                             | Data: 22 May 2025 09:2 | Status: Soluționată
+Nr IGI: 1064532      | Candidat: KANKANMAGE RASIKA DILRUKSHI              | Data: 22 May 2024 13:1 | Status: În curs de soluționare
+Nr IGI: 1704508      | Candidat: BHATTARAI SUBASH                         | Data: 22 Jul 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1683598      | Candidat: DARLAMI SUNIL                            | Data: 22 Jul 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1264727      | Candidat: DADAL RAJENDRA SINGH                     | Data: 22 Jan 2025 15:4 | Status: În curs de soluționare
+Nr IGI: 1264717      | Candidat: GIRI KAMAL BAHADUR                       | Data: 22 Jan 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1264639      | Candidat: DUDAL SURENDRA SINGH                     | Data: 22 Jan 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1196238      | Candidat: BOUYRI TARIK                             | Data: 22 Aug 2024 14:2 | Status: În curs de soluționare
+Nr IGI: 1400879      | Candidat: GIRI CHHABI LAL                          | Data: 22 Apr 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1400849      | Candidat: THAPA BISHNU                             | Data: 22 Apr 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1400964      | Candidat: SARKI DEEPAK                             | Data: 22 Apr 2025 12:5 | Status: În curs de soluționare
+Nr IGI: 1400938      | Candidat: NEUPANE GANESH                           | Data: 22 Apr 2025 12:5 | Status: În curs de soluționare
+Nr IGI: 1250438      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 21 Oct 2024 10:5 | Status: În curs de soluționare
+Nr IGI: 1205654      | Candidat: DARLAMI SUNIL                            | Data: 21 Nov 2024 13:5 | Status: În curs de soluționare
+Nr IGI: 1295948      | Candidat: SINGAPPULI HEWAGE LAHIRU THILANKA WIJEYARATHNA | Data: 21 Nov 2024 12:1 | Status: În curs de soluționare
+Nr IGI: 1570182      | Candidat: TAMANG SHAMBHU                           | Data: 21 May 2025 12:0 | Status: Soluționată
+Nr IGI: 1693687      | Candidat: ANDELOVIC SRDAN                          | Data: 21 Jul 2025 14:2 | Status: În curs de soluționare
+Nr IGI: 1950074      | Candidat: BHATTARAI KIRAN                          | Data: 21 Jan 2026 17:2 | Status: În curs de soluționare
+Nr IGI: 1945736      | Candidat: THAPA NISHAN                             | Data: 21 Jan 2026 10:0 | Status: În curs de soluționare
+Nr IGI: 1020240      | Candidat: OMABAY GINALYN REGALADO                  | Data: 20 May 2024 09:5 | Status: În curs de soluționare
+Nr IGI: 1018438      | Candidat: GARCIA EMIE LADDARAN                     | Data: 20 Mar 2024 16:4 | Status: În curs de soluționare
+Nr IGI: 1317769      | Candidat: SHAKYA DEBENDRA                          | Data: 20 Feb 2025 13:1 | Status: În curs de soluționare
+Nr IGI: 1344316      | Candidat: RAKHAL MARGA MIRA                        | Data: 20 Feb 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1123981      | Candidat: FERNANDO MARY ANOMA                      | Data: 20 Aug 2024 14:5 | Status: În curs de soluționare
+Nr IGI: 1148727      | Candidat: OUCHEN NOREDDINE                         | Data: 2 Oct 2024 14:07 | Status: În curs de soluționare
+Nr IGI: 1167369      | Candidat: DOYISSO TEREFE TAGESSE                   | Data: 2 Aug 2024 10:35 | Status: Soluționată
+Nr IGI: 1618775      | Candidat: GIRI RAJESH                              | Data: 19 Nov 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1618565      | Candidat: CHHETRI PRAKASH                          | Data: 19 Nov 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1618733      | Candidat: BHATTARAI RIKESH                         | Data: 19 Nov 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1529633      | Candidat: KRISHNA KUMAR VIMAL KUMAR                | Data: 19 Mar 2025 09:5 | Status: În curs de soluționare
+Nr IGI: 1862714      | Candidat: DARLAMI SUNIL                            | Data: 19 Jan 2026 11:5 | Status: Soluționată
+Nr IGI: 1881377      | Candidat: THAPA DURGA BAHADUR                      | Data: 19 Feb 2026 11:2 | Status: În curs de soluționare
+Nr IGI: 1317746      | Candidat: BHANDARI RONISH                          | Data: 19 Feb 2025 15:1 | Status: În curs de soluționare
+Nr IGI: 1317765      | Candidat: THAPA NISHAN                             | Data: 19 Feb 2025 14:2 | Status: În curs de soluționare
+Nr IGI: 1317760      | Candidat: SHRESTHA PRASHANTA                       | Data: 19 Feb 2025 14:2 | Status: În curs de soluționare
+Nr IGI: 1317742      | Candidat: MAGAR KHADGA BAHADUR                     | Data: 19 Feb 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1317749      | Candidat: PARIYAR ASHISH                           | Data: 19 Feb 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1704548      | Candidat: MAGAR TEJ BAHADUR                        | Data: 18 Sep 2025 14:2 | Status: Soluționată
+Nr IGI: 1618561      | Candidat: B K RAMU                                 | Data: 18 Nov 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1617574      | Candidat: KUNWAR UTTAM                             | Data: 18 Nov 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1845063      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 18 Nov 2025 11:3 | Status: În curs de soluționare
+Nr IGI: 1862714      | Candidat: DARLAMI SUNIL                            | Data: 18 Nov 2025 11:0 | Status: În curs de soluționare
+Nr IGI: 2004423      | Candidat: ALAPALADENIYA DAHANAYAKAGE LALITH SENARATH DAHANAYAKA | Data: 18 Mar 2026 17:2 | Status: În curs de soluționare
+Nr IGI: 1955072      | Candidat: CHAND SUNIL BAHADUR                      | Data: 18 Mar 2026 11:5 | Status: Soluționată
+Nr IGI: 1365729      | Candidat: ADHIKARI ASMITA                          | Data: 18 Mar 2025 14:4 | Status: În curs de soluționare
+Nr IGI: 1365750      | Candidat: SUMAN SAPKOTA                            | Data: 18 Mar 2025 13:5 | Status: În curs de soluționare
+Nr IGI: 1620704      | Candidat: RIVERO JANNET SEBASTIAN                  | Data: 18 Jun 2025 12:0 | Status: Soluționată
+Nr IGI: 1910943      | Candidat: DAHAL BIKASH                             | Data: 18 Feb 2026 13:2 | Status: Soluționată
+Nr IGI: 1998185      | Candidat: RAJINA TAMANG                            | Data: 18 Feb 2026 11:2 | Status: În curs de soluționare
+Nr IGI: 1340449      | Candidat: SHERPA NIMA                              | Data: 18 Feb 2025 13:3 | Status: În curs de soluționare
+Nr IGI: 1222639      | Candidat: PARIYAR DIPAK                            | Data: 18 Dec 2024 13:1 | Status: În curs de soluționare
+Nr IGI: 988048       | Candidat: FERNANDO MARY ANOMA                      | Data: 17 May 2024 12:0 | Status: În curs de soluționare
+Nr IGI: 1398829      | Candidat: ADHIKARI JANUKA                          | Data: 17 Jan 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1921575      | Candidat: DHAMALA HARIHAR                          | Data: 17 Feb 2026 09:2 | Status: Soluționată
+Nr IGI: 1222597      | Candidat: RIJAL RAJU                               | Data: 17 Dec 2024 14:1 | Status: În curs de soluționare
+Nr IGI: 1222839      | Candidat: DAHAL BHOJ KUMAR                         | Data: 17 Dec 2024 14:1 | Status: În curs de soluționare
+Nr IGI: 1222855      | Candidat: DAHAL BHIM PRASAD                        | Data: 17 Dec 2024 13:5 | Status: În curs de soluționare
+Nr IGI: 1222779      | Candidat: BASNET AVISHEK                           | Data: 17 Dec 2024 13:4 | Status: În curs de soluționare
+Nr IGI: 1222885      | Candidat: LUITEL ARJUN KUMAR                       | Data: 17 Dec 2024 12:4 | Status: În curs de soluționare
+Nr IGI: 1983751      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 16 Mar 2026 11:5 | Status: Soluționată
+Nr IGI: 2043018      | Candidat: LUITEL ARJUN KUMAR                       | Data: 16 Mar 2026 10:2 | Status: În curs de soluționare
+Nr IGI: 2043003      | Candidat: DHAMALA RAMESH                           | Data: 16 Mar 2026 10:0 | Status: În curs de soluționare
+Nr IGI: 2042987      | Candidat: RIJAL RAJU                               | Data: 16 Mar 2026 09:5 | Status: În curs de soluționare
+Nr IGI: 1983751      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 16 Feb 2026 10:2 | Status: În curs de soluționare
+Nr IGI: 1041644      | Candidat: NAKAYIMA JENIFER                         | Data: 15 May 2024 11:5 | Status: Soluționată
+Nr IGI: 1883386      | Candidat: PARIYAR DIPAK                            | Data: 15 Jan 2026 12:2 | Status: În curs de soluționare
+Nr IGI: 1915240      | Candidat: CHAND BIRENDRA BAHADUR                   | Data: 14 Jan 2026 10:3 | Status: În curs de soluționare
+Nr IGI: 1915236      | Candidat: BHUJEL MAN BAHADUR                       | Data: 14 Jan 2026 10:2 | Status: În curs de soluționare
+Nr IGI: 1915183      | Candidat: BHATTARAI BHIM KUMAR                     | Data: 14 Jan 2026 10:0 | Status: În curs de soluționare
+Nr IGI: 1915163      | Candidat: KHANAL SUMAN                             | Data: 14 Jan 2026 09:2 | Status: În curs de soluționare
+Nr IGI: 1905580      | Candidat: PITHAKOTE UMESH                          | Data: 14 Jan 2026 09:2 | Status: În curs de soluționare
+Nr IGI: 1905593      | Candidat: ALE MAGAR TIKA RAM                       | Data: 14 Jan 2026 09:0 | Status: În curs de soluționare
+Nr IGI: 1110919      | Candidat: DAWIT BEREKET BERTA                      | Data: 14 Aug 2024 14:0 | Status: În curs de soluționare
+Nr IGI: 1616694      | Candidat: BASNET JIREL RENUKA                      | Data: 13 Nov 2025 13:2 | Status: În curs de soluționare
+Nr IGI: 1039649      | Candidat: MARTINI NI LUH PUTU                      | Data: 13 May 2024 14:2 | Status: Soluționată
+Nr IGI: 1004016      | Candidat: SAJID MUHAMMAD ZEESHAN                   | Data: 13 Jun 2024 12:1 | Status: În curs de soluționare
+Nr IGI: 1020240      | Candidat: OMABAY GINALYN REGALADO                  | Data: 13 Jun 2024 11:3 | Status: Soluționată
+Nr IGI: 1616368      | Candidat: BHANDARY SHOVA                           | Data: 12 Nov 2025 13:0 | Status: În curs de soluționare
+Nr IGI: 1438803      | Candidat: KUSTEPE FARUK                            | Data: 12 Mar 2025 13:5 | Status: Soluționată
+Nr IGI: 1652168      | Candidat: BHATTARAI KIRAN                          | Data: 12 Jun 2025 12:1 | Status: În curs de soluționare
+Nr IGI: 908006       | Candidat: NABAKIIBI OLIVIIA                        | Data: 12 Jan 2024 16:1 | Status: În curs de soluționare
+Nr IGI: 1550711      | Candidat: MAGAR TEJ BAHADUR                        | Data: 12 Apr 2025 14:2 | Status: În curs de soluționare
+Nr IGI: 1550697      | Candidat: BHATTARAI SUBASH                         | Data: 12 Apr 2025 14:0 | Status: În curs de soluționare
+Nr IGI: 1250438      | Candidat: RAFAEL ESTELA SALVADOR                   | Data: 11 Nov 2024 13:2 | Status: Soluționată
+Nr IGI: 1221772      | Candidat: THAPA DURGA BAHADUR                      | Data: 11 Dec 2024 14:5 | Status: În curs de soluționare
+Nr IGI: 1295948      | Candidat: SINGAPPULI HEWAGE LAHIRU THILANKA WIJEYARATHNA | Data: 11 Dec 2024 13:4 | Status: Soluționată
+Nr IGI: 1221791      | Candidat: GURUNG PRAKASH                           | Data: 11 Dec 2024 13:1 | Status: În curs de soluționare
+Nr IGI: 1221763      | Candidat: KARKI TOSAL                              | Data: 11 Dec 2024 13:0 | Status: În curs de soluționare
+Nr IGI: 1221787      | Candidat: RANA SUBASH                              | Data: 11 Dec 2024 13:0 | Status: În curs de soluționare
+Nr IGI: 1221777      | Candidat: MAGAR LAXMAN                             | Data: 11 Dec 2024 13:0 | Status: În curs de soluționare
+Nr IGI: 1030931      | Candidat: BOUYRI TARIK                             | Data: 10 Jul 2024 11:2 | Status: În curs de soluționare
+Nr IGI: 1529633      | Candidat: KRISHNA KUMAR VIMAL KUMAR                | Data: 1 Apr 2025 13:22 | Status: Soluționată
+
+PROGRAMARI (218):
+======================================================================
+Nr IGI: 1599103      | Candidat: PARIYAR BIBASH                           | Programare: ? ora ? | Email: 9 Oct 2025 14:20
+Nr IGI: 1599100      | Candidat: LUHAR BINOD                              | Programare: ? ora ? | Email: 9 Oct 2025 14:10
+Nr IGI: 1599092      | Candidat: BISTA PUSPA BAHADUR                      | Programare: ? ora ? | Email: 9 Oct 2025 14:00
+Nr IGI: 1599051      | Candidat: RANA MAGAR UMESH                         | Programare: ? ora ? | Email: 9 Oct 2025 13:50
+Nr IGI: 1400983      | Candidat: NIROULA DILLI RAM                        | Programare: ? ora ? | Email: 9 Apr 2025 13:00
+Nr IGI: 1680774      | Candidat: RANA MAGAR SAROJ                         | Programare: ? ora ? | Email: 8 Jul 2025 12:15
+Nr IGI: 1680762      | Candidat: THAPA RAJAN                              | Programare: ? ora ? | Email: 8 Jul 2025 12:00
+Nr IGI: 1222632      | Candidat: N/A                                      | Programare: ? ora ? | Email: 8 Dec 2024 13:21
+Nr IGI: 1400964      | Candidat: SARKI DEEPAK                             | Programare: ? ora ? | Email: 8 Apr 2025 13:30
+Nr IGI: 1400938      | Candidat: NEUPANE GANESH                           | Programare: ? ora ? | Email: 8 Apr 2025 13:20
+Nr IGI: 1400879      | Candidat: GIRI CHHABI LAL                          | Programare: ? ora ? | Email: 8 Apr 2025 13:10
+Nr IGI: 1400849      | Candidat: THAPA BISHNU                             | Programare: ? ora ? | Email: 8 Apr 2025 13:00
+Nr IGI: 1205654      | Candidat: DARLAMI SUNIL                            | Programare: ? ora ? | Email: 7 Nov 2024 13:50
+Nr IGI: 1295948      | Candidat: SINGAPPULI HEWAGE LAHIRU THILANKA WIJEYARATHNA | Programare: ? ora ? | Email: 7 Nov 2024 12:00
+Nr IGI: 1317775      | Candidat: NIROULA PRITHIRAJ                        | Programare: ? ora ? | Email: 6 Feb 2025 13:10
+Nr IGI: 1317769      | Candidat: SHAKYA DEBENDRA                          | Programare: ? ora ? | Email: 6 Feb 2025 13:00
+Nr IGI: 1344316      | Candidat: RAKHAL MARGA MIRA                        | Programare: ? ora ? | Email: 6 Feb 2025 12:50
+Nr IGI: 1618565      | Candidat: CHHETRI PRAKASH                          | Programare: ? ora ? | Email: 5 Nov 2025 13:40
+Nr IGI: 1618571      | Candidat: BASNET KUL BAHADUR                       | Programare: ? ora ? | Email: 5 Nov 2025 13:30
+Nr IGI: 1618580      | Candidat: KARKI SUBASH                             | Programare: ? ora ? | Email: 5 Nov 2025 13:20
+Nr IGI: 1618733      | Candidat: BHATTARAI RIKESH                         | Programare: ? ora ? | Email: 5 Nov 2025 13:10
+Nr IGI: 1618775      | Candidat: GIRI RAJESH                              | Programare: ? ora ? | Email: 5 Nov 2025 13:00
+Nr IGI: 1317765      | Candidat: THAPA NISHAN                             | Programare: ? ora ? | Email: 5 Feb 2025 13:50
+Nr IGI: 1317760      | Candidat: SHRESTHA PRASHANTA                       | Programare: ? ora ? | Email: 5 Feb 2025 13:40
+Nr IGI: 1317749      | Candidat: PARIYAR ASHISH                           | Programare: ? ora ? | Email: 5 Feb 2025 13:20
+Nr IGI: 1317746      | Candidat: BHANDARI RONISH                          | Programare: ? ora ? | Email: 5 Feb 2025 13:10
+Nr IGI: 1317742      | Candidat: MAGAR KHADGA BAHADUR                     | Programare: ? ora ? | Email: 5 Feb 2025 13:00
+Nr IGI: 1617551      | Candidat: SHRESTHA SANDESH                         | Programare: ? ora ? | Email: 4 Nov 2025 14:20
+Nr IGI: 1617574      | Candidat: KUNWAR UTTAM                             | Programare: ? ora ? | Email: 4 Nov 2025 14:10
+Nr IGI: 1618549      | Candidat: POUDEL GANESH                            | Programare: ? ora ? | Email: 4 Nov 2025 14:00
+Nr IGI: 1618561      | Candidat: B K RAMU                                 | Programare: ? ora ? | Email: 4 Nov 2025 13:50
+Nr IGI: 1624462      | Candidat: OHAEGBULEM EDITH EBERE                   | Programare: ? ora ? | Email: 4 Nov 2025 13:20
+Nr IGI: 1624448      | Candidat: OYINLOYE OLUWATOSIN JOY                  | Programare: ? ora ? | Email: 4 Nov 2025 13:10
+Nr IGI: 1624440      | Candidat: OGUNDIJO EBENEZER OLUWASEGUN             | Programare: ? ora ? | Email: 4 Nov 2025 13:00
+Nr IGI: 2004423      | Candidat: ALAPALADENIYA DAHANAYAKAGE LALITH SENARATH DAHANAYAKA | Programare: ? ora ? | Email: 4 Mar 2026 17:00
+Nr IGI: 1365750      | Candidat: SUMAN SAPKOTA                            | Programare: ? ora ? | Email: 4 Mar 2025 13:50
+Nr IGI: 1365729      | Candidat: ADHIKARI ASMITA                          | Programare: ? ora ? | Email: 4 Mar 2025 13:40
+Nr IGI: 1340449      | Candidat: SHERPA NIMA                              | Programare: ? ora ? | Email: 4 Feb 2025 14:00
+Nr IGI: 1340449      | Candidat: SHERPA NIMA                              | Programare: ? ora ? | Email: 4 Feb 2025 14:00
+Nr IGI: 1224822      | Candidat: ADHIKARI JANUKA                          | Programare: ? ora ? | Email: 4 Dec 2024 14:10
+Nr IGI: 1915170      | Candidat: KHANAL BADRI                             | Programare: ? ora ? | Email: 31 Dec 2025 10:0
+Nr IGI: 1905580      | Candidat: PITHAKOTE UMESH                          | Programare: ? ora ? | Email: 31 Dec 2025 09:3
+Nr IGI: 1905593      | Candidat: ALE MAGAR TIKA RAM                       | Programare: ? ora ? | Email: 31 Dec 2025 09:1
+Nr IGI: 1616694      | Candidat: BASNET JIREL RENUKA                      | Programare: ? ora ? | Email: 30 Oct 2025 13:4
+Nr IGI: 1616686      | Candidat: NISHA RAI                                | Programare: ? ora ? | Email: 30 Oct 2025 13:3
+Nr IGI: 1616669      | Candidat: SUNAR PAN MAYA                           | Programare: ? ora ? | Email: 30 Oct 2025 13:2
+Nr IGI: 1616664      | Candidat: SHARMA KUSUM                             | Programare: ? ora ? | Email: 30 Oct 2025 13:1
+Nr IGI: 1616661      | Candidat: SUJANA KHATRI                            | Programare: ? ora ? | Email: 30 Oct 2025 13:0
+Nr IGI: 1398829      | Candidat: ADHIKARI JANUKA                          | Programare: ? ora ? | Email: 3 Jan 2025 13:40
+Nr IGI: 1222779      | Candidat: BASNET AVISHEK                           | Programare: ? ora ? | Email: 3 Dec 2024 14:20
+Nr IGI: 1222806      | Candidat: SOTI MAGAR SAMIR                         | Programare: ? ora ? | Email: 3 Dec 2024 14:00
+Nr IGI: 1222839      | Candidat: DAHAL BHOJ KUMAR                         | Programare: ? ora ? | Email: 3 Dec 2024 13:50
+Nr IGI: 1222855      | Candidat: DAHAL BHIM PRASAD                        | Programare: ? ora ? | Email: 3 Dec 2024 13:40
+Nr IGI: 1222597      | Candidat: RIJAL RAJU                               | Programare: ? ora ? | Email: 3 Dec 2024 13:30
+Nr IGI: 1362885      | Candidat: DUWADI SARITA                            | Programare: ? ora ? | Email: 3 Dec 2024 12:40
+Nr IGI: 1169655      | Candidat: MENERAPITIYAGE DON NILEKX DARSHAN        | Programare: ? ora ? | Email: 29 Sep 2024 12:4
+Nr IGI: 1618798      | Candidat: POUDEL SUJAN                             | Programare: ? ora ? | Email: 29 Oct 2025 14:2
+Nr IGI: 1618809      | Candidat: B K JAGAT                                | Programare: ? ora ? | Email: 29 Oct 2025 14:1
+Nr IGI: 1618825      | Candidat: B K MANOJ                                | Programare: ? ora ? | Email: 29 Oct 2025 14:0
+Nr IGI: 1618950      | Candidat: SUBEDI KRISHNA PRASAD                    | Programare: ? ora ? | Email: 29 Oct 2025 13:5
+Nr IGI: 1616702      | Candidat: NEPALI SANGITA                           | Programare: ? ora ? | Email: 29 Oct 2025 13:4
+Nr IGI: 1616651      | Candidat: SUNAR TIKA KUMARI                        | Programare: ? ora ? | Email: 29 Oct 2025 13:3
+Nr IGI: 1616368      | Candidat: BHANDARY SHOVA                           | Programare: ? ora ? | Email: 29 Oct 2025 13:2
+Nr IGI: 1616363      | Candidat: KHADKA SAMJHANA                          | Programare: ? ora ? | Email: 29 Oct 2025 13:1
+Nr IGI: 1616358      | Candidat: KHADKA NIRMALA                           | Programare: ? ora ? | Email: 29 Oct 2025 13:0
+Nr IGI: 1618999      | Candidat: SUBEDI PRAKASH                           | Programare: ? ora ? | Email: 29 Oct 2025 12:5
+Nr IGI: 1230425      | Candidat: PULAMI NIRANJAN                          | Programare: ? ora ? | Email: 29 Oct 2024 15:1
+Nr IGI: 1550697      | Candidat: BHATTARAI SUBASH                         | Programare: ? ora ? | Email: 29 Mar 2025 12:0
+Nr IGI: 1550711      | Candidat: MAGAR TEJ BAHADUR                        | Programare: ? ora ? | Email: 29 Mar 2025 12:0
+Nr IGI: 1542615      | Candidat: DE ALVIS KULATHUNGA KAMINI PRIYANGANI    | Programare: ? ora ? | Email: 29 Jul 2025 14:0
+Nr IGI: 1542401      | Candidat: SINGH AMRITPAL                           | Programare: ? ora ? | Email: 29 Jul 2025 13:3
+Nr IGI: 1317655      | Candidat: LAMA NIRMALA                             | Programare: ? ora ? | Email: 29 Jan 2025 14:0
+Nr IGI: 1317660      | Candidat: BUDHATHOKI SUNITA                        | Programare: ? ora ? | Email: 29 Jan 2025 12:4
+Nr IGI: 1627391      | Candidat: BHATTARAI KIRAN                          | Programare: ? ora ? | Email: 28 May 2025 09:4
+Nr IGI: 1624987      | Candidat: SORKAR NYAN                              | Programare: ? ora ? | Email: 28 May 2025 09:1
+Nr IGI: 1162088      | Candidat: MBAMA CHIAGOZIE CHRISANTUS               | Programare: ? ora ? | Email: 28 Jul 2024 14:5
+Nr IGI: 1616658      | Candidat: PARIYAR RAJAN                            | Programare: ? ora ? | Email: 27 Oct 2025 13:3
+Nr IGI: 1616655      | Candidat: KARKI PREM KUMARI                        | Programare: ? ora ? | Email: 27 Oct 2025 13:2
+Nr IGI: 1613481      | Candidat: BHANDARI BINITA                          | Programare: ? ora ? | Email: 27 Oct 2025 13:1
+Nr IGI: 1613434      | Candidat: KHULAL KIRAN                             | Programare: ? ora ? | Email: 27 Oct 2025 13:0
+Nr IGI: 1221772      | Candidat: THAPA DURGA BAHADUR                      | Programare: ? ora ? | Email: 27 Nov 2024 13:0
+Nr IGI: 1400016      | Candidat: TAMANG MANISHA                           | Programare: ? ora ? | Email: 27 Mar 2025 13:1
+Nr IGI: 1400009      | Candidat: BISTA KALPANA                            | Programare: ? ora ? | Email: 27 Mar 2025 13:0
+Nr IGI: 1399988      | Candidat: RAJDHAMI SUNITA                          | Programare: ? ora ? | Email: 27 Mar 2025 12:4
+Nr IGI: 1309355      | Candidat: N/A                                      | Programare: ? ora ? | Email: 27 Jan 2025 14:2
+Nr IGI: 1400414      | Candidat: SHRESTHA LOKMAYA                         | Programare: ? ora ? | Email: 26 Mar 2025 13:1
+Nr IGI: 1400338      | Candidat: MAGAR RITA                               | Programare: ? ora ? | Email: 26 Mar 2025 13:0
+Nr IGI: 1400380      | Candidat: SARKI KRIPA                              | Programare: ? ora ? | Email: 26 Mar 2025 12:5
+Nr IGI: 1668368      | Candidat: ANDELOVIC SRDAN                          | Programare: ? ora ? | Email: 26 Jun 2025 15:0
+Nr IGI: 1672251      | Candidat: B K RAMESH                               | Programare: ? ora ? | Email: 26 Jun 2025 14:4
+Nr IGI: 1672243      | Candidat: BHATTARAI BHIM KUMAR                     | Programare: ? ora ? | Email: 26 Jun 2025 14:0
+Nr IGI: 1672800      | Candidat: SOTI MAGAR SAMIR                         | Programare: ? ora ? | Email: 26 Jun 2025 13:4
+Nr IGI: 1881377      | Candidat: THAPA DURGA BAHADUR                      | Programare: ? ora ? | Email: 26 Jan 2026 12:3
+Nr IGI: 1269016      | Candidat: MENERAPITIYAGE DON NILEKX DARSHAN        | Programare: ? ora ? | Email: 26 Dec 2024 13:5
+Nr IGI: 1877995      | Candidat: POUDEL GANESH                            | Programare: ? ora ? | Email: 25 Feb 2026 14:1
+Nr IGI: 1356409      | Candidat: BHANDARI BIMALA                          | Programare: ? ora ? | Email: 25 Feb 2025 13:2
+Nr IGI: 1404566      | Candidat: ADEBAYO JOB ADEDAYO                      | Programare: ? ora ? | Email: 24 Jan 2025 11:3
+Nr IGI: 1157596      | Candidat: BULATHSINHALAGE DANANJANA SAMEERA SAMPATH COORAY | Programare: ? ora ? | Email: 24 Aug 2024 13:0
+Nr IGI: 1141049      | Candidat: SHRESTHA KUSHAL                          | Programare: ? ora ? | Email: 23 Sep 2024 13:3
+Nr IGI: 1279590      | Candidat: TUMANDY JASON DOLOR                      | Programare: ? ora ? | Email: 23 Oct 2024 12:1
+Nr IGI: 1534483      | Candidat: TAMLI SURESH                             | Programare: ? ora ? | Email: 23 Jul 2025 14:0
+Nr IGI: 1309373      | Candidat: KAMI BALE                                | Programare: ? ora ? | Email: 23 Jan 2025 13:5
+Nr IGI: 1309355      | Candidat: TAMLI SURESH                             | Programare: ? ora ? | Email: 23 Jan 2025 13:4
+Nr IGI: 1309351      | Candidat: B K AMMAR BAHADUR                        | Programare: ? ora ? | Email: 23 Jan 2025 13:3
+Nr IGI: 1309347      | Candidat: CHAND SUNIL BAHADUR                      | Programare: ? ora ? | Email: 23 Jan 2025 13:2
+Nr IGI: 1309343      | Candidat: DHUNGANA RANJEET                         | Programare: ? ora ? | Email: 23 Jan 2025 13:1
+Nr IGI: 1309340      | Candidat: SHRESTHA SUBODH                          | Programare: ? ora ? | Email: 23 Jan 2025 13:0
+Nr IGI: 1309367      | Candidat: B K ANANDA                               | Programare: ? ora ? | Email: 23 Jan 2025 12:4
+Nr IGI: 1570182      | Candidat: TAMANG SHAMBHU                           | Programare: ? ora ? | Email: 23 Apr 2025 18:1
+Nr IGI: 1569993      | Candidat: GURUNG UMESH                             | Programare: ? ora ? | Email: 23 Apr 2025 17:4
+Nr IGI: 1617207      | Candidat: THAPA MAUSAN                             | Programare: ? ora ? | Email: 22 Oct 2025 13:4
+Nr IGI: 1617248      | Candidat: SYANGTAN PASANG                          | Programare: ? ora ? | Email: 22 Oct 2025 13:3
+Nr IGI: 1604013      | Candidat: RAJDHAMI SUNITA                          | Programare: ? ora ? | Email: 22 Oct 2025 13:2
+Nr IGI: 1604003      | Candidat: TAMANG MANISHA                           | Programare: ? ora ? | Email: 22 Oct 2025 13:1
+Nr IGI: 1603984      | Candidat: BISTA KALPANA                            | Programare: ? ora ? | Email: 22 Oct 2025 13:0
+Nr IGI: 1620704      | Candidat: RIVERO JANNET SEBASTIAN                  | Programare: ? ora ? | Email: 22 May 2025 08:4
+Nr IGI: 1533547      | Candidat: NIROULA PRITHIRAJ                        | Programare: ? ora ? | Email: 22 Jul 2025 13:5
+Nr IGI: 1603980      | Candidat: RAI MIN KUMARI                           | Programare: ? ora ? | Email: 21 Oct 2025 13:3
+Nr IGI: 1603973      | Candidat: MAGAR RITA                               | Programare: ? ora ? | Email: 21 Oct 2025 13:2
+Nr IGI: 1603966      | Candidat: SARKI KRIPA                              | Programare: ? ora ? | Email: 21 Oct 2025 13:1
+Nr IGI: 1603954      | Candidat: SHRESTHA LOKMAYA                         | Programare: ? ora ? | Email: 21 Oct 2025 13:0
+Nr IGI: 1300307      | Candidat: ONKAR ONKAR                              | Programare: ? ora ? | Email: 21 Oct 2024 11:4
+Nr IGI: 1307789      | Candidat: DHAKAL KUMAR                             | Programare: ? ora ? | Email: 21 Jan 2025 14:2
+Nr IGI: 1305521      | Candidat: B K DHAN BAHADUR                         | Programare: ? ora ? | Email: 21 Jan 2025 14:1
+Nr IGI: 1305494      | Candidat: KAMI BISHESH                             | Programare: ? ora ? | Email: 21 Jan 2025 14:0
+Nr IGI: 1305435      | Candidat: CHAND BIRENDRA BAHADUR                   | Programare: ? ora ? | Email: 21 Jan 2025 13:5
+Nr IGI: 1273475      | Candidat: RANA MAGAR SAPANA                        | Programare: ? ora ? | Email: 21 Jan 2025 13:0
+Nr IGI: 1273466      | Candidat: TAMANG ELINA                             | Programare: ? ora ? | Email: 21 Jan 2025 12:5
+Nr IGI: 1680931      | Candidat: BASNET GOPAL                             | Programare: ? ora ? | Email: 20 Nov 2025 13:4
+Nr IGI: 1680865      | Candidat: GHALE SURAJ                              | Programare: ? ora ? | Email: 20 Nov 2025 12:5
+Nr IGI: 1338772      | Candidat: KANKANMAGE RASIKA DILRUKSHI              | Programare: ? ora ? | Email: 20 Nov 2024 17:1
+Nr IGI: 1308132      | Candidat: GIRI RAHUL                               | Programare: ? ora ? | Email: 20 Jan 2025 14:2
+Nr IGI: 1307964      | Candidat: BHANDARI PRAKASH                         | Programare: ? ora ? | Email: 20 Jan 2025 14:1
+Nr IGI: 1356473      | Candidat: TAMANG HIRA MAYA                         | Programare: ? ora ? | Email: 20 Feb 2025 13:1
+Nr IGI: 1591337      | Candidat: SHRESTHA KUSHAL                          | Programare: ? ora ? | Email: 2 May 2025 10:45
+Nr IGI: 1652153      | Candidat: NYAN SORKAR                              | Programare: ? ora ? | Email: 2 Jul 2025 12:15
+Nr IGI: 1548296      | Candidat: ADENIJI OLUWASEYI                        | Programare: ? ora ? | Email: 2 Apr 2025 17:45
+Nr IGI: 1548226      | Candidat: GHIMIRE SUJATA                           | Programare: ? ora ? | Email: 2 Apr 2025 17:15
+Nr IGI: 1548212      | Candidat: GARCIA EMIE LADDARAN                     | Programare: ? ora ? | Email: 2 Apr 2025 16:45
+Nr IGI: 1548202      | Candidat: ADEBAYO JOB ADEDAYO                      | Programare: ? ora ? | Email: 2 Apr 2025 16:30
+Nr IGI: 1548399      | Candidat: MARTINI NI LUH PUTU                      | Programare: ? ora ? | Email: 2 Apr 2025 10:30
+Nr IGI: 1548390      | Candidat: CHAPAGAIN ALBINA                         | Programare: ? ora ? | Email: 2 Apr 2025 10:15
+Nr IGI: 1877957      | Candidat: SOTI MAGAR SAMIR                         | Programare: ? ora ? | Email: 19 Nov 2025 11:1
+Nr IGI: 1877942      | Candidat: PULAMI NIRANJAN                          | Programare: ? ora ? | Email: 19 Nov 2025 11:0
+Nr IGI: 1877933      | Candidat: SHAKYA DEBENDRA                          | Programare: ? ora ? | Email: 19 Nov 2025 10:4
+Nr IGI: 1661102      | Candidat: EBOH GLORY CHIOMA                        | Programare: ? ora ? | Email: 19 Jun 2025 12:1
+Nr IGI: 1987736      | Candidat: MAGAR LAXMAN                             | Programare: ? ora ? | Email: 19 Feb 2026 11:4
+Nr IGI: 1355789      | Candidat: ACHARYA ANJANA                           | Programare: ? ora ? | Email: 19 Feb 2025 14:2
+Nr IGI: 1355730      | Candidat: KANDEL KRISHNA                           | Programare: ? ora ? | Email: 19 Feb 2025 14:1
+Nr IGI: 1196238      | Candidat: BOUYRI TARIK                             | Programare: ? ora ? | Email: 19 Aug 2024 12:4
+Nr IGI: 1680921      | Candidat: KAFLE ROJAN                              | Programare: ? ora ? | Email: 18 Nov 2025 12:4
+Nr IGI: 1983815      | Candidat: SUMAN SAPKOTA                            | Programare: ? ora ? | Email: 18 Feb 2026 11:3
+Nr IGI: 1983766      | Candidat: ADHIKARI ASMITA                          | Programare: ? ora ? | Email: 18 Feb 2026 11:1
+Nr IGI: 2016634      | Candidat: THAPA SAMBRAT                            | Programare: ? ora ? | Email: 17 Mar 2026 09:4
+Nr IGI: 2015305      | Candidat: NEUPANE GANESH                           | Programare: ? ora ? | Email: 17 Mar 2026 08:4
+Nr IGI: 1273248      | Candidat: N/A                                      | Programare: ? ora ? | Email: 17 Jan 2025 14:2
+Nr IGI: 2000047      | Candidat: STOCKDALE GEORGE THOMAS JOSEPH           | Programare: ? ora ? | Email: 17 Feb 2026 10:0
+Nr IGI: 1601523      | Candidat: NAYIGA RHONA                             | Programare: ? ora ? | Email: 16 Oct 2025 13:2
+Nr IGI: 1599173      | Candidat: TAMANG SIM BAHADUR                       | Programare: ? ora ? | Email: 16 Oct 2025 13:1
+Nr IGI: 1599168      | Candidat: RAI PAWAL                                | Programare: ? ora ? | Email: 16 Oct 2025 13:0
+Nr IGI: 1619039      | Candidat: SAPKOTA ROSHAN                           | Programare: ? ora ? | Email: 16 Oct 2025 12:3
+Nr IGI: 1272544      | Candidat: SIJALI MAGAR NETRA KUMAR                 | Programare: ? ora ? | Email: 16 Jan 2025 13:2
+Nr IGI: 1272526      | Candidat: ADHIKARI HEM KUMAR                       | Programare: ? ora ? | Email: 16 Jan 2025 13:1
+Nr IGI: 1272508      | Candidat: RAI DIP JUNG                             | Programare: ? ora ? | Email: 16 Jan 2025 13:0
+Nr IGI: 1272490      | Candidat: DHAMALA HARIHAR                          | Programare: ? ora ? | Email: 16 Jan 2025 12:5
+Nr IGI: 1401925      | Candidat: THAPA SAMBRAT                            | Programare: ? ora ? | Email: 16 Apr 2025 13:2
+Nr IGI: 1401917      | Candidat: THAPA TIKARAM                            | Programare: ? ora ? | Email: 16 Apr 2025 13:1
+Nr IGI: 1401910      | Candidat: GURUNG MAHENDRA                          | Programare: ? ora ? | Email: 16 Apr 2025 13:0
+Nr IGI: 1599153      | Candidat: THAPA MAGAR PURNA BAHADUR                | Programare: ? ora ? | Email: 15 Oct 2025 13:4
+Nr IGI: 1599129      | Candidat: THAPA MAGAR LILA BAHADUR                 | Programare: ? ora ? | Email: 15 Oct 2025 13:3
+Nr IGI: 1599141      | Candidat: KARKI MAHESH                             | Programare: ? ora ? | Email: 15 Oct 2025 13:2
+Nr IGI: 1599147      | Candidat: TAMANG PREM BAHADUR                      | Programare: ? ora ? | Email: 15 Oct 2025 13:1
+Nr IGI: 1287714      | Candidat: ONKAR ONKAR                              | Programare: ? ora ? | Email: 15 Oct 2024 12:3
+Nr IGI: 1287670      | Candidat: HARBAND KUMAR                            | Programare: ? ora ? | Email: 15 Oct 2024 12:1
+Nr IGI: 1784940      | Candidat: RANA RAM BAHADUR                         | Programare: ? ora ? | Email: 15 Jan 2026 13:2
+Nr IGI: 1272328      | Candidat: DARLAMI MAGAR MANISHA                    | Programare: ? ora ? | Email: 15 Jan 2025 13:2
+Nr IGI: 1272311      | Candidat: THAPA CHANDRAKALA                        | Programare: ? ora ? | Email: 15 Jan 2025 13:1
+Nr IGI: 1272299      | Candidat: MAJHEE MANITA                            | Programare: ? ora ? | Email: 15 Jan 2025 13:0
+Nr IGI: 1272294      | Candidat: LIMBU BHOJ KUMARI                        | Programare: ? ora ? | Email: 15 Jan 2025 12:5
+Nr IGI: 1401119      | Candidat: RAI SAMIR                                | Programare: ? ora ? | Email: 15 Apr 2025 13:2
+Nr IGI: 1401099      | Candidat: SUBENI NABIN                             | Programare: ? ora ? | Email: 15 Apr 2025 13:1
+Nr IGI: 1401061      | Candidat: KHATRI KESHAV                            | Programare: ? ora ? | Email: 15 Apr 2025 13:0
+Nr IGI: 1599125      | Candidat: TAMANG KRISHNA KUMAR                     | Programare: ? ora ? | Email: 14 Oct 2025 13:3
+Nr IGI: 1599121      | Candidat: RAWAL JAGAT                              | Programare: ? ora ? | Email: 14 Oct 2025 13:2
+Nr IGI: 1599114      | Candidat: DHAKAL HARIKRISHNA                       | Programare: ? ora ? | Email: 14 Oct 2025 13:1
+Nr IGI: 1599107      | Candidat: B K KUMAR                                | Programare: ? ora ? | Email: 14 Oct 2025 13:0
+Nr IGI: 1524411      | Candidat: BHATTARAI KIRAN                          | Programare: ? ora ? | Email: 14 Apr 2025 09:3
+Nr IGI: 1273248      | Candidat: BASNET JIREL RENUKA                      | Programare: ? ora ? | Email: 13 Jan 2025 13:3
+Nr IGI: 1273210      | Candidat: NEPALI SANGITA                           | Programare: ? ora ? | Email: 13 Jan 2025 13:0
+Nr IGI: 1273181      | Candidat: THAPA MAGAR KABITA                       | Programare: ? ora ? | Email: 13 Jan 2025 12:5
+Nr IGI: 1273199      | Candidat: SUBENI KARKI LAXMI MAYA                  | Programare: ? ora ? | Email: 13 Jan 2025 12:4
+Nr IGI: 1617200      | Candidat: BASNET ANISHEK                           | Programare: ? ora ? | Email: 12 Nov 2025 13:5
+Nr IGI: 1617270      | Candidat: BISTA BIKARAM                            | Programare: ? ora ? | Email: 12 Nov 2025 13:4
+Nr IGI: 1617288      | Candidat: BISTA ABISHEK                            | Programare: ? ora ? | Email: 12 Nov 2025 13:3
+Nr IGI: 1617310      | Candidat: ADHIKARI NIRAJ                           | Programare: ? ora ? | Email: 12 Nov 2025 13:2
+Nr IGI: 1617368      | Candidat: SHRESTHA INDIRA                          | Programare: ? ora ? | Email: 12 Nov 2025 13:1
+Nr IGI: 1617417      | Candidat: THAPA SUSMITA                            | Programare: ? ora ? | Email: 12 Nov 2025 13:0
+Nr IGI: 1355601      | Candidat: RAYA DILIP KUMAR                         | Programare: ? ora ? | Email: 12 Feb 2025 14:0
+Nr IGI: 1550771      | Candidat: SHRESTHA KUSHAL                          | Programare: ? ora ? | Email: 12 Apr 2025 13:0
+Nr IGI: 1550755      | Candidat: ADHIKARI JANUKA                          | Programare: ? ora ? | Email: 12 Apr 2025 13:0
+Nr IGI: 1550902      | Candidat: RAJINA TAMANG                            | Programare: ? ora ? | Email: 12 Apr 2025 12:5
+Nr IGI: 1550750      | Candidat: KARKI MELINA                             | Programare: ? ora ? | Email: 12 Apr 2025 12:5
+Nr IGI: 1551380      | Candidat: DAHAL BIKASH                             | Programare: ? ora ? | Email: 12 Apr 2025 11:4
+Nr IGI: 1551315      | Candidat: TAMANG BIMAL                             | Programare: ? ora ? | Email: 12 Apr 2025 11:3
+Nr IGI: 1617440      | Candidat: DHAMI HARISH SINGH                       | Programare: ? ora ? | Email: 11 Nov 2025 14:0
+Nr IGI: 1617455      | Candidat: MAHAT KUTUWAL CHUNA KUMARI               | Programare: ? ora ? | Email: 11 Nov 2025 13:5
+Nr IGI: 1617494      | Candidat: KUTUWAL DEB BAHADUR                      | Programare: ? ora ? | Email: 11 Nov 2025 13:4
+Nr IGI: 1617523      | Candidat: LIMBU VIKRAM                             | Programare: ? ora ? | Email: 11 Nov 2025 13:3
+Nr IGI: 1617539      | Candidat: SHRESTHA PRIYA                           | Programare: ? ora ? | Email: 11 Nov 2025 13:2
+Nr IGI: 1205900      | Candidat: THAPA MAGAR ANMOL                        | Programare: ? ora ? | Email: 11 Nov 2024 14:1
+Nr IGI: 1205804      | Candidat: RANA RAM BAHADUR                         | Programare: ? ora ? | Email: 11 Nov 2024 14:0
+Nr IGI: 1438803      | Candidat: KUSTEPE FARUK                            | Programare: ? ora ? | Email: 11 Feb 2025 12:0
+Nr IGI: 1693679      | Candidat: NYAN SORKAR                              | Programare: ? ora ? | Email: 10 Jul 2025 11:4
+Nr IGI: 1839403      | Candidat: HOSSAIN MD DELWAR                        | Programare: ? ora ? | Email: 10 Feb 2026 13:0
+Nr IGI: 1839395      | Candidat: RASEL MD                                 | Programare: ? ora ? | Email: 10 Feb 2026 12:5
+Nr IGI: 1680232      | Candidat: MAGAR TEJ BAHADUR                        | Programare: ? ora ? | Email: 1 Jul 2025 10:30
+Nr IGI: 1680171      | Candidat: BHATTARAI SUBASH                         | Programare: ? ora ? | Email: 1 Jul 2025 10:15
+Nr IGI: 1400020      | Candidat: RAI MIN KUMARI                           | Programare: ? ora ? | Email: 1 Apr 2025 12:50
+
+ANULATE (15):
+======================================================================
+Nr IGI: 1661102      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1399988      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1355789      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1355730      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1355601      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1317775      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1264743      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1222806      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1230425      | Candidat: N/A                                      | Motiv: Anulată - documente obligatorii neatașate
+Nr IGI: 1021428      | Candidat: OUCHEN NOREDDINE                         | Motiv: Anulată
+Nr IGI: 985159       | Candidat: CHIKHAOUI SALEH                          | Motiv: Anulată
+Nr IGI: 984951       | Candidat: RAMDAN EL MEHDI                          | Motiv: Anulată
+Nr IGI: 985901       | Candidat: MELLAK AMIN                              | Motiv: Anulată
+Nr IGI: 987827       | Candidat: OMABAY GINALYN REGALADO                  | Motiv: Anulată
+Nr IGI: 904249       | Candidat: BENJAOUACH ABDERRAZZAQ                   | Motiv: Anulată
+
+IN PROCESARE / TRANSMISE (35):
+======================================================================
+Nr IGI: 1064532      | Candidat: KANKANMAGE RASIKA DILRUKSHI              | Status: În curs de verificare IGI
+Nr IGI: 1064299      | Candidat: MBAMA CHIAGOZIE CHRISANTUS               | Status: În curs de verificare IGI
+Nr IGI: 1048853      | Candidat: TUMANDY MA CRISELDA MANABAT              | Status: În curs de verificare IGI
+Nr IGI: 1048853      | Candidat: TUMANDY MA CRISELDA MANABAT              | Status: Transmisă
+Nr IGI: 1041544      | Candidat: NABAKIIBI OLIVIIA                        | Status: În curs de verificare IGI
+Nr IGI: 1041644      | Candidat: NAKAYIMA JENIFER                         | Status: Transmisă
+Nr IGI: 1041544      | Candidat: NABAKIIBI OLIVIIA                        | Status: Transmisă
+Nr IGI: 1039649      | Candidat: MARTINI NI LUH PUTU                      | Status: Transmisă
+Nr IGI: 1030931      | Candidat: BOUYRI TARIK                             | Status: În curs de verificare IGI
+Nr IGI: 1026550      | Candidat: LUGO PATRICAR PAUSANOS                   | Status: În curs de verificare IGI
+Nr IGI: 1026550      | Candidat: LUGO PATRICAR PAUSANOS                   | Status: Transmisă
+Nr IGI: 1020240      | Candidat: OMABAY GINALYN REGALADO                  | Status: În curs de verificare IGI
+Nr IGI: 1020486      | Candidat: FILIP JESA AVENIDO                       | Status: Transmisă
+Nr IGI: 1018438      | Candidat: GARCIA EMIE LADDARAN                     | Status: Transmisă
+Nr IGI: 1006167      | Candidat: GARCIA EMIE LADDARAN                     | Status: În curs de verificare IGI
+Nr IGI: 1006167      | Candidat: GARCIA EMIE LADDARAN                     | Status: Transmisă
+Nr IGI: 1004031      | Candidat: SAJID MUHAMMAD FAIZAN                    | Status: În curs de verificare IGI
+Nr IGI: 1004031      | Candidat: SAJID MUHAMMAD FAIZAN                    | Status: Transmisă
+Nr IGI: 987827       | Candidat: OMABAY GINALYN REGALADO                  | Status: În curs de verificare IGI
+Nr IGI: 988048       | Candidat: FERNANDO MARY ANOMA                      | Status: Transmisă
+Nr IGI: 987827       | Candidat: OMABAY GINALYN REGALADO                  | Status: Transmisă
+Nr IGI: 985901       | Candidat: MELLAK AMIN                              | Status: În curs de verificare IGI
+Nr IGI: 985196       | Candidat: TAOULI SALAHEDDINE                       | Status: În curs de verificare IGI
+Nr IGI: 985159       | Candidat: CHIKHAOUI SALEH                          | Status: În curs de verificare IGI
+Nr IGI: 984053       | Candidat: SABBAR AYAOUB                            | Status: În curs de verificare IGI
+Nr IGI: 983952       | Candidat: BENSLIMANE YASSINE                       | Status: În curs de verificare IGI
+Nr IGI: 982931       | Candidat: MANSOUR YOUSSEF                          | Status: În curs de verificare IGI
+Nr IGI: 982931       | Candidat: MANSOUR YOUSSEF                          | Status: Transmisă
+Nr IGI: 967149       | Candidat: NARINGER SINGH                           | Status: În curs de verificare IGI
+Nr IGI: 950890       | Candidat: TUMANDY MA CRISELDA MANABAT              | Status: În curs de verificare IGI
+Nr IGI: 950142       | Candidat: GARCIA EMIE LADDARAN                     | Status: În curs de verificare IGI
+Nr IGI: 950142       | Candidat: GARCIA EMIE LADDARAN                     | Status: Transmisă
+Nr IGI: 949342       | Candidat: TUMANDY JASON DOLOR                      | Status: În curs de verificare IGI
+Nr IGI: 949342       | Candidat: TUMANDY JASON DOLOR                      | Status: Transmisă
+Nr IGI: 948331       | Candidat: DUWADI SARITA                            | Status: În curs de verificare IGI

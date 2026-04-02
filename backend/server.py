@@ -735,7 +735,7 @@ async def get_dashboard():
 # ===================== COMPANIES =====================
 
 @api_router.get("/companies", response_model=List[Company])
-async def get_companies(status: Optional[str] = None, search: Optional[str] = None):
+async def get_companies(status: Optional[str] = None, search: Optional[str] = None, with_stats: Optional[bool] = False):
     query = {}
     if status:
         query["status"] = status
@@ -746,7 +746,14 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
             {"city": {"$regex": search, "$options": "i"}}
         ]
     companies = await db.companies.find(query, {"_id": 0}).to_list(1000)
-    return [serialize_doc(c) for c in companies]
+    result = [serialize_doc(c) for c in companies]
+    if with_stats:
+        for comp in result:
+            cid = comp.get("id")
+            comp["candidates_count"] = await db.candidates.count_documents({"company_id": cid})
+            comp["active_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "status": {"$ne": "finalizat"}})
+            comp["approved_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "current_stage_name": "Permis Munca Aprobat"})
+    return result
 
 @api_router.get("/companies/{company_id}", response_model=Company)
 async def get_company(company_id: str):
@@ -994,14 +1001,90 @@ IMMIGRATION_DOCUMENTS = {
 }
 
 @api_router.get("/immigration", response_model=List[ImmigrationCase])
-async def get_immigration_cases(status: Optional[str] = None, candidate_id: Optional[str] = None):
+async def get_immigration_cases(
+    status: Optional[str] = None,
+    candidate_id: Optional[str] = None,
+    search: Optional[str] = None,
+    company_id: Optional[str] = None,
+    stage: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+):
     query = {}
     if status:
         query["status"] = status
     if candidate_id:
         query["candidate_id"] = candidate_id
-    cases = await db.immigration_cases.find(query, {"_id": 0}).to_list(1000)
+    if company_id:
+        query["company_id"] = company_id
+    if stage:
+        try:
+            query["current_stage"] = int(stage)
+        except:
+            query["current_stage_name"] = {"$regex": stage, "$options": "i"}
+    if search:
+        query["$or"] = [
+            {"candidate_name": {"$regex": search, "$options": "i"}},
+            {"company_name": {"$regex": search, "$options": "i"}},
+            {"igi_number": {"$regex": search, "$options": "i"}},
+            {"aviz_number": {"$regex": search, "$options": "i"}},
+        ]
+    if date_from:
+        query.setdefault("submitted_date", {})["$gte"] = date_from
+    if date_to:
+        query.setdefault("submitted_date", {})["$lte"] = date_to
+    cases = await db.immigration_cases.find(query, {"_id": 0}).sort("updated_at", -1).to_list(1000)
     return [serialize_doc(c) for c in cases]
+
+
+@api_router.get("/immigration-stats")
+async def get_immigration_stats(date_from: Optional[str] = None, date_to: Optional[str] = None):
+    """Statistici dosare imigrare pentru rapoarte"""
+    # Filtru opțional pe perioadă
+    date_query = {}
+    if date_from:
+        date_query["$gte"] = date_from
+    if date_to:
+        date_query["$lte"] = date_to
+    base_filter = {"submitted_date": date_query} if date_query else {}
+
+    by_stage_agg = await db.immigration_cases.aggregate([
+        {"$match": base_filter},
+        {"$group": {"_id": "$current_stage_name", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]).to_list(100)
+    by_company = await db.immigration_cases.aggregate([
+        {"$match": base_filter},
+        {"$group": {"_id": "$company_name", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]).to_list(10)
+    by_month = await db.immigration_cases.aggregate([
+        {"$match": base_filter},
+        {"$group": {"_id": {"$substr": ["$submitted_date", 0, 7]}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+        {"$limit": 24}
+    ]).to_list(24)
+    total = await db.immigration_cases.count_documents(base_filter)
+    active_q = {**base_filter, "status": "activ"}
+    approved_q = {**base_filter, "status": "aprobat"}
+    rejected_q = {**base_filter, "status": "respins"}
+    active_cases = await db.immigration_cases.count_documents(active_q)
+    approved_cases = await db.immigration_cases.count_documents(approved_q)
+    rejected_cases = await db.immigration_cases.count_documents(rejected_q)
+    # by_stage as dict for easy frontend use
+    stage_dict = {s["_id"] or "Necunoscut": s["count"] for s in by_stage_agg}
+    return {
+        "total_cases": total,
+        "active_cases": active_cases,
+        "approved_cases": approved_cases,
+        "rejected_cases": rejected_cases,
+        "by_stage": stage_dict,
+        "by_stage_list": [{"stage": s["_id"], "count": s["count"]} for s in by_stage_agg],
+        "top_companies": [{"name": c["_id"] or "Necunoscut", "cases": c["count"]} for c in by_company],
+        "by_month": [{"month": m["_id"], "count": m["count"]} for m in by_month],
+        "rata_aprobare": round((approved_cases / total * 100) if total else 0, 1),
+    }
 
 @api_router.get("/immigration/stages")
 async def get_immigration_stages():
@@ -2000,6 +2083,31 @@ async def seed_database():
             "immigration_cases": 10,
             "pipeline_opportunities": 8
         }
+    }
+
+# ===================== GLOBAL SEARCH =====================
+
+@api_router.get("/search")
+async def global_search(q: str = ""):
+    if not q or len(q) < 2:
+        return {"candidates": [], "companies": [], "cases": []}
+    regex = {"$regex": q, "$options": "i"}
+    candidates = await db.candidates.find(
+        {"$or": [{"first_name": regex}, {"last_name": regex}, {"passport_number": regex}]},
+        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "nationality": 1, "passport_number": 1, "company_name": 1}
+    ).limit(5).to_list(5)
+    companies = await db.companies.find(
+        {"$or": [{"name": regex}, {"cui": regex}]},
+        {"_id": 0, "id": 1, "name": 1, "cui": 1, "city": 1}
+    ).limit(5).to_list(5)
+    cases = await db.immigration_cases.find(
+        {"$or": [{"candidate_name": regex}, {"company_name": regex}, {"igi_number": regex}, {"aviz_number": regex}]},
+        {"_id": 0, "id": 1, "candidate_name": 1, "company_name": 1, "current_stage_name": 1, "igi_number": 1}
+    ).limit(5).to_list(5)
+    return {
+        "candidates": [serialize_doc(c) for c in candidates],
+        "companies": [serialize_doc(c) for c in companies],
+        "cases": [serialize_doc(c) for c in cases],
     }
 
 # ===================== HEALTH & ROOT =====================
