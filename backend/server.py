@@ -1735,6 +1735,59 @@ async def get_all_alerts():
     priority_order = {"urgent": 0, "warning": 1, "info": 2}
     return sorted(alerts, key=lambda x: (priority_order.get(x['priority'], 3), x['days_until_expiry']))
 
+@api_router.get("/alerts/igi-appointments")
+async def get_igi_appointments(days: int = 14):
+    """Programari IGI in urmatoarele N zile"""
+    today = datetime.now(timezone.utc).date()
+    results = []
+
+    cases = await db.immigration_cases.find(
+        {"appointment_date": {"$nin": [None, ""]}},
+        {"_id": 0, "id": 1, "candidate_name": 1, "company_name": 1,
+         "appointment_date": 1, "appointment_time": 1, "igi_number": 1}
+    ).to_list(5000)
+
+    for c in cases:
+        apd = c.get("appointment_date", "")
+        if not apd:
+            continue
+        # Incearca mai multe formate de date
+        apt_date = None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d.%m.%Y"):
+            try:
+                apt_date = datetime.strptime(apd.strip(), fmt).date()
+                break
+            except:
+                pass
+        if not apt_date:
+            continue
+
+        days_until = (apt_date - today).days
+        if -1 <= days_until <= days:  # include azi si urmatoarele N zile
+            if days_until < 0:
+                urgency = "trecut"
+            elif days_until == 0:
+                urgency = "azi"
+            elif days_until <= 3:
+                urgency = "urgent"
+            elif days_until <= 7:
+                urgency = "curand"
+            else:
+                urgency = "planificat"
+
+            results.append({
+                "case_id": c["id"],
+                "candidate_name": c.get("candidate_name", "—"),
+                "company_name": c.get("company_name", "—"),
+                "appointment_date": apd,
+                "appointment_time": c.get("appointment_time", ""),
+                "igi_number": c.get("igi_number", ""),
+                "days_until": days_until,
+                "urgency": urgency,
+            })
+
+    return sorted(results, key=lambda x: x["days_until"])
+
 # ===================== JOBS MANAGEMENT =====================
 
 @api_router.get("/jobs")
