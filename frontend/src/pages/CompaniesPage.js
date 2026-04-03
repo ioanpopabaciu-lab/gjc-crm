@@ -7,6 +7,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 const CompaniesPage = ({ showNotification }) => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
@@ -17,14 +19,29 @@ const CompaniesPage = ({ showNotification }) => {
   const fetchCompanies = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const params = new URLSearchParams();
       if (search) params.set("search", search);
-      params.set("with_stats", "true");
-      const response = await axios.get(`${API}/companies?${params.toString()}`);
+
+      // Pasul 1: Încarcă companiile instant (fără statistici)
+      const response = await axios.get(`${API}/companies?${params.toString()}`, { timeout: 15000 });
       setCompanies(response.data);
+      setLoading(false);
+
+      // Pasul 2: Încarcă statisticile în fundal
+      setStatsLoading(true);
+      try {
+        params.set("with_stats", "true");
+        const statsResp = await axios.get(`${API}/companies?${params.toString()}`, { timeout: 30000 });
+        setCompanies(statsResp.data);
+      } catch (statsError) {
+        // Statisticile nu s-au putut încărca, afișăm companiile fără ele
+      } finally {
+        setStatsLoading(false);
+      }
     } catch (error) {
-      showNotification("Eroare la încărcarea companiilor", "error");
-    } finally {
+      setLoadError(true);
+      showNotification("Eroare la încărcarea companiilor. Încearcă din nou.", "error");
       setLoading(false);
     }
   }, [search, showNotification]);
@@ -174,7 +191,15 @@ const CompaniesPage = ({ showNotification }) => {
           </div>
         </div>
         <div className="toolbar-right">
-          <span className="records-count">{companies.length} companii</span>
+          <span className="records-count">
+            {companies.length} companii
+            {statsLoading && <span style={{marginLeft:8, fontSize:'11px', color:'#6366f1', fontWeight:400}}>⟳ statistici...</span>}
+          </span>
+          {loadError && (
+            <button className="btn btn-secondary" onClick={fetchCompanies}>
+              <RefreshCw size={14}/> Reîncarcă
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={exportCSV}>
             <Download size={16} /> Export CSV
           </button>
@@ -188,7 +213,14 @@ const CompaniesPage = ({ showNotification }) => {
         </div>
       </div>
 
-      {loading ? <LoadingSpinner /> : (
+      {loading ? <LoadingSpinner /> : loadError ? (
+        <div style={{textAlign:'center', padding:'60px', color:'#ef4444'}}>
+          <div style={{fontSize:'48px', marginBottom:'12px'}}>⚠️</div>
+          <div style={{fontSize:'16px', fontWeight:600, marginBottom:'8px'}}>Nu s-au putut încărca companiile</div>
+          <div style={{fontSize:'13px', color:'#9ca3af', marginBottom:'20px'}}>Verifică conexiunea la internet și încearcă din nou</div>
+          <button className="btn btn-primary" onClick={fetchCompanies}><RefreshCw size={14}/> Reîncarcă</button>
+        </div>
+      ) : (
         <div className="data-table-container">
           <table className="data-table" data-testid="companies-table">
             <thead>

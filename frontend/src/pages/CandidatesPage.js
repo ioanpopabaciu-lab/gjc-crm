@@ -25,10 +25,10 @@ const CandidatesPage = ({ showNotification }) => {
       if (filterCompany) params.push(`company_id=${encodeURIComponent(filterCompany)}`);
       if (filterStatus) params.push(`status=${encodeURIComponent(filterStatus)}`);
       const queryString = params.length > 0 ? `?${params.join("&")}` : "";
-      const response = await axios.get(`${API}/candidates${queryString}`);
+      const response = await axios.get(`${API}/candidates${queryString}`, { timeout: 20000 });
       setCandidates(response.data);
     } catch (error) {
-      showNotification("Eroare la încărcarea candidaților", "error");
+      showNotification("Eroare la încărcarea candidaților. Încearcă din nou.", "error");
     } finally {
       setLoading(false);
     }

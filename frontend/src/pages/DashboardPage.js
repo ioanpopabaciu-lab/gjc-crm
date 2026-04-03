@@ -12,7 +12,7 @@ const DashboardPage = ({ showNotification }) => {
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API}/dashboard`);
+      const response = await axios.get(`${API}/dashboard`, { timeout: 30000 });
       setDashboard(response.data);
     } catch (error) {
       console.error("Error fetching dashboard:", error);
@@ -33,10 +33,19 @@ const DashboardPage = ({ showNotification }) => {
   };
 
   useEffect(() => {
+    // Ping backend la pornire pentru a-l "trezi" dacă e în sleep (Railway free tier)
+    axios.get(`${API}/health`, { timeout: 60000 }).catch(() => {});
     fetchDashboard();
   }, [fetchDashboard]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return (
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'400px', gap:'16px'}}>
+      <div style={{fontSize:'40px'}}>🔄</div>
+      <div style={{fontSize:'16px', fontWeight:600, color:'#374151'}}>Se conectează la server...</div>
+      <div style={{fontSize:'13px', color:'#9ca3af'}}>Prima conectare poate dura 10-30 secunde</div>
+      <LoadingSpinner />
+    </div>
+  );
 
   const kpis = dashboard?.kpis || {};
 

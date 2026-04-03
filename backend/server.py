@@ -762,13 +762,38 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
     companies = await db.companies.find(query, {"_id": 0}).to_list(1000)
     result = [serialize_doc(c) for c in companies]
     if with_stats:
+        # Aggregation pe candidați - o singură interogare pentru toate companiile
+        cand_stats = await db.candidates.aggregate([
+            {"$match": {"company_id": {"$nin": [None, ""]}}},
+            {"$group": {
+                "_id": "$company_id",
+                "total": {"$sum": 1},
+                "plasat": {"$sum": {"$cond": [{"$eq": ["$status", "plasat"]}, 1, 0]}}
+            }}
+        ]).to_list(None)
+        cand_map = {r["_id"]: r for r in cand_stats}
+
+        # Aggregation pe dosare - o singură interogare pentru toate companiile
+        case_stats = await db.immigration_cases.aggregate([
+            {"$match": {"company_id": {"$nin": [None, ""]}}},
+            {"$group": {
+                "_id": "$company_id",
+                "active": {"$sum": {"$cond": [{"$eq": ["$status", "activ"]}, 1, 0]}},
+                "approved": {"$sum": {"$cond": [{"$eq": ["$status", "aprobat"]}, 1, 0]}},
+                "avize": {"$sum": {"$cond": [{"$and": [{"$ne": ["$aviz_number", None]}, {"$ne": ["$aviz_number", ""]}]}, 1, 0]}}
+            }}
+        ]).to_list(None)
+        case_map = {r["_id"]: r for r in case_stats}
+
         for comp in result:
             cid = comp.get("id")
-            comp["candidates_count"] = await db.candidates.count_documents({"company_id": cid})
-            comp["active_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "status": "activ"})
-            comp["approved_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "status": "aprobat"})
-            comp["avize_count"] = await db.immigration_cases.count_documents({"company_id": cid, "aviz_number": {"$nin": [None, ""]}})
-            comp["placed_count"] = await db.candidates.count_documents({"company_id": cid, "status": "plasat"})
+            c = cand_map.get(cid, {})
+            ic = case_map.get(cid, {})
+            comp["candidates_count"] = c.get("total", 0)
+            comp["placed_count"] = c.get("plasat", 0)
+            comp["active_cases"] = ic.get("active", 0)
+            comp["approved_cases"] = ic.get("approved", 0)
+            comp["avize_count"] = ic.get("avize", 0)
     return result
 
 @api_router.get("/companies/{company_id}", response_model=Company)
