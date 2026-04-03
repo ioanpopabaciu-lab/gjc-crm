@@ -26,6 +26,7 @@ const ImmigrationPage = ({ showNotification }) => {
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [operators, setOperators] = useState([]);
 
   const fetchCases = useCallback(async () => {
     try {
@@ -37,16 +38,18 @@ const ImmigrationPage = ({ showNotification }) => {
       if (filterStatus) params.append("status", filterStatus);
       if (filterDateFrom) params.append("date_from", filterDateFrom);
       if (filterDateTo) params.append("date_to", filterDateTo);
-      const [casesRes, stagesRes, candidatesRes, companiesRes] = await Promise.all([
+      const [casesRes, stagesRes, candidatesRes, companiesRes, operatorsRes] = await Promise.all([
         axios.get(`${API}/immigration?${params.toString()}`),
         axios.get(`${API}/immigration/stages`),
         axios.get(`${API}/candidates`),
-        axios.get(`${API}/companies`)
+        axios.get(`${API}/companies`),
+        axios.get(`${API}/operators`).catch(() => ({ data: [] }))
       ]);
       setCases(casesRes.data);
       setStages(stagesRes.data.stages);
       setCandidates(candidatesRes.data);
       setCompanies(companiesRes.data);
+      setOperators(operatorsRes.data || []);
     } catch (error) {
       showNotification("Eroare la încărcarea dosarelor", "error");
     } finally {
@@ -471,7 +474,12 @@ const ImmigrationPage = ({ showNotification }) => {
                   </div>
                   <div className="form-group">
                     <label>Responsabil</label>
-                    <input type="text" value={newCase.assigned_to || "Ioan Baciu"} onChange={(e) => setNewCase({ ...newCase, assigned_to: e.target.value })} />
+                    <select value={newCase.assigned_to || "Ioan Baciu"} onChange={(e) => setNewCase({ ...newCase, assigned_to: e.target.value })}>
+                      <option value="Ioan Baciu">Ioan Baciu</option>
+                      {operators.filter(op => op.active !== false).map(op => (
+                        <option key={op.id} value={op.name}>{op.name}{op.role ? ` (${op.role})` : ""}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="form-group full-width">

@@ -7,6 +7,11 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import COUNTRIES from '../data/countries';
 import { COR_CODES } from '../data/corCodes';
 
+const SERVICE_TYPES = [
+  { value: "recrutare", label: "Serviciu 1 — Recrutare" },
+  { value: "imigrare_directa", label: "Serviciu 2 — Imigrare Directă" },
+];
+
 const CandidatesPage = ({ showNotification }) => {
   const [searchParams] = useSearchParams();
   const [candidates, setCandidates] = useState([]);
@@ -19,6 +24,7 @@ const CandidatesPage = ({ showNotification }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const [partners, setPartners] = useState([]);
   const [showFilters, setShowFilters] = useState(() => !!searchParams.get("company_id"));
 
   const fetchCandidates = useCallback(async () => {
@@ -48,6 +54,13 @@ const CandidatesPage = ({ showNotification }) => {
     }
   };
 
+  const fetchPartners = async () => {
+    try {
+      const response = await axios.get(`${API}/partners`);
+      setPartners(response.data || []);
+    } catch { /* no partners yet */ }
+  };
+
   useEffect(() => {
     const timer = setTimeout(fetchCandidates, 300);
     return () => clearTimeout(timer);
@@ -55,6 +68,7 @@ const CandidatesPage = ({ showNotification }) => {
 
   useEffect(() => {
     fetchCompanies();
+    fetchPartners();
   }, []);
 
   const hasActiveFilters = filterNationality || filterCompany || filterStatus;
@@ -414,6 +428,37 @@ const CandidatesPage = ({ showNotification }) => {
                     <option value="">Selectează...</option>
                     {companies.map(comp => (
                       <option key={comp.id} value={comp.id}>{comp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Tip Serviciu</label>
+                  <select
+                    value={editingCandidate?.service_type || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, service_type: e.target.value })}
+                  >
+                    <option value="">Selectează...</option>
+                    {SERVICE_TYPES.map(st => (
+                      <option key={st.value} value={st.value}>{st.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Partener Sursă</label>
+                  <select
+                    value={editingCandidate?.source_partner_id || ""}
+                    onChange={(e) => {
+                      const partner = partners.find(p => p.id === e.target.value);
+                      setEditingCandidate({
+                        ...editingCandidate,
+                        source_partner_id: e.target.value,
+                        source_partner_name: partner?.name || ""
+                      });
+                    }}
+                  >
+                    <option value="">Selectează...</option>
+                    {partners.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.country})</option>
                     ))}
                   </select>
                 </div>

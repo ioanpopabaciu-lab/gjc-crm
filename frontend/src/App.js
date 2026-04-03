@@ -17,6 +17,7 @@ import DocumentsPage from './pages/DocumentsPage';
 import ReportsPage from './pages/ReportsPage';
 import AlertsPage from './pages/AlertsPage';
 import SettingsPage from './pages/SettingsPage';
+import PartnersPage from './pages/PartnersPage';
 
 function App() {
   const { loading: authLoading, login, isAuthenticated } = useAuth();
@@ -52,6 +53,7 @@ function App() {
             <Route path="/companies" element={<CompaniesPage showNotification={showNotification} />} />
             <Route path="/candidates" element={<CandidatesPage showNotification={showNotification} />} />
             <Route path="/immigration" element={<ImmigrationPage showNotification={showNotification} />} />
+            <Route path="/partners" element={<PartnersPage showNotification={showNotification} />} />
             <Route path="/pipeline" element={<PipelinePage showNotification={showNotification} />} />
             <Route path="/documents" element={<DocumentsPage showNotification={showNotification} />} />
             <Route path="/reports" element={<ReportsPage showNotification={showNotification} />} />

@@ -521,9 +521,32 @@ const CompaniesPage = ({ showNotification }) => {
                     <option value="Agricultură">Agricultură</option>
                     <option value="Transport">Transport</option>
                     <option value="Industrie">Industrie</option>
+                    <option value="Curățenie">Curățenie</option>
+                    <option value="Logistică">Logistică</option>
+                    <option value="Sănătate">Sănătate</option>
+                    <option value="Servicii">Servicii</option>
                     <option value="IT">IT</option>
                     <option value="Altele">Altele</option>
                   </select>
+                </div>
+                <div className="form-group">
+                  <label>Subcategorie Industrie</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.industry_category || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, industry_category: e.target.value })}
+                    placeholder="Ex: Instalații sanitare, Cofetărie..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nr. Posturi Cerute</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editingCompany?.positions_needed || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, positions_needed: parseInt(e.target.value) || null })}
+                    placeholder="Total posturi solicitate"
+                  />
                 </div>
                 <div className="form-group">
                   <label>Persoană Contact</label>

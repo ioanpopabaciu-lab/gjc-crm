@@ -125,6 +125,8 @@ class Company(BaseModel):
     county: Optional[str] = None
     reg_commerce: Optional[str] = None
     industry: Optional[str] = None
+    industry_category: Optional[str] = None  # Construcții, HoReCa, Agricultură, etc.
+    positions_needed: Optional[int] = None  # Nr. posturi cerute
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -145,6 +147,8 @@ class CompanyCreate(BaseModel):
     county: Optional[str] = None
     reg_commerce: Optional[str] = None
     industry: Optional[str] = None
+    industry_category: Optional[str] = None
+    positions_needed: Optional[int] = None
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -168,6 +172,10 @@ class Candidate(BaseModel):
     status: str = "activ"
     company_id: Optional[str] = None
     company_name: Optional[str] = None
+    # ETAPA 1 — campuri noi
+    service_type: Optional[str] = None  # "recrutare" | "imigrare_directa"
+    source_partner_id: Optional[str] = None
+    source_partner_name: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -186,6 +194,9 @@ class CandidateCreate(BaseModel):
     status: str = "activ"
     company_id: Optional[str] = None
     company_name: Optional[str] = None
+    service_type: Optional[str] = None
+    source_partner_id: Optional[str] = None
+    source_partner_name: Optional[str] = None
     notes: Optional[str] = None
 
 class ImmigrationDocument(BaseModel):
@@ -278,6 +289,36 @@ class Operator(BaseModel):
     role: Optional[str] = None
     active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Partner(BaseModel):
+    """Agenție externă parteneră (sursă candidați)"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    country: str
+    city: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    commission_pct: Optional[float] = None
+    specialization: Optional[str] = None  # ex: "Construcții, HoReCa"
+    candidates_sent: int = 0
+    candidates_placed: int = 0
+    status: str = "activ"
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class PartnerCreate(BaseModel):
+    name: str
+    country: str
+    city: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    commission_pct: Optional[float] = None
+    specialization: Optional[str] = None
+    status: str = "activ"
+    notes: Optional[str] = None
 
 class Alert(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -2292,6 +2333,51 @@ async def update_operator(op_id: str, op: Operator):
 @api_router.delete("/operators/{op_id}")
 async def delete_operator(op_id: str):
     await db.operators.delete_one({"id": op_id})
+    return {"message": "deleted"}
+
+# ===================== PARTENERI (AGENȚII EXTERNE) =====================
+
+@api_router.get("/partners")
+async def get_partners():
+    partners = await db.partners.find({"_id": 0}).sort("name", 1).to_list(1000)
+    # Calculeaza statistici live
+    for p in partners:
+        p["candidates_sent"] = await db.candidates.count_documents({"source_partner_id": p["id"]})
+        p["candidates_placed"] = await db.candidates.count_documents({"source_partner_id": p["id"], "status": "plasat"})
+    return partners
+
+@api_router.get("/partners/{partner_id}")
+async def get_partner(partner_id: str):
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partener negăsit")
+    partner["candidates_sent"] = await db.candidates.count_documents({"source_partner_id": partner_id})
+    partner["candidates_placed"] = await db.candidates.count_documents({"source_partner_id": partner_id, "status": "plasat"})
+    # Lista candidati sursa
+    candidates = await db.candidates.find(
+        {"source_partner_id": partner_id}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "status": 1, "company_name": 1}
+    ).to_list(500)
+    partner["candidates"] = candidates
+    return partner
+
+@api_router.post("/partners")
+async def create_partner(partner: PartnerCreate):
+    doc = Partner(**partner.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.partners.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.put("/partners/{partner_id}")
+async def update_partner(partner_id: str, partner: PartnerCreate):
+    update_data = partner.model_dump(exclude_unset=True)
+    await db.partners.update_one({"id": partner_id}, {"$set": update_data})
+    updated = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/partners/{partner_id}")
+async def delete_partner(partner_id: str):
+    await db.partners.delete_one({"id": partner_id})
     return {"message": "deleted"}
 
 # ===================== SEED DATA =====================
