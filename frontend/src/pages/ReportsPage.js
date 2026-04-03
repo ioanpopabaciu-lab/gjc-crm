@@ -2,8 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
   BarChart3, Globe, TrendingUp, AlertTriangle, FileText,
-  Calendar, Download, RefreshCw, Award, Users, Building2, MapPin, Briefcase
+  Calendar, Download, RefreshCw, Award, Users, Building2, MapPin, Briefcase, CreditCard
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie, LineChart, Line, CartesianGrid, Legend
+} from 'recharts';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -22,6 +26,7 @@ const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"
 const ReportsPage = ({ showNotification }) => {
   const [activeTab, setActiveTab] = useState("general");
   const [dashboard, setDashboard] = useState(null);
+  const [kpiReport, setKpiReport] = useState(null);
   const [igiStats, setIgiStats] = useState(null);
   const [avizeStats, setAvizeStats] = useState(null);
   const [candidatsStats, setCandidatsStats] = useState(null);
@@ -35,16 +40,18 @@ const ReportsPage = ({ showNotification }) => {
       const params = new URLSearchParams();
       if (dateFrom) params.set("date_from", dateFrom);
       if (dateTo) params.set("date_to", dateTo);
-      const [dashRes, igiRes, avizeRes, candRes] = await Promise.all([
+      const [dashRes, igiRes, avizeRes, candRes, kpiRes] = await Promise.all([
         axios.get(`${API}/dashboard`),
         axios.get(`${API}/immigration-stats?${params.toString()}`),
         axios.get(`${API}/stats/avize`),
-        axios.get(`${API}/stats/candidates`)
+        axios.get(`${API}/stats/candidates`),
+        axios.get(`${API}/reports/kpi`).catch(() => ({ data: null })),
       ]);
       setDashboard(dashRes.data);
       setIgiStats(igiRes.data);
       setAvizeStats(avizeRes.data);
       setCandidatsStats(candRes.data);
+      setKpiReport(kpiRes.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -93,10 +100,12 @@ const ReportsPage = ({ showNotification }) => {
   const cs = candidatsStats || {};
 
   const tabs = [
-    { id: "general", label: "General", icon: BarChart3 },
-    { id: "avize", label: "Avize Muncă", icon: Award },
-    { id: "candidati", label: "Candidați", icon: Users },
-    { id: "companii", label: "Companii", icon: Building2 },
+    { id: "general",    label: "General",        icon: BarChart3 },
+    { id: "financiar",  label: "Financiar",      icon: CreditCard },
+    { id: "operatori",  label: "KPI Operatori",  icon: Award },
+    { id: "avize",      label: "Avize Muncă",    icon: Award },
+    { id: "candidati",  label: "Candidați",      icon: Users },
+    { id: "companii",   label: "Companii",       icon: Building2 },
   ];
 
   return (
@@ -336,6 +345,142 @@ const ReportsPage = ({ showNotification }) => {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ====== TAB: FINANCIAR ====== */}
+      {activeTab === "financiar" && kpiReport && (
+        <div style={{ display: "grid", gap: "20px" }}>
+          {/* Payment status summary */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
+            {[
+              { label: "Încasat", value: kpiReport.payments?.platit || 0, color: "#10b981" },
+              { label: "Parțial", value: kpiReport.payments?.partial || 0, color: "#f59e0b" },
+              { label: "Neîncasat", value: kpiReport.payments?.neplatit || 0, color: "#ef4444" },
+            ].map(item => (
+              <div key={item.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px 20px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>{item.label}</div>
+                <div style={{ fontSize: "1.6rem", fontWeight: "700", color: item.color }}>€{Number(item.value).toLocaleString("ro-RO")}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Contract stats */}
+          <div className="report-card">
+            <h3><FileText size={18}/> Contracte pe Status</h3>
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              {Object.entries(kpiReport.contracts || {}).map(([status, data]) => (
+                <div key={status} style={{ background: "#f9fafb", borderRadius: "8px", padding: "12px 18px", minWidth: "140px" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "capitalize" }}>{status}</div>
+                  <div style={{ fontWeight: "700", fontSize: "1.2rem" }}>{data.count} contracte</div>
+                  <div style={{ fontSize: "0.875rem", color: "#10b981" }}>€{Number(data.total).toLocaleString("ro-RO")}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Service breakdown */}
+          <div className="report-card">
+            <h3><Users size={18}/> Candidați pe Tip Serviciu</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={kpiReport.service_breakdown || []} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <XAxis dataKey="type" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Monthly payments trend */}
+          {(kpiReport.monthly_payments || []).length > 0 && (
+            <div className="report-card">
+              <h3><TrendingUp size={18}/> Trend Plăți Lunare (ultimele 6 luni)</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={kpiReport.monthly_payments} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(val) => [`€${Number(val).toLocaleString()}`, "Plăți"]} />
+                  <Line type="monotone" dataKey="total" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ====== TAB: KPI OPERATORI ====== */}
+      {activeTab === "operatori" && kpiReport && (
+        <div style={{ display: "grid", gap: "20px" }}>
+          {/* Cases per operator */}
+          <div className="report-card">
+            <h3><Award size={18}/> Dosare Imigrare per Operator</h3>
+            {(kpiReport.cases_by_operator || []).length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={kpiReport.cases_by_operator} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+                    <XAxis dataKey="operator" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="total" name="Total" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="active" name="Active" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="finalized" name="Finalizate" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="data-table-container" style={{ marginTop: "16px" }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Operator</th>
+                        <th>Total Dosare</th>
+                        <th>Active</th>
+                        <th>Finalizate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {kpiReport.cases_by_operator.map((row, i) => (
+                        <tr key={i}>
+                          <td style={{ fontWeight: "600" }}>{row.operator}</td>
+                          <td>{row.total}</td>
+                          <td>{row.active}</td>
+                          <td style={{ color: "#10b981", fontWeight: "600" }}>{row.finalized}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : <div style={{ color: "#9ca3af", padding: "20px" }}>Fără date de raportat.</div>}
+          </div>
+
+          {/* Placements per operator */}
+          {(kpiReport.placements_by_operator || []).length > 0 && (
+            <div className="report-card">
+              <h3><Users size={18}/> Plasamente per Operator</h3>
+              <div className="data-table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Operator</th>
+                      <th>Nr. Plasamente</th>
+                      <th>Onorarii Colectate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kpiReport.placements_by_operator.map((row, i) => (
+                      <tr key={i}>
+                        <td style={{ fontWeight: "600" }}>{row.operator}</td>
+                        <td>{row.count}</td>
+                        <td style={{ color: "#10b981", fontWeight: "600" }}>€{Number(row.fees || 0).toLocaleString("ro-RO")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

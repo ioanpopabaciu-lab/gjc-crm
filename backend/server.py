@@ -413,6 +413,102 @@ class LeadCreate(BaseModel):
     stage: str = "prospect"
     notes: Optional[str] = None
 
+class Interview(BaseModel):
+    """Interviu planificat sau realizat"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    candidate_id: str
+    candidate_name: Optional[str] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    job_title: Optional[str] = None
+    case_id: Optional[str] = None
+    scheduled_date: Optional[str] = None
+    scheduled_time: Optional[str] = None
+    interview_type: str = "tehnic"  # tehnic, hr, online, telefon, final
+    status: str = "programat"  # programat, realizat, anulat, reprogramat
+    result: Optional[str] = None  # admis, respins, in_asteptare
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class InterviewCreate(BaseModel):
+    candidate_id: str
+    candidate_name: Optional[str] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    job_title: Optional[str] = None
+    case_id: Optional[str] = None
+    scheduled_date: Optional[str] = None
+    scheduled_time: Optional[str] = None
+    interview_type: str = "tehnic"
+    status: str = "programat"
+    result: Optional[str] = None
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
+
+class Task(BaseModel):
+    """Sarcină / reminder intern"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: Optional[str] = None
+    entity_type: Optional[str] = None  # candidate, company, case, general
+    entity_id: Optional[str] = None
+    entity_name: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: str = "normal"  # urgent, high, normal, low
+    status: str = "pending"  # pending, in_progress, done
+    assigned_to: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class TaskCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    entity_name: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: str = "normal"
+    status: str = "pending"
+    assigned_to: Optional[str] = None
+
+class Placement(BaseModel):
+    """Plasament finalizat — tracking post-plasare"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    candidate_id: str
+    candidate_name: Optional[str] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    job_title: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    monthly_fee: Optional[float] = None
+    fee_currency: str = "EUR"
+    total_months: Optional[int] = None
+    fees_collected: Optional[float] = None
+    status: str = "activ"  # activ, finalizat, renuntat
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class PlacementCreate(BaseModel):
+    candidate_id: str
+    candidate_name: Optional[str] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    job_title: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    monthly_fee: Optional[float] = None
+    fee_currency: str = "EUR"
+    total_months: Optional[int] = None
+    fees_collected: Optional[float] = None
+    status: str = "activ"
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
+
 class Alert(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -872,6 +968,22 @@ async def get_dashboard():
     ]
     top_companies = await db.candidates.aggregate(company_pipeline).to_list(5)
     
+    # Financial KPIs
+    payments_agg = await db.payments.aggregate([
+        {"$group": {"_id": "$status", "total": {"$sum": "$amount"}}}
+    ]).to_list(10)
+    total_collected = sum(p["total"] for p in payments_agg if p["_id"] == "platit")
+    total_pending = sum(p["total"] for p in payments_agg if p["_id"] in ["partial", "neplatit"])
+
+    contracts_agg = await db.contracts.aggregate([
+        {"$group": {"_id": None, "total": {"$sum": "$value"}, "count": {"$sum": 1}}}
+    ]).to_list(1)
+    total_contracts_value = contracts_agg[0]["total"] if contracts_agg else 0
+
+    active_placements = await db.placements.count_documents({"status": "activ"})
+    pending_tasks = await db.tasks.count_documents({"status": {"$ne": "done"}})
+    upcoming_interviews = await db.interviews.count_documents({"status": "programat"})
+
     return {
         "kpis": {
             "total_candidates": total_candidates,
@@ -883,7 +995,13 @@ async def get_dashboard():
             "pipeline_value": total_pipeline_value,
             "expiring_passports": passport_alerts,
             "expiring_permits": permit_alerts,
-            "total_alerts": passport_alerts + permit_alerts
+            "total_alerts": passport_alerts + permit_alerts,
+            "total_collected": total_collected,
+            "total_pending_payment": total_pending,
+            "total_contracts_value": total_contracts_value,
+            "active_placements": active_placements,
+            "pending_tasks": pending_tasks,
+            "upcoming_interviews": upcoming_interviews,
         },
         "nationalities": [{"nationality": n["_id"] or "Necunoscut", "count": n["count"]} for n in nationalities],
         "top_companies": [{"company": c["_id"], "placements": c["count"]} for c in top_companies]
@@ -2585,6 +2703,171 @@ async def update_lead(lead_id: str, lead: LeadCreate):
 async def delete_lead(lead_id: str):
     await db.leads.delete_one({"id": lead_id})
     return {"message": "deleted"}
+
+# ===================== INTERVIEWS =====================
+
+@api_router.get("/interviews")
+async def get_interviews(status: Optional[str] = None, candidate_id: Optional[str] = None):
+    query = {}
+    if status:
+        query["status"] = status
+    if candidate_id:
+        query["candidate_id"] = candidate_id
+    items = await db.interviews.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(1000)
+    return [serialize_doc(i) for i in items]
+
+@api_router.post("/interviews")
+async def create_interview(interview: InterviewCreate):
+    doc = Interview(**interview.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.interviews.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/interviews/{interview_id}")
+async def update_interview(interview_id: str, interview: InterviewCreate):
+    update_data = interview.model_dump(exclude_unset=True)
+    await db.interviews.update_one({"id": interview_id}, {"$set": update_data})
+    updated = await db.interviews.find_one({"id": interview_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/interviews/{interview_id}")
+async def delete_interview(interview_id: str):
+    await db.interviews.delete_one({"id": interview_id})
+    return {"message": "deleted"}
+
+# ===================== TASKS =====================
+
+@api_router.get("/tasks")
+async def get_tasks(status: Optional[str] = None, assigned_to: Optional[str] = None, priority: Optional[str] = None):
+    query = {}
+    if status:
+        query["status"] = status
+    if assigned_to:
+        query["assigned_to"] = assigned_to
+    if priority:
+        query["priority"] = priority
+    items = await db.tasks.find(query, {"_id": 0}).sort("due_date", 1).to_list(1000)
+    return [serialize_doc(t) for t in items]
+
+@api_router.post("/tasks")
+async def create_task(task: TaskCreate):
+    doc = Task(**task.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.tasks.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/tasks/{task_id}")
+async def update_task(task_id: str, task: TaskCreate):
+    update_data = task.model_dump(exclude_unset=True)
+    await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    updated = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/tasks/{task_id}")
+async def delete_task(task_id: str):
+    await db.tasks.delete_one({"id": task_id})
+    return {"message": "deleted"}
+
+# ===================== PLACEMENTS (POST-PLASARE) =====================
+
+@api_router.get("/placements")
+async def get_placements(status: Optional[str] = None):
+    query = {}
+    if status:
+        query["status"] = status
+    items = await db.placements.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [serialize_doc(p) for p in items]
+
+@api_router.get("/placements/stats")
+async def get_placement_stats():
+    total = await db.placements.count_documents({})
+    active = await db.placements.count_documents({"status": "activ"})
+    pipeline = [{"$group": {"_id": None, "total_fees": {"$sum": "$fees_collected"}, "total_monthly": {"$sum": "$monthly_fee"}}}]
+    agg = await db.placements.aggregate(pipeline).to_list(1)
+    fees = agg[0]["total_fees"] if agg else 0
+    return {"total": total, "active": active, "fees_collected": fees or 0}
+
+@api_router.post("/placements")
+async def create_placement(placement: PlacementCreate):
+    doc = Placement(**placement.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.placements.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/placements/{placement_id}")
+async def update_placement(placement_id: str, placement: PlacementCreate):
+    update_data = placement.model_dump(exclude_unset=True)
+    await db.placements.update_one({"id": placement_id}, {"$set": update_data})
+    updated = await db.placements.find_one({"id": placement_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/placements/{placement_id}")
+async def delete_placement(placement_id: str):
+    await db.placements.delete_one({"id": placement_id})
+    return {"message": "deleted"}
+
+# ===================== KPI PER OPERATOR =====================
+
+@api_router.get("/reports/kpi")
+async def get_kpi_report():
+    """KPI per operator + financiar"""
+    # Cases per operator
+    cases_pipeline = [
+        {"$group": {"_id": "$assigned_to", "total_cases": {"$sum": 1},
+                    "active": {"$sum": {"$cond": [{"$ne": ["$status", "finalizat"]}, 1, 0]}},
+                    "finalized": {"$sum": {"$cond": [{"$eq": ["$status", "finalizat"]}, 1, 0]}}}}
+    ]
+    cases_by_op = await db.immigration_cases.aggregate(cases_pipeline).to_list(50)
+
+    # Payments per type and total
+    payments_pipeline = [
+        {"$group": {"_id": "$status", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}
+    ]
+    payments_by_status = await db.payments.aggregate(payments_pipeline).to_list(10)
+    pay_stats = {"platit": 0, "partial": 0, "neplatit": 0}
+    for p in payments_by_status:
+        if p["_id"] in pay_stats:
+            pay_stats[p["_id"]] = p["total"]
+
+    # Contracts value
+    contracts_pipeline = [
+        {"$group": {"_id": "$status", "total": {"$sum": "$value"}, "count": {"$sum": 1}}}
+    ]
+    contracts_by_status = await db.contracts.aggregate(contracts_pipeline).to_list(10)
+    contract_stats = {}
+    for c in contracts_by_status:
+        contract_stats[c["_id"]] = {"total": c["total"] or 0, "count": c["count"]}
+
+    # Placements per operator
+    placements_pipeline = [
+        {"$group": {"_id": "$assigned_to", "count": {"$sum": 1}, "fees": {"$sum": "$fees_collected"}}}
+    ]
+    placements_by_op = await db.placements.aggregate(placements_pipeline).to_list(50)
+
+    # Candidates per service_type
+    service_pipeline = [
+        {"$group": {"_id": "$service_type", "count": {"$sum": 1}}}
+    ]
+    service_breakdown = await db.candidates.aggregate(service_pipeline).to_list(10)
+
+    # Monthly payments trend (last 6 months)
+    six_months_ago = (datetime.now(timezone.utc) - timedelta(days=180)).isoformat()
+    monthly_pipeline = [
+        {"$match": {"date_received": {"$gte": six_months_ago[:7]}}},
+        {"$group": {"_id": {"$substr": ["$date_received", 0, 7]}, "total": {"$sum": "$amount"}}},
+        {"$sort": {"_id": 1}},
+        {"$limit": 6}
+    ]
+    monthly_payments = await db.payments.aggregate(monthly_pipeline).to_list(6)
+
+    return {
+        "cases_by_operator": [{"operator": r["_id"] or "Neatribuit", "total": r["total_cases"], "active": r["active"], "finalized": r["finalized"]} for r in cases_by_op],
+        "placements_by_operator": [{"operator": r["_id"] or "Neatribuit", "count": r["count"], "fees": r["fees"] or 0} for r in placements_by_op],
+        "payments": pay_stats,
+        "contracts": contract_stats,
+        "service_breakdown": [{"type": r["_id"] or "necunoscut", "count": r["count"]} for r in service_breakdown],
+        "monthly_payments": [{"month": r["_id"], "total": r["total"]} for r in monthly_payments],
+    }
 
 # ===================== SEED DATA =====================
 

@@ -21,6 +21,9 @@ import PartnersPage from './pages/PartnersPage';
 import ContractsPage from './pages/ContractsPage';
 import PaymentsPage from './pages/PaymentsPage';
 import LeadsPage from './pages/LeadsPage';
+import InterviewsPage from './pages/InterviewsPage';
+import TasksPage from './pages/TasksPage';
+import PlacementsPage from './pages/PlacementsPage';
 
 function App() {
   const { loading: authLoading, login, isAuthenticated } = useAuth();
@@ -65,6 +68,9 @@ function App() {
             <Route path="/contracts" element={<ContractsPage showNotification={showNotification} />} />
             <Route path="/payments" element={<PaymentsPage showNotification={showNotification} />} />
             <Route path="/leads" element={<LeadsPage showNotification={showNotification} />} />
+            <Route path="/interviews" element={<InterviewsPage showNotification={showNotification} />} />
+            <Route path="/tasks" element={<TasksPage showNotification={showNotification} />} />
+            <Route path="/placements" element={<PlacementsPage showNotification={showNotification} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </MainLayout>
