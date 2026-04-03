@@ -2220,15 +2220,19 @@ async def get_operators():
 @api_router.post("/operators")
 async def create_operator(op: Operator):
     doc = op.model_dump()
-    doc["created_at"] = doc["created_at"].isoformat() if hasattr(doc.get("created_at"), "isoformat") else doc.get("created_at", datetime.now(timezone.utc).isoformat())
+    if hasattr(doc.get("created_at"), "isoformat"):
+        doc["created_at"] = doc["created_at"].isoformat()
     await db.operators.insert_one(doc)
+    doc.pop("_id", None)
     return serialize_doc(doc)
 
 @api_router.put("/operators/{op_id}")
-async def update_operator(op_id: str, op: dict):
-    op.pop("id", None)
-    op["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.operators.update_one({"id": op_id}, {"$set": op})
+async def update_operator(op_id: str, op: Operator):
+    data = {k: v for k, v in op.model_dump().items() if k not in ("id", "created_at")}
+    if hasattr(data.get("updated_at"), "isoformat"):
+        data["updated_at"] = data["updated_at"].isoformat()
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.operators.update_one({"id": op_id}, {"$set": data})
     updated = await db.operators.find_one({"id": op_id}, {"_id": 0})
     return serialize_doc(updated)
 
