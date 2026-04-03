@@ -659,6 +659,7 @@ body {
 
 .data-table {
   width: 100%;
+  min-width: 1100px;
   border-collapse: collapse;
 }
 
@@ -672,6 +673,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .data-table td {
@@ -679,6 +681,7 @@ body {
   font-size: 0.9rem;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .data-table tr:hover td {
