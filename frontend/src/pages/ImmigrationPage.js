@@ -3,8 +3,12 @@ import axios from 'axios';
 import { FileText, Plus, ChevronRight, Eye, Trash2, X, AlertTriangle, Paperclip, Upload, Download, Globe, Building2, Briefcase, Mail, ChevronDown, Search, Filter, Calendar, Award, Clock } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { COR_CODES } from '../data/corCodes';
 
 const ImmigrationPage = ({ showNotification }) => {
+  // Make COR codes available globally for datalist
+  window._corCodes = COR_CODES;
+
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stages, setStages] = useState([]);
@@ -443,6 +447,23 @@ const ImmigrationPage = ({ showNotification }) => {
                       <option value="Reînnoire permis">Reînnoire permis</option>
                       <option value="Reunificare familială">Reunificare familială</option>
                     </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Meserie / Cod COR</label>
+                    <input
+                      list="cor-immigration-list"
+                      value={newCase.job_function || ""}
+                      onChange={(e) => {
+                        const matches = (window._corCodes || []).find(c => c.name === e.target.value);
+                        setNewCase({ ...newCase, job_function: e.target.value, cor_code: matches?.code || newCase.cor_code });
+                      }}
+                      placeholder="Caută meserie..."
+                      style={{width:'100%', padding:'8px 12px', border:'1px solid var(--border-color)', borderRadius:'var(--radius-sm)'}}
+                    />
+                    <datalist id="cor-immigration-list">
+                      {(window._corCodes || []).map(c => <option key={c.code} value={c.name}>{c.code} — {c.name}</option>)}
+                    </datalist>
+                    {newCase.cor_code && <small style={{color:'#6366f1'}}>COR: {newCase.cor_code}</small>}
                   </div>
                   <div className="form-group">
                     <label>Data Depunere</label>

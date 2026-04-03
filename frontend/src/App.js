@@ -16,6 +16,7 @@ import PipelinePage from './pages/PipelinePage';
 import DocumentsPage from './pages/DocumentsPage';
 import ReportsPage from './pages/ReportsPage';
 import AlertsPage from './pages/AlertsPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   const { loading: authLoading, login, isAuthenticated } = useAuth();
@@ -55,6 +56,7 @@ function App() {
             <Route path="/documents" element={<DocumentsPage showNotification={showNotification} />} />
             <Route path="/reports" element={<ReportsPage showNotification={showNotification} />} />
             <Route path="/alerts" element={<AlertsPage showNotification={showNotification} />} />
+            <Route path="/settings" element={<SettingsPage showNotification={showNotification} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </MainLayout>

@@ -270,6 +270,15 @@ class Document(BaseModel):
     status: str = "valid"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class Operator(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    phone: str
+    role: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class Alert(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -2201,6 +2210,32 @@ async def lookup_anaf(cui: str):
     except Exception as e:
         logger.error(f"ANAF lookup error: {type(e).__name__}: {e}")
         return {"success": False, "error": f"Eroare la comunicarea cu ANAF: {type(e).__name__}"}
+
+# ==================== OPERATORS ====================
+@api_router.get("/operators")
+async def get_operators():
+    ops = await db.operators.find({}, {"_id": 0}).sort("created_at", 1).to_list(100)
+    return [serialize_doc(o) for o in ops]
+
+@api_router.post("/operators")
+async def create_operator(op: Operator):
+    doc = op.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat() if hasattr(doc.get("created_at"), "isoformat") else doc.get("created_at", datetime.now(timezone.utc).isoformat())
+    await db.operators.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/operators/{op_id}")
+async def update_operator(op_id: str, op: dict):
+    op.pop("id", None)
+    op["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.operators.update_one({"id": op_id}, {"$set": op})
+    updated = await db.operators.find_one({"id": op_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/operators/{op_id}")
+async def delete_operator(op_id: str):
+    await db.operators.delete_one({"id": op_id})
+    return {"message": "deleted"}
 
 # ===================== SEED DATA =====================
 

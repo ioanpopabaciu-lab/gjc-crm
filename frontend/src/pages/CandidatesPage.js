@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, User, Edit, Trash2, X, Users, Download, Filter } from 'lucide-react';
+import { Search, Plus, User, Edit, Trash2, X, Users, Download, Filter, MessageCircle } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
+import COUNTRIES from '../data/countries';
+import { COR_CODES } from '../data/corCodes';
 
 const CandidatesPage = ({ showNotification }) => {
   const [searchParams] = useSearchParams();
@@ -172,16 +174,17 @@ const CandidatesPage = ({ showNotification }) => {
         <div className="filter-bar">
           <div className="filter-group">
             <label>Naționalitate</label>
-            <select value={filterNationality} onChange={e => setFilterNationality(e.target.value)} data-testid="nationality-filter">
+            <input
+              list="countries-filter-list"
+              value={filterNationality}
+              onChange={e => setFilterNationality(e.target.value)}
+              placeholder="Orice țară..."
+              style={{padding:'6px 10px', border:'1px solid var(--border-color)', borderRadius:'6px', width:'180px'}}
+            />
+            <datalist id="countries-filter-list">
               <option value="">Toate</option>
-              <option value="Nepal">Nepal</option>
-              <option value="India">India</option>
-              <option value="Filipine">Filipine</option>
-              <option value="Sri Lanka">Sri Lanka</option>
-              <option value="Nigeria">Nigeria</option>
-              <option value="Bangladesh">Bangladesh</option>
-              <option value="Pakistan">Pakistan</option>
-            </select>
+              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </datalist>
           </div>
           <div className="filter-group">
             <label>Companie</label>
@@ -262,6 +265,18 @@ const CandidatesPage = ({ showNotification }) => {
                       <span className={`status-badge ${candidate.status}`}>{candidate.status}</span>
                     </td>
                     <td className="actions-cell">
+                      {candidate.phone && (
+                        <a
+                          href={`https://wa.me/${candidate.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bună ziua! Vă contactăm în legătură cu candidatura dumneavoastră.`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="icon-btn"
+                          title="WhatsApp"
+                          style={{color:'#25D366', textDecoration:'none'}}
+                        >
+                          💬
+                        </a>
+                      )}
                       <button className="icon-btn" onClick={() => { setEditingCandidate(candidate); setShowModal(true); }}>
                         <Edit size={16} />
                       </button>
@@ -313,19 +328,16 @@ const CandidatesPage = ({ showNotification }) => {
                 </div>
                 <div className="form-group">
                   <label>Naționalitate</label>
-                  <select
+                  <input
+                    list="countries-modal-list"
                     value={editingCandidate?.nationality || ""}
                     onChange={(e) => setEditingCandidate({ ...editingCandidate, nationality: e.target.value })}
-                  >
-                    <option value="">Selectează...</option>
-                    <option value="Nepal">Nepal</option>
-                    <option value="India">India</option>
-                    <option value="Filipine">Filipine</option>
-                    <option value="Sri Lanka">Sri Lanka</option>
-                    <option value="Nigeria">Nigeria</option>
-                    <option value="Bangladesh">Bangladesh</option>
-                    <option value="Pakistan">Pakistan</option>
-                  </select>
+                    placeholder="Caută țara..."
+                    className="form-input"
+                  />
+                  <datalist id="countries-modal-list">
+                    {COUNTRIES.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
                 <div className="form-group">
                   <label>Nr. Pașaport</label>
@@ -368,21 +380,23 @@ const CandidatesPage = ({ showNotification }) => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Tip Job</label>
-                  <select
+                  <label>Meserie / COR</label>
+                  <input
+                    list="cor-codes-list"
                     value={editingCandidate?.job_type || ""}
-                    onChange={(e) => setEditingCandidate({ ...editingCandidate, job_type: e.target.value })}
-                  >
-                    <option value="">Selectează...</option>
-                    <option value="Muncitor construcții">Muncitor construcții</option>
-                    <option value="Bucătar">Bucătar</option>
-                    <option value="Ospătar">Ospătar</option>
-                    <option value="Șofer">Șofer</option>
-                    <option value="Muncitor agricol">Muncitor agricol</option>
-                    <option value="Sudor">Sudor</option>
-                    <option value="Electrician">Electrician</option>
-                    <option value="Instalator">Instalator</option>
-                  </select>
+                    onChange={(e) => {
+                      const selected = COR_CODES.find(c => `${c.code} - ${c.name}` === e.target.value || c.name === e.target.value);
+                      setEditingCandidate({ ...editingCandidate, job_type: selected ? selected.name : e.target.value, cor_code: selected?.code || editingCandidate?.cor_code });
+                    }}
+                    placeholder="Caută meserie sau cod COR..."
+                    className="form-input"
+                  />
+                  <datalist id="cor-codes-list">
+                    {COR_CODES.map(c => <option key={c.code} value={`${c.name}`}>{c.code} — {c.name} ({c.group})</option>)}
+                  </datalist>
+                  {editingCandidate?.cor_code && (
+                    <small style={{color:'#6366f1', fontSize:'0.75rem'}}>COR: {editingCandidate.cor_code}</small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Companie</label>

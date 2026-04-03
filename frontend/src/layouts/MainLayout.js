@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
   Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
-  Search, X
+  Search, X, Settings
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
@@ -18,6 +18,7 @@ const modules = [
   { id: "documents", path: "/documents", name: "Documente", icon: FileText },
   { id: "reports", path: "/reports", name: "Rapoarte AI", icon: BarChart3 },
   { id: "alerts", path: "/alerts", name: "Centru Alerte", icon: Bell },
+  { id: "settings", path: "/settings", name: "Operatori & WA", icon: Settings },
 ];
 
 const GlobalSearch = () => {
