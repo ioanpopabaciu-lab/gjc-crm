@@ -263,25 +263,25 @@ const CompaniesPage = ({ showNotification }) => {
               {companies.map((company) => (
                 <tr key={company.id}>
                   <td className="company-name-cell">
-                    <Building2 size={14} />
+                    <Building2 size={16} />
                     <div>
-                      <div style={{fontWeight:600, fontSize:'0.8rem'}}>{company.name}</div>
-                      {company.industry && <small style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>{company.industry}</small>}
+                      <div style={{fontWeight:600}}>{company.name}</div>
+                      {company.industry && <small style={{ color: 'var(--text-muted)' }}>{company.industry}</small>}
                     </div>
                   </td>
-                  <td style={{fontSize:'0.76rem'}}>{company.cui || "-"}</td>
-                  <td style={{fontSize:'0.76rem'}}>
+                  <td>{company.cui || "-"}</td>
+                  <td>
                     {company.county ? (
-                      <span className="county-badge" style={{fontSize:'0.72rem'}}><MapPin size={10}/> {company.county}</span>
+                      <span className="county-badge"><MapPin size={12}/> {company.county}</span>
                     ) : (company.city || "-")}
                   </td>
-                  <td style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  <td style={{ color: 'var(--text-muted)' }}>
                     {company.reg_commerce || "-"}
                   </td>
-                  <td style={{fontSize:'0.76rem'}}>
+                  <td>
                     <div className="contact-info">
                       <span>{company.contact_person || "-"}</span>
-                      {company.phone && <small style={{fontSize:'0.68rem'}}><Phone size={10} /> {company.phone}</small>}
+                      {company.phone && <small><Phone size={11} /> {company.phone}</small>}
                     </div>
                   </td>
                   <td>
@@ -292,14 +292,14 @@ const CompaniesPage = ({ showNotification }) => {
                         title={`Vezi cei ${company.candidates_count} candidați`}
                         style={{cursor:'pointer'}}
                       >
-                        <Users size={11}/> {company.candidates_count}
+                        <Users size={13}/> {company.candidates_count}
                       </span>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
                     {company.placed_count > 0 ? (
-                      <span className="placed-badge" style={{fontSize:'0.74rem'}}>✓ {company.placed_count}</span>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
+                      <span className="placed-badge">✓ {company.placed_count}</span>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
                     {company.avize_count > 0 ? (
@@ -309,19 +309,19 @@ const CompaniesPage = ({ showNotification }) => {
                         title={`Vezi cele ${company.avize_count} avize`}
                         style={{cursor:'pointer'}}
                       >
-                        <Award size={10}/> {company.avize_count}
+                        <Award size={13}/> {company.avize_count}
                       </span>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
                     {(company.active_cases > 0 || company.approved_cases > 0) ? (
-                      <span className="stat-badge gray" style={{fontSize:'0.74rem'}}>
-                        <FileText size={10}/> {(company.active_cases || 0) + (company.approved_cases || 0)}
+                      <span className="stat-badge gray">
+                        <FileText size={13}/> {(company.active_cases || 0) + (company.approved_cases || 0)}
                       </span>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
-                    <span className={`status-badge ${company.status}`} style={{fontSize:'0.7rem', padding:'2px 6px'}}>{company.status}</span>
+                    <span className={`status-badge ${company.status}`}>{company.status}</span>
                   </td>
                   <td className="actions-cell">
                     <button className="icon-btn" onClick={() => { setEditingCompany(company); setShowModal(true); }} data-testid={`edit-company-${company.id}`}>

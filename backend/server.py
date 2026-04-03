@@ -200,7 +200,7 @@ class ImmigrationDocument(BaseModel):
     notes: Optional[str] = None
 
 class ImmigrationCase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     candidate_id: str
     candidate_name: Optional[str] = None

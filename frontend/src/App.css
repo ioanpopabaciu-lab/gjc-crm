@@ -653,7 +653,7 @@ body {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
-  overflow: hidden;
+  overflow-x: auto;
   box-shadow: var(--shadow-sm);
 }
 
@@ -3073,17 +3073,17 @@ body {
   color: var(--text-muted);
   margin-left: 4px;
 }
-/* ===== COMPANIES TABLE COMPACT ===== */
+/* ===== COMPANIES TABLE — consistent cu restul CRM ===== */
 .companies-compact-table th {
-  padding: 10px 10px;
-  font-size: 0.72rem;
-}
-.companies-compact-table td {
-  padding: 9px 10px;
+  padding: 16px 20px;
   font-size: 0.8rem;
 }
+.companies-compact-table td {
+  padding: 16px 20px;
+  font-size: 0.9rem;
+}
 .companies-compact-table .company-name-cell {
-  gap: 7px;
+  gap: 10px;
 }
 
 /* Badge clickabil (candidati, avize) */
