@@ -12,6 +12,8 @@ const CompaniesPage = ({ showNotification }) => {
   const [statsLoading, setStatsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterIndustry, setFilterIndustry] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
   const [cuiLookup, setCuiLookup] = useState("");
@@ -198,7 +200,7 @@ const CompaniesPage = ({ showNotification }) => {
   return (
     <div className="module-container" data-testid="companies-module">
       <div className="module-toolbar">
-        <div className="toolbar-left">
+        <div className="toolbar-left" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
           <div className="search-box">
             <Search size={16} className="search-icon" />
             <input
@@ -210,6 +212,16 @@ const CompaniesPage = ({ showNotification }) => {
             />
             {search && <button className="clear-search" onClick={() => setSearch("")}><X size={14}/></button>}
           </div>
+          <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.875rem", background: "var(--bg-card)", color: "var(--text-primary)" }}>
+            <option value="">Toate industriile</option>
+            {["Construcții","HoReCa","Agricultură","Industrie","Transport","Curățenie","Logistică","Sănătate","Servicii","IT","Retail"].map(i => <option key={i} value={i}>{i}</option>)}
+          </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.875rem", background: "var(--bg-card)", color: "var(--text-primary)" }}>
+            <option value="">Toate statusurile</option>
+            <option value="activ">Activ</option>
+            <option value="inactiv">Inactiv</option>
+            <option value="suspendat">Suspendat</option>
+          </select>
         </div>
         <div className="toolbar-right">
           <span className="records-count">
@@ -260,7 +272,11 @@ const CompaniesPage = ({ showNotification }) => {
               </tr>
             </thead>
             <tbody>
-              {companies.map((company) => (
+              {companies.filter(c => {
+              if (filterIndustry && c.industry !== filterIndustry) return false;
+              if (filterStatus && c.status !== filterStatus) return false;
+              return true;
+            }).map((company) => (
                 <tr key={company.id}>
                   <td className="company-name-cell">
                     <Building2 size={16} />

@@ -14,6 +14,8 @@ const PartnersPage = ({ showNotification }) => {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterSpec, setFilterSpec] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -64,18 +66,23 @@ const PartnersPage = ({ showNotification }) => {
   };
 
   const filtered = partners.filter(p => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (p.name || "").toLowerCase().includes(s) ||
-           (p.country || "").toLowerCase().includes(s) ||
-           (p.contact_person || "").toLowerCase().includes(s) ||
-           (p.specialization || "").toLowerCase().includes(s);
+    if (search) {
+      const s = search.toLowerCase();
+      const match = (p.name || "").toLowerCase().includes(s) ||
+                    (p.country || "").toLowerCase().includes(s) ||
+                    (p.contact_person || "").toLowerCase().includes(s) ||
+                    (p.specialization || "").toLowerCase().includes(s);
+      if (!match) return false;
+    }
+    if (filterSpec && !(p.specialization || "").includes(filterSpec)) return false;
+    if (filterStatus && p.status !== filterStatus) return false;
+    return true;
   });
 
   return (
     <div className="module-container">
       <div className="module-toolbar">
-        <div className="toolbar-left">
+        <div className="toolbar-left" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
           <div className="search-box">
             <Search size={16} className="search-icon" />
             <input
@@ -86,6 +93,15 @@ const PartnersPage = ({ showNotification }) => {
             />
             {search && <button className="clear-search" onClick={() => setSearch("")}><X size={14}/></button>}
           </div>
+          <select value={filterSpec} onChange={e => setFilterSpec(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.875rem", background: "var(--bg-card)", color: "var(--text-primary)" }}>
+            <option value="">Toate specializările</option>
+            {SPECIALIZATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.875rem", background: "var(--bg-card)", color: "var(--text-primary)" }}>
+            <option value="">Toate statusurile</option>
+            <option value="activ">Activ</option>
+            <option value="inactiv">Inactiv</option>
+          </select>
         </div>
         <div className="toolbar-right">
           <span className="records-count">{filtered.length} parteneri</span>

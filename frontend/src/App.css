@@ -234,6 +234,8 @@ body {
   flex-direction: column;
   transition: var(--transition);
   background: var(--bg-main);
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 .sidebar.collapsed + .main-content {
