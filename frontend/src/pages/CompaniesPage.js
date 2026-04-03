@@ -187,7 +187,7 @@ const CompaniesPage = ({ showNotification }) => {
   const openAvizeModal = async (company) => {
     setAvizeModal({ open: true, company, cases: [], loading: true });
     try {
-      const resp = await axios.get(`${API}/immigration-cases?company_id=${company.id}&limit=200`);
+      const resp = await axios.get(`${API}/immigration?company_id=${company.id}`);
       const withAviz = (resp.data || []).filter(c => c.aviz_number);
       setAvizeModal({ open: true, company, cases: withAviz, loading: false });
     } catch {
@@ -394,14 +394,28 @@ const CompaniesPage = ({ showNotification }) => {
                         </td>
                         <td style={{padding:'9px 12px', color:'var(--text-muted)', fontSize:'0.78rem'}}>{c.igi_number || "-"}</td>
                         <td style={{padding:'9px 12px', textAlign:'center'}}>
-                          <button
-                            className="btn btn-secondary"
-                            style={{fontSize:'0.72rem', padding:'3px 10px'}}
-                            onClick={() => { navigate(`/immigration?search=${encodeURIComponent(c.candidate_name || '')}`); setAvizeModal({ open: false, company: null, cases: [], loading: false }); }}
-                            title="Deschide dosarul de imigrare"
-                          >
-                            <ChevronRight size={12}/> Dosar
-                          </button>
+                          <div style={{display:'flex', gap:'5px', justifyContent:'center'}}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{fontSize:'0.7rem', padding:'3px 8px'}}
+                              onClick={() => { navigate(`/immigration?search=${encodeURIComponent(c.candidate_name || '')}`); setAvizeModal({ open: false, company: null, cases: [], loading: false }); }}
+                              title="Deschide dosarul de imigrare"
+                            >
+                              <ChevronRight size={11}/> Dosar
+                            </button>
+                            {c.igi_email_id && (
+                              <a
+                                href={`${API}/immigration/${c.id}/aviz-pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-primary"
+                                style={{fontSize:'0.7rem', padding:'3px 8px', textDecoration:'none'}}
+                                title="Descarcă PDF aviz"
+                              >
+                                📄 PDF
+                              </a>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

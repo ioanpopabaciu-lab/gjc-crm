@@ -1349,6 +1349,80 @@ async def get_immigration_case(case_id: str):
     
     return serialize_doc(case)
 
+@api_router.get("/immigration/{case_id}/aviz-pdf")
+async def get_aviz_pdf(case_id: str):
+    """Descarcă PDF-ul avizului de muncă din Gmail"""
+    case = await db.immigration_cases.find_one({"id": case_id}, {"_id": 0, "igi_email_id": 1, "aviz_number": 1, "candidate_name": 1})
+    if not case:
+        raise HTTPException(status_code=404, detail="Dosarul nu a fost găsit")
+
+    igi_email_id = case.get("igi_email_id")
+    if not igi_email_id:
+        raise HTTPException(status_code=404, detail="Nu există email IGI asociat acestui dosar")
+
+    # Caută emailul în colecția igi_emails
+    from bson import ObjectId
+    try:
+        email_doc = await db.igi_emails.find_one({"_id": ObjectId(igi_email_id)}, {"_id": 0, "gmail_id": 1})
+    except Exception:
+        raise HTTPException(status_code=404, detail="ID email invalid")
+
+    if not email_doc or not email_doc.get("gmail_id"):
+        raise HTTPException(status_code=404, detail="Email negăsit în baza de date")
+
+    gmail_id = email_doc["gmail_id"]
+
+    # Descarcă PDF din Gmail
+    try:
+        TOKEN_FILE = Path(__file__).parent / "gmail_token.json"
+        if not TOKEN_FILE.exists():
+            raise HTTPException(status_code=503, detail="Gmail token lipsă — autentificare necesară")
+
+        SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
+        import base64
+
+        creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        service = build("gmail", "v1", credentials=creds)
+
+        msg = service.users().messages().get(userId="me", id=gmail_id, format="full").execute()
+        parts = msg.get("payload", {}).get("parts", [])
+
+        pdf_bytes = None
+        for part in parts:
+            mime = part.get("mimeType", "")
+            fname = part.get("filename", "")
+            if mime in ("application/pdf", "application/octet-stream") or fname.lower().endswith(".pdf"):
+                att_id = part.get("body", {}).get("attachmentId")
+                if att_id:
+                    att = service.users().messages().attachments().get(
+                        userId="me", messageId=gmail_id, id=att_id
+                    ).execute()
+                    pdf_bytes = base64.urlsafe_b64decode(att["data"])
+                    break
+
+        if not pdf_bytes:
+            raise HTTPException(status_code=404, detail="PDF negăsit în emailul IGI")
+
+        aviz_nr = case.get("aviz_number", "aviz")
+        candidate = case.get("candidate_name", "candidat").replace(" ", "_")
+        filename = f"Aviz_{aviz_nr}_{candidate}.pdf"
+
+        from fastapi.responses import Response
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{filename}"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare la descărcarea PDF-ului: {str(e)}")
+
 @api_router.post("/immigration", response_model=ImmigrationCase)
 async def create_immigration_case(input: ImmigrationCaseCreate):
     # Initialize documents structure
