@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Plus, User, Edit, Trash2, X, Users, Download, Filter } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const CandidatesPage = ({ showNotification }) => {
+  const [searchParams] = useSearchParams();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterNationality, setFilterNationality] = useState("");
-  const [filterCompany, setFilterCompany] = useState("");
+  const [filterCompany, setFilterCompany] = useState(() => searchParams.get("company_id") || "");
+  const [filterCompanyName, setFilterCompanyName] = useState(() => searchParams.get("company_name") || "");
   const [filterStatus, setFilterStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(() => !!searchParams.get("company_id"));
 
   const fetchCandidates = useCallback(async () => {
     try {
@@ -55,7 +58,7 @@ const CandidatesPage = ({ showNotification }) => {
   const hasActiveFilters = filterNationality || filterCompany || filterStatus;
 
   const clearFilters = () => {
-    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus("");
+    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus(""); setFilterCompanyName("");
   };
 
   const exportCSV = () => {
@@ -145,6 +148,12 @@ const CandidatesPage = ({ showNotification }) => {
           )}
         </div>
         <div className="toolbar-right">
+          {filterCompanyName && (
+            <span className="filter-active-label">
+              🏢 {filterCompanyName}
+              <button onClick={clearFilters} style={{background:'none', border:'none', cursor:'pointer', padding:'0 2px', color:'#2563eb'}}>✕</button>
+            </span>
+          )}
           <span className="records-count">{candidates.length} candidați</span>
           <button className="btn btn-secondary" onClick={exportCSV}>
             <Download size={16} /> Export CSV

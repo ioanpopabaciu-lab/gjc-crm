@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText, Award, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText, Award, MapPin, ExternalLink, ChevronRight } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const CompaniesPage = ({ showNotification }) => {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -14,7 +16,9 @@ const CompaniesPage = ({ showNotification }) => {
   const [editingCompany, setEditingCompany] = useState(null);
   const [cuiLookup, setCuiLookup] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [cuiValidation, setCuiValidation] = useState({ status: null, loading: false, message: "" }); // null, 'valid', 'invalid'
+  const [cuiValidation, setCuiValidation] = useState({ status: null, loading: false, message: "" });
+  // Modal avize
+  const [avizeModal, setAvizeModal] = useState({ open: false, company: null, cases: [], loading: false });
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -160,11 +164,11 @@ const CompaniesPage = ({ showNotification }) => {
   };
 
   const exportCSV = () => {
-    const headers = ["Companie", "CUI", "Oraș", "Industrie", "Contact", "Telefon", "Email", "Status", "Candidați", "Dosare Active"];
+    const headers = ["Companie", "CUI", "Județ", "Nr.Reg.Com.", "Contact", "Telefon", "Status", "Candidați", "Plasați", "Avize", "Dosare Active"];
     const rows = companies.map(c => [
-      c.name || "", c.cui || "", c.city || "", c.industry || "",
-      c.contact_person || "", c.phone || "", c.email || "", c.status || "",
-      c.candidates_count || 0, c.active_cases || 0
+      c.name || "", c.cui || "", c.county || c.city || "", c.reg_commerce || "",
+      c.contact_person || "", c.phone || "", c.status || "",
+      c.candidates_count || 0, c.placed_count || 0, c.avize_count || 0, c.active_cases || 0
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -172,6 +176,23 @@ const CompaniesPage = ({ showNotification }) => {
     const a = document.createElement("a"); a.href = url;
     a.download = `companii_${new Date().toISOString().slice(0,10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
+  };
+
+  // Navigare la candidații companiei
+  const goToCandidates = (company) => {
+    navigate(`/candidates?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}`);
+  };
+
+  // Deschide modal avize pentru companie
+  const openAvizeModal = async (company) => {
+    setAvizeModal({ open: true, company, cases: [], loading: true });
+    try {
+      const resp = await axios.get(`${API}/immigration-cases?company_id=${company.id}&limit=200`);
+      const withAviz = (resp.data || []).filter(c => c.aviz_number);
+      setAvizeModal({ open: true, company, cases: withAviz, loading: false });
+    } catch {
+      setAvizeModal(prev => ({ ...prev, loading: false }));
+    }
   };
 
   return (
@@ -222,7 +243,7 @@ const CompaniesPage = ({ showNotification }) => {
         </div>
       ) : (
         <div className="data-table-container">
-          <table className="data-table" data-testid="companies-table">
+          <table className="data-table companies-compact-table" data-testid="companies-table">
             <thead>
               <tr>
                 <th>Companie</th>
@@ -230,10 +251,10 @@ const CompaniesPage = ({ showNotification }) => {
                 <th>Județ</th>
                 <th>Nr. Reg. Com.</th>
                 <th>Contact</th>
-                <th title="Total candidați angajați la această companie">Candidați</th>
+                <th title="Click pentru a vedea candidații companiei" style={{cursor:'pointer'}}>Candidați ↗</th>
                 <th title="Candidați cu status Plasat">Plasați</th>
-                <th title="Avize de muncă emise">Avize</th>
-                <th title="Dosare imigrare active">Dosare Active</th>
+                <th title="Click pentru a vedea avizele companiei" style={{cursor:'pointer'}}>Avize ↗</th>
+                <th title="Dosare imigrare aprobate">Dosare</th>
                 <th>Status</th>
                 <th>Acțiuni</th>
               </tr>
@@ -242,58 +263,72 @@ const CompaniesPage = ({ showNotification }) => {
               {companies.map((company) => (
                 <tr key={company.id}>
                   <td className="company-name-cell">
-                    <Building2 size={16} />
+                    <Building2 size={14} />
                     <div>
-                      <div>{company.name}</div>
-                      {company.industry && <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{company.industry}</small>}
+                      <div style={{fontWeight:600, fontSize:'0.8rem'}}>{company.name}</div>
+                      {company.industry && <small style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>{company.industry}</small>}
                     </div>
                   </td>
-                  <td>{company.cui || "-"}</td>
-                  <td>
+                  <td style={{fontSize:'0.76rem'}}>{company.cui || "-"}</td>
+                  <td style={{fontSize:'0.76rem'}}>
                     {company.county ? (
-                      <span className="county-badge"><MapPin size={11}/> {company.county}</span>
+                      <span className="county-badge" style={{fontSize:'0.72rem'}}><MapPin size={10}/> {company.county}</span>
                     ) : (company.city || "-")}
                   </td>
-                  <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    {company.reg_commerce || company.city || "-"}
+                  <td style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    {company.reg_commerce || "-"}
                   </td>
-                  <td>
+                  <td style={{fontSize:'0.76rem'}}>
                     <div className="contact-info">
                       <span>{company.contact_person || "-"}</span>
-                      {company.phone && <small><Phone size={12} /> {company.phone}</small>}
+                      {company.phone && <small style={{fontSize:'0.68rem'}}><Phone size={10} /> {company.phone}</small>}
                     </div>
                   </td>
                   <td>
                     {company.candidates_count > 0 ? (
-                      <span className="stat-badge blue"><Users size={12}/> {company.candidates_count}</span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                      <span
+                        className="stat-badge blue clickable-badge"
+                        onClick={() => goToCandidates(company)}
+                        title={`Vezi cei ${company.candidates_count} candidați`}
+                        style={{cursor:'pointer'}}
+                      >
+                        <Users size={11}/> {company.candidates_count}
+                      </span>
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
                   </td>
                   <td>
                     {company.placed_count > 0 ? (
-                      <span className="placed-badge">✓ {company.placed_count}</span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                      <span className="placed-badge" style={{fontSize:'0.74rem'}}>✓ {company.placed_count}</span>
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
                   </td>
                   <td>
                     {company.avize_count > 0 ? (
-                      <span className="aviz-count-badge"><Award size={11}/> {company.avize_count}</span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                      <span
+                        className="aviz-count-badge clickable-badge"
+                        onClick={() => openAvizeModal(company)}
+                        title={`Vezi cele ${company.avize_count} avize`}
+                        style={{cursor:'pointer'}}
+                      >
+                        <Award size={10}/> {company.avize_count}
+                      </span>
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
                   </td>
                   <td>
-                    {company.active_cases > 0 ? (
-                      <span className="stat-badge green"><FileText size={12}/> {company.active_cases}</span>
-                    ) : company.approved_cases > 0 ? (
-                      <span className="stat-badge gray">{company.approved_cases} ap.</span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                    {(company.active_cases > 0 || company.approved_cases > 0) ? (
+                      <span className="stat-badge gray" style={{fontSize:'0.74rem'}}>
+                        <FileText size={10}/> {(company.active_cases || 0) + (company.approved_cases || 0)}
+                      </span>
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize:'0.76rem' }}>0</span>}
                   </td>
                   <td>
-                    <span className={`status-badge ${company.status}`}>{company.status}</span>
+                    <span className={`status-badge ${company.status}`} style={{fontSize:'0.7rem', padding:'2px 6px'}}>{company.status}</span>
                   </td>
                   <td className="actions-cell">
                     <button className="icon-btn" onClick={() => { setEditingCompany(company); setShowModal(true); }} data-testid={`edit-company-${company.id}`}>
-                      <Edit size={16} />
+                      <Edit size={14} />
                     </button>
                     <button className="icon-btn danger" onClick={() => handleDelete(company.id)} data-testid={`delete-company-${company.id}`}>
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </td>
                 </tr>
@@ -306,6 +341,85 @@ const CompaniesPage = ({ showNotification }) => {
               <p>Nu există companii. Adăugați prima companie!</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal Avize */}
+      {avizeModal.open && (
+        <div className="modal-overlay" onClick={() => setAvizeModal({ open: false, company: null, cases: [], loading: false })}>
+          <div className="modal modal-wide" onClick={e => e.stopPropagation()} style={{maxWidth:'820px', width:'95vw'}}>
+            <div className="modal-header">
+              <div>
+                <h2 style={{margin:0}}>Avize de Muncă</h2>
+                <div style={{fontSize:'13px', color:'var(--text-muted)', marginTop:'2px'}}>
+                  {avizeModal.company?.name} — {avizeModal.cases.length} avize emise
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setAvizeModal({ open: false, company: null, cases: [], loading: false })}><X size={20} /></button>
+            </div>
+            <div className="modal-body" style={{padding:'0', maxHeight:'65vh', overflowY:'auto'}}>
+              {avizeModal.loading ? (
+                <div style={{padding:'40px', textAlign:'center'}}><LoadingSpinner /></div>
+              ) : avizeModal.cases.length === 0 ? (
+                <div style={{padding:'40px', textAlign:'center', color:'var(--text-muted)'}}>
+                  Nu există avize pentru această companie
+                </div>
+              ) : (
+                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'0.82rem'}}>
+                  <thead>
+                    <tr style={{background:'var(--bg-secondary)', borderBottom:'2px solid var(--border)'}}>
+                      <th style={{padding:'10px 12px', textAlign:'left', fontWeight:600}}>Candidat</th>
+                      <th style={{padding:'10px 12px', textAlign:'left', fontWeight:600}}>Nr. Aviz</th>
+                      <th style={{padding:'10px 12px', textAlign:'left', fontWeight:600}}>Data Aviz</th>
+                      <th style={{padding:'10px 12px', textAlign:'left', fontWeight:600}}>Funcție / COR</th>
+                      <th style={{padding:'10px 12px', textAlign:'left', fontWeight:600}}>Nr. IGI</th>
+                      <th style={{padding:'10px 12px', textAlign:'center', fontWeight:600}}>Dosar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {avizeModal.cases.map((c, idx) => (
+                      <tr key={c.id} style={{borderBottom:'1px solid var(--border)', background: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)'}}>
+                        <td style={{padding:'9px 12px', fontWeight:500}}>{c.candidate_name || "-"}</td>
+                        <td style={{padding:'9px 12px'}}>
+                          <span style={{background:'#f0f4ff', color:'#4f46e5', padding:'2px 8px', borderRadius:'12px', fontWeight:600, fontSize:'0.8rem'}}>
+                            {c.aviz_number}
+                          </span>
+                        </td>
+                        <td style={{padding:'9px 12px', color:'var(--text-muted)'}}>{c.aviz_date || "-"}</td>
+                        <td style={{padding:'9px 12px', fontSize:'0.78rem'}}>
+                          {c.job_function ? (
+                            <span title={c.job_function}>{c.job_function.length > 35 ? c.job_function.substring(0,35)+'…' : c.job_function}</span>
+                          ) : "-"}
+                          {c.cor_code && <span style={{marginLeft:6, color:'#6366f1', fontSize:'0.72rem', fontWeight:600}}>COR {c.cor_code}</span>}
+                        </td>
+                        <td style={{padding:'9px 12px', color:'var(--text-muted)', fontSize:'0.78rem'}}>{c.igi_number || "-"}</td>
+                        <td style={{padding:'9px 12px', textAlign:'center'}}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{fontSize:'0.72rem', padding:'3px 10px'}}
+                            onClick={() => { navigate(`/immigration?search=${encodeURIComponent(c.candidate_name || '')}`); setAvizeModal({ open: false, company: null, cases: [], loading: false }); }}
+                            title="Deschide dosarul de imigrare"
+                          >
+                            <ChevronRight size={12}/> Dosar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="modal-footer" style={{padding:'12px 20px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <span style={{fontSize:'12px', color:'var(--text-muted)'}}>
+                {avizeModal.cases.length} avize • {avizeModal.company?.name}
+              </span>
+              <button className="btn btn-primary" style={{fontSize:'0.8rem'}}
+                onClick={() => { navigate(`/immigration?company_id=${avizeModal.company?.id}`); setAvizeModal({ open: false, company: null, cases: [], loading: false }); }}
+              >
+                <ExternalLink size={13}/> Toate dosarele companiei
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

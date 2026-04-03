@@ -3073,3 +3073,52 @@ body {
   color: var(--text-muted);
   margin-left: 4px;
 }
+/* ===== COMPANIES TABLE COMPACT ===== */
+.companies-compact-table th {
+  padding: 10px 10px;
+  font-size: 0.72rem;
+}
+.companies-compact-table td {
+  padding: 9px 10px;
+  font-size: 0.8rem;
+}
+.companies-compact-table .company-name-cell {
+  gap: 7px;
+}
+
+/* Badge clickabil (candidati, avize) */
+.clickable-badge {
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.clickable-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Modal wide pentru avize */
+.modal-wide {
+  max-width: 820px;
+  width: 95vw;
+}
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Filtru activ indicator */
+.filter-active-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
