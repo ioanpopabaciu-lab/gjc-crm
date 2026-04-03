@@ -117,23 +117,33 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
 # ===================== MODELS =====================
 
 class Company(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     cui: Optional[str] = None
     city: Optional[str] = None
+    county: Optional[str] = None
+    reg_commerce: Optional[str] = None
     industry: Optional[str] = None
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     status: str = "activ"
     notes: Optional[str] = None
+    # Stats (calculate la cerere)
+    candidates_count: Optional[int] = None
+    placed_count: Optional[int] = None
+    avize_count: Optional[int] = None
+    active_cases: Optional[int] = None
+    approved_cases: Optional[int] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
     name: str
     cui: Optional[str] = None
     city: Optional[str] = None
+    county: Optional[str] = None
+    reg_commerce: Optional[str] = None
     industry: Optional[str] = None
     contact_person: Optional[str] = None
     phone: Optional[str] = None
@@ -142,7 +152,7 @@ class CompanyCreate(BaseModel):
     notes: Optional[str] = None
 
 class Candidate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     first_name: str
     last_name: str
@@ -150,6 +160,8 @@ class Candidate(BaseModel):
     passport_number: Optional[str] = None
     passport_expiry: Optional[str] = None
     permit_expiry: Optional[str] = None
+    birth_date: Optional[str] = None
+    birth_country: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     job_type: Optional[str] = None
@@ -166,6 +178,8 @@ class CandidateCreate(BaseModel):
     passport_number: Optional[str] = None
     passport_expiry: Optional[str] = None
     permit_expiry: Optional[str] = None
+    birth_date: Optional[str] = None
+    birth_country: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     job_type: Optional[str] = None
