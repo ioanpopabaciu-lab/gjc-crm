@@ -4,7 +4,7 @@ import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
   Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
   Search, X, Settings, Globe, CreditCard, Receipt, Target,
-  CheckSquare, UserCheck
+  CheckSquare, UserCheck, FileEdit
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
@@ -25,6 +25,7 @@ const modules = [
   { id: "payments", path: "/payments", name: "Plăți", icon: CreditCard },
   { id: "documents", path: "/documents", name: "Documente", icon: FileText },
   { id: "reports", path: "/reports", name: "Rapoarte AI", icon: BarChart3 },
+  { id: "templates", path: "/templates", name: "Template-uri Doc.", icon: FileEdit },
   { id: "alerts", path: "/alerts", name: "Centru Alerte", icon: Bell },
   { id: "settings", path: "/settings", name: "Operatori & WA", icon: Settings },
 ];

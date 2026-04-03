@@ -93,6 +93,25 @@ const CandidatesPage = ({ showNotification }) => {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  const exportXLS = () => {
+    const headers = ["Prenume", "Nume", "Naționalitate", "Nr. Pașaport", "Exp. Pașaport", "Data Nașterii", "Tip Job", "Companie", "Status", "Email", "Telefon"];
+    const rows = candidates.map(c => [
+      c.first_name || "", c.last_name || "", c.nationality || "",
+      c.passport_number || "", c.passport_expiry || "", c.birth_date || "",
+      c.job_type || "", c.company_name || "", c.status || "",
+      c.email || "", c.phone || ""
+    ]);
+    const esc = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let html = `<table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r => { html += `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`; });
+    html += '</tbody></table>';
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `candidati_${new Date().toISOString().slice(0,10)}.xls`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   const handleSave = async () => {
     try {
       if (editingCandidate?.id) {
@@ -173,6 +192,9 @@ const CandidatesPage = ({ showNotification }) => {
           <span className="records-count">{candidates.length} candidați</span>
           <button className="btn btn-secondary" onClick={exportCSV}>
             <Download size={16} /> Export CSV
+          </button>
+          <button className="btn btn-secondary" onClick={exportXLS} style={{ background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}>
+            <Download size={16} /> Export XLS
           </button>
           <button
             className="btn btn-primary"

@@ -15,6 +15,10 @@ import httpx
 import shutil
 from passlib.context import CryptContext
 import jwt
+import smtplib
+import asyncio
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pdf_generator import generate_angajament_plata, generate_contract_mediere, generate_oferta_angajare
 
 ROOT_DIR = Path(__file__).parent
@@ -2703,6 +2707,80 @@ async def update_lead(lead_id: str, lead: LeadCreate):
 async def delete_lead(lead_id: str):
     await db.leads.delete_one({"id": lead_id})
     return {"message": "deleted"}
+
+# ===================== EMAIL =====================
+
+class EmailRequest(BaseModel):
+    to: str
+    cc: Optional[str] = None
+    subject: str
+    body: str
+    case_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+
+@api_router.post("/send-email")
+async def send_email(email_req: EmailRequest):
+    """Trimite email via SMTP configurat în .env"""
+    smtp_host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+    smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+    smtp_user = os.environ.get('SMTP_USER', '')
+    smtp_pass = os.environ.get('SMTP_PASS', '')
+
+    if not smtp_user or not smtp_pass:
+        raise HTTPException(status_code=503, detail="Email neconfigurat. Adaugă SMTP_USER și SMTP_PASS în .env")
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = email_req.subject
+        msg["From"] = smtp_user
+        msg["To"] = email_req.to
+        if email_req.cc:
+            msg["Cc"] = email_req.cc
+
+        html_body = email_req.body.replace("\n", "<br>")
+        msg.attach(MIMEText(email_req.body, "plain", "utf-8"))
+        msg.attach(MIMEText(f"<html><body style='font-family:Arial,sans-serif;'>{html_body}</body></html>", "html", "utf-8"))
+
+        def _send():
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                recipients = [email_req.to]
+                if email_req.cc:
+                    recipients.append(email_req.cc)
+                server.sendmail(smtp_user, recipients, msg.as_string())
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _send)
+
+        # Log in case history if case_id provided
+        if email_req.case_id:
+            history_entry = {
+                "date": datetime.now(timezone.utc).isoformat(),
+                "action": f"Email trimis către {email_req.to}: {email_req.subject}",
+                "user": "sistem"
+            }
+            await db.immigration_cases.update_one(
+                {"id": email_req.case_id},
+                {"$push": {"history": history_entry}}
+            )
+
+        return {"success": True, "message": f"Email trimis către {email_req.to}"}
+    except smtplib.SMTPAuthenticationError:
+        raise HTTPException(status_code=401, detail="Autentificare SMTP eșuată. Verifică credențialele.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare la trimitere email: {str(e)}")
+
+@api_router.get("/email/config")
+async def get_email_config():
+    """Verifică dacă email-ul e configurat"""
+    smtp_user = os.environ.get('SMTP_USER', '')
+    return {
+        "configured": bool(smtp_user),
+        "smtp_user": smtp_user if smtp_user else None,
+        "smtp_host": os.environ.get('SMTP_HOST', 'smtp.gmail.com'),
+    }
 
 # ===================== INTERVIEWS =====================
 

@@ -27,6 +27,10 @@ const ImmigrationPage = ({ showNotification }) => {
   const [filterDateTo, setFilterDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [operators, setOperators] = useState([]);
+  // Email modal
+  const [emailModal, setEmailModal] = useState({ open: false, caseData: null });
+  const [emailForm, setEmailForm] = useState({ to: "", cc: "", subject: "", body: "" });
+  const [emailSending, setEmailSending] = useState(false);
 
   const fetchCases = useCallback(async () => {
     try {
@@ -79,6 +83,26 @@ const ImmigrationPage = ({ showNotification }) => {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  const exportXLS = () => {
+    const headers = ["Candidat", "Companie", "Tip", "Etapa", "Status", "Nr IGI", "Nr Aviz", "Data Aviz", "Programare", "Data Depunere"];
+    const rows = cases.map(c => [
+      c.candidate_name || "", c.company_name || "", c.case_type || "",
+      c.current_stage_name || "", c.status || "", c.igi_number || "",
+      c.aviz_number || "", c.aviz_date || "",
+      c.appointment_date ? `${c.appointment_date} ${c.appointment_time || ""}` : "",
+      c.submitted_date || ""
+    ]);
+    const esc = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let html = `<table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r => { html += `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`; });
+    html += '</tbody></table>';
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `dosare_imigrare_${new Date().toISOString().slice(0,10)}.xls`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   const clearFilters = () => {
     setSearch(""); setFilterStage(""); setFilterCompany("");
     setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo("");
@@ -96,6 +120,36 @@ const ImmigrationPage = ({ showNotification }) => {
       setActiveTab("documents");
     } catch (error) {
       showNotification("Eroare la încărcarea detaliilor", "error");
+    }
+  };
+
+  const openEmailModal = (caseData) => {
+    const candidateName = caseData.candidate_name || "";
+    const companyName = caseData.company_name || "";
+    setEmailForm({
+      to: "",
+      cc: "",
+      subject: `Dosar imigrare — ${candidateName}${companyName ? " / " + companyName : ""}`,
+      body: `Bună ziua,\n\nVă contactăm în legătură cu dosarul de imigrare al candidatului ${candidateName}${companyName ? " pentru compania " + companyName : ""}.\n\nEtapa curentă: ${caseData.current_stage_name || ""}\n\n\n\nCu stimă,\nGlobal Jobs Consulting`,
+    });
+    setEmailModal({ open: true, caseData });
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailForm.to || !emailForm.subject) return showNotification("Completează destinatarul și subiectul", "error");
+    setEmailSending(true);
+    try {
+      await axios.post(`${API}/send-email`, {
+        ...emailForm,
+        case_id: emailModal.caseData?.id,
+        candidate_name: emailModal.caseData?.candidate_name,
+      });
+      showNotification("Email trimis cu succes!");
+      setEmailModal({ open: false, caseData: null });
+    } catch (err) {
+      showNotification(err.response?.data?.detail || "Eroare la trimitere email", "error");
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -278,6 +332,9 @@ const ImmigrationPage = ({ showNotification }) => {
             <span className="records-count">{cases.length} dosare</span>
             <button className="btn btn-secondary" onClick={exportCSV} title="Exportă CSV">
               <Download size={16} /> Export CSV
+            </button>
+            <button className="btn btn-secondary" onClick={exportXLS} style={{ background: '#16a34a', color: '#fff', borderColor: '#16a34a' }} title="Exportă XLS">
+              <Download size={16} /> Export XLS
             </button>
             <button className="btn btn-primary" onClick={() => setShowModal(true)} data-testid="add-case-btn">
               <Plus size={16} /> Dosar Nou
@@ -579,7 +636,7 @@ const ImmigrationPage = ({ showNotification }) => {
                 </a>
               </div>
             </div>
-            <button className="btn btn-outline"><Mail size={16} /> Trimite Email</button>
+            <button className="btn btn-outline" onClick={() => openEmailModal(caseData)}><Mail size={16} /> Trimite Email</button>
             {caseData.current_stage < stages.length && (
               <button className="btn btn-primary" onClick={() => advanceCase(caseData.id)}>
                 <ChevronRight size={16} /> Avansează Etapa
@@ -872,6 +929,48 @@ const ImmigrationPage = ({ showNotification }) => {
                   <p>Nu există istoric pentru acest dosar.</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+
+      {/* ====== EMAIL MODAL ====== */}
+      {emailModal.open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
+          <div style={{ background: "#fff", borderRadius: "14px", padding: "28px", width: "100%", maxWidth: "560px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Mail size={20} color="#3b82f6" /> Trimite Email
+              </h2>
+              <button onClick={() => setEmailModal({ open: false, caseData: null })} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Destinatar (To) *</label>
+                <input type="email" value={emailForm.to} onChange={e => setEmailForm(f => ({ ...f, to: e.target.value }))} placeholder="email@exemplu.com" style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>CC</label>
+                <input type="email" value={emailForm.cc} onChange={e => setEmailForm(f => ({ ...f, cc: e.target.value }))} placeholder="cc@exemplu.com (opțional)" style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Subiect *</label>
+                <input type="text" value={emailForm.subject} onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Mesaj</label>
+                <textarea value={emailForm.body} onChange={e => setEmailForm(f => ({ ...f, body: e.target.value }))} rows={8} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", fontSize: "0.875rem" }} />
+              </div>
+              <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "8px", padding: "10px 14px", fontSize: "0.8rem", color: "#92400e" }}>
+                ⚠️ Necesită configurare SMTP în backend (.env): SMTP_USER, SMTP_PASS, SMTP_HOST
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
+              <button onClick={() => setEmailModal({ open: false, caseData: null })} style={{ padding: "8px 20px", border: "1px solid #e5e7eb", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>Anulează</button>
+              <button onClick={handleSendEmail} disabled={emailSending} style={{ padding: "8px 20px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600", opacity: emailSending ? 0.7 : 1 }}>
+                {emailSending ? "Se trimite..." : "Trimite Email"}
+              </button>
             </div>
           </div>
         </div>
