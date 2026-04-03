@@ -320,6 +320,99 @@ class PartnerCreate(BaseModel):
     status: str = "activ"
     notes: Optional[str] = None
 
+class Contract(BaseModel):
+    """Contract de mediere sau prestări servicii"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str = "contract_mediere"  # contract_mediere | contract_prestari
+    candidate_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    value: Optional[float] = None
+    currency: str = "EUR"
+    date_signed: Optional[str] = None
+    validity_months: Optional[int] = None
+    status: str = "activ"  # activ, expirat, reziliat
+    pdf_file: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ContractCreate(BaseModel):
+    type: str = "contract_mediere"
+    candidate_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+    value: Optional[float] = None
+    currency: str = "EUR"
+    date_signed: Optional[str] = None
+    validity_months: Optional[int] = None
+    status: str = "activ"
+    notes: Optional[str] = None
+
+class Payment(BaseModel):
+    """Plată primită de la candidat sau firmă"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str = "candidat"  # candidat | firma
+    entity_id: Optional[str] = None
+    entity_name: Optional[str] = None
+    amount: float = 0
+    currency: str = "EUR"
+    date_received: Optional[str] = None
+    invoice_number: Optional[str] = None
+    status: str = "platit"  # platit, partial, neplatit
+    method: Optional[str] = None  # transfer, cash, card
+    contract_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class PaymentCreate(BaseModel):
+    type: str = "candidat"
+    entity_id: Optional[str] = None
+    entity_name: Optional[str] = None
+    amount: float = 0
+    currency: str = "EUR"
+    date_received: Optional[str] = None
+    invoice_number: Optional[str] = None
+    status: str = "platit"
+    method: Optional[str] = None
+    contract_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class Lead(BaseModel):
+    """Lead B2B — companie prospect pentru servicii GJC"""
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_name: str
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    city: Optional[str] = None
+    source: Optional[str] = None  # referral, website, linkedin, telefon, etc.
+    responsible: Optional[str] = None
+    industry: Optional[str] = None
+    positions_needed: Optional[int] = None
+    estimated_value: Optional[float] = None
+    stage: str = "prospect"  # prospect, contactat, intalnire, oferta, negociere, castigat, pierdut
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LeadCreate(BaseModel):
+    company_name: str
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    city: Optional[str] = None
+    source: Optional[str] = None
+    responsible: Optional[str] = None
+    industry: Optional[str] = None
+    positions_needed: Optional[int] = None
+    estimated_value: Optional[float] = None
+    stage: str = "prospect"
+    notes: Optional[str] = None
+
 class Alert(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -2378,6 +2471,119 @@ async def update_partner(partner_id: str, partner: PartnerCreate):
 @api_router.delete("/partners/{partner_id}")
 async def delete_partner(partner_id: str):
     await db.partners.delete_one({"id": partner_id})
+    return {"message": "deleted"}
+
+# ===================== CONTRACTS =====================
+
+@api_router.get("/contracts")
+async def get_contracts(type: Optional[str] = None, status: Optional[str] = None):
+    query = {}
+    if type:
+        query["type"] = type
+    if status:
+        query["status"] = status
+    contracts = await db.contracts.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [serialize_doc(c) for c in contracts]
+
+@api_router.get("/contracts/{contract_id}")
+async def get_contract(contract_id: str):
+    contract = await db.contracts.find_one({"id": contract_id}, {"_id": 0})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract negăsit")
+    return serialize_doc(contract)
+
+@api_router.post("/contracts")
+async def create_contract(contract: ContractCreate):
+    doc = Contract(**contract.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.contracts.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/contracts/{contract_id}")
+async def update_contract(contract_id: str, contract: ContractCreate):
+    update_data = contract.model_dump(exclude_unset=True)
+    await db.contracts.update_one({"id": contract_id}, {"$set": update_data})
+    updated = await db.contracts.find_one({"id": contract_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/contracts/{contract_id}")
+async def delete_contract(contract_id: str):
+    await db.contracts.delete_one({"id": contract_id})
+    return {"message": "deleted"}
+
+# ===================== PAYMENTS =====================
+
+@api_router.get("/payments")
+async def get_payments(type: Optional[str] = None, status: Optional[str] = None):
+    query = {}
+    if type:
+        query["type"] = type
+    if status:
+        query["status"] = status
+    payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [serialize_doc(p) for p in payments]
+
+@api_router.get("/payments/stats")
+async def get_payment_stats():
+    pipeline = [
+        {"$group": {"_id": "$status", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}
+    ]
+    result = await db.payments.aggregate(pipeline).to_list(100)
+    stats = {"platit": 0, "partial": 0, "neplatit": 0, "total": 0, "count": 0}
+    for r in result:
+        key = r["_id"]
+        if key in stats:
+            stats[key] = r["total"]
+        stats["total"] += r["total"]
+        stats["count"] += r["count"]
+    return stats
+
+@api_router.post("/payments")
+async def create_payment(payment: PaymentCreate):
+    doc = Payment(**payment.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.payments.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/payments/{payment_id}")
+async def update_payment(payment_id: str, payment: PaymentCreate):
+    update_data = payment.model_dump(exclude_unset=True)
+    await db.payments.update_one({"id": payment_id}, {"$set": update_data})
+    updated = await db.payments.find_one({"id": payment_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/payments/{payment_id}")
+async def delete_payment(payment_id: str):
+    await db.payments.delete_one({"id": payment_id})
+    return {"message": "deleted"}
+
+# ===================== LEADS B2B =====================
+
+@api_router.get("/leads")
+async def get_leads(stage: Optional[str] = None):
+    query = {}
+    if stage:
+        query["stage"] = stage
+    leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [serialize_doc(l) for l in leads]
+
+@api_router.post("/leads")
+async def create_lead(lead: LeadCreate):
+    doc = Lead(**lead.model_dump()).model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.leads.insert_one(doc)
+    return serialize_doc(doc)
+
+@api_router.put("/leads/{lead_id}")
+async def update_lead(lead_id: str, lead: LeadCreate):
+    update_data = lead.model_dump(exclude_unset=True)
+    await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+    updated = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str):
+    await db.leads.delete_one({"id": lead_id})
     return {"message": "deleted"}
 
 # ===================== SEED DATA =====================

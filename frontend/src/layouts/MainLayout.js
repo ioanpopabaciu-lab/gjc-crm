@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
   Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
-  Search, X, Settings, Globe
+  Search, X, Settings, Globe, CreditCard, Receipt, Target
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
@@ -15,7 +15,10 @@ const modules = [
   { id: "candidates", path: "/candidates", name: "Candidați B2C", icon: Users },
   { id: "immigration", path: "/immigration", name: "Dosare Imigrare", icon: FileText },
   { id: "partners", path: "/partners", name: "Parteneri", icon: Globe },
+  { id: "leads", path: "/leads", name: "Leads B2B", icon: Target },
   { id: "pipeline", path: "/pipeline", name: "Pipeline Vânzări", icon: TrendingUp },
+  { id: "contracts", path: "/contracts", name: "Contracte", icon: Receipt },
+  { id: "payments", path: "/payments", name: "Plăți", icon: CreditCard },
   { id: "documents", path: "/documents", name: "Documente", icon: FileText },
   { id: "reports", path: "/reports", name: "Rapoarte AI", icon: BarChart3 },
   { id: "alerts", path: "/alerts", name: "Centru Alerte", icon: Bell },
