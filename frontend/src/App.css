@@ -669,6 +669,9 @@ body {
   text-align: left;
   padding: 16px 20px;
   background: var(--bg-table-header);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -684,6 +687,9 @@ body {
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
   white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table tr:hover td {

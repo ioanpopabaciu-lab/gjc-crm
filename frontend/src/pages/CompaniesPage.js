@@ -291,8 +291,12 @@ const CompaniesPage = ({ showNotification }) => {
                       <span className="county-badge"><MapPin size={12}/> {company.county}</span>
                     ) : (company.city || "-")}
                   </td>
-                  <td style={{ color: 'var(--text-muted)' }}>
-                    {company.reg_commerce || "-"}
+                  <td style={{ color: 'var(--text-muted)' }} title={company.reg_commerce || ""}>
+                    {company.reg_commerce
+                      ? company.reg_commerce.length > 22
+                        ? company.reg_commerce.substring(0, 22) + "…"
+                        : company.reg_commerce
+                      : "-"}
                   </td>
                   <td>
                     <div className="contact-info">
