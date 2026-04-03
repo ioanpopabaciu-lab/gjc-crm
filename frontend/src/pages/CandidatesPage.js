@@ -225,7 +225,12 @@ const CandidatesPage = ({ showNotification }) => {
                       <span className="nationality-badge">{candidate.nationality || "-"}</span>
                     </td>
                     <td>{candidate.passport_number || "-"}</td>
-                    <td>{candidate.birth_date || "-"}</td>
+                    <td>
+                      {candidate.birth_date || "-"}
+                      {candidate.birth_country && (
+                        <span className="birth-country-badge">({candidate.birth_country})</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`expiry-badge ${getExpiryClass(passportDays)}`}>
                         {candidate.passport_expiry || "-"}

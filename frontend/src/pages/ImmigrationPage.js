@@ -363,6 +363,11 @@ const ImmigrationPage = ({ showNotification }) => {
                     {caseItem.igi_number && (
                       <span className="igi-badge"><FileText size={12}/> IGI: {caseItem.igi_number}</span>
                     )}
+                    {caseItem.job_function && (
+                      <span className="cor-badge">
+                        {caseItem.cor_code ? `COR ${caseItem.cor_code}: ` : ""}{caseItem.job_function}
+                      </span>
+                    )}
                     {caseItem.appointment_date && (
                       <span className="igi-badge appointment"><Clock size={12}/> Prog: {caseItem.appointment_date} {caseItem.appointment_time || ""}</span>
                     )}

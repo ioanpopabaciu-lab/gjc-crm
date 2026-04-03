@@ -2959,3 +2959,117 @@ body {
 }
 .search-result-item:hover { background: var(--surface-hover, #f3f4f6); }
 .search-result-item small { color: var(--text-muted); margin-left: auto; font-size: 0.75rem; }
+
+/* =============================================
+   KPI SUMMARY BAR & REPORTS ENHANCEMENTS
+   ============================================= */
+
+.kpi-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f8f7ff 0%, #f0fdf4 100%);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.kpi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  background: white;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  color: var(--text-primary);
+}
+.kpi-pill strong { font-size: 0.95rem; color: var(--primary); }
+.kpi-pill.plasat strong { color: var(--success, #16a34a); }
+.kpi-pill.aprobat strong { color: var(--success, #16a34a); }
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  gap: 6px;
+}
+.kpi-card .kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.kpi-card .kpi-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+
+/* CompaniesPage — coloane avize/plasati */
+.aviz-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
+}
+.placed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+
+/* ImmigrationPage — badge COR */
+.cor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+/* Tabel companii — județ */
+.county-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* CandidatesPage — țara naștere */
+.birth-country-badge {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}

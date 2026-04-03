@@ -751,8 +751,10 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
         for comp in result:
             cid = comp.get("id")
             comp["candidates_count"] = await db.candidates.count_documents({"company_id": cid})
-            comp["active_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "status": {"$ne": "finalizat"}})
-            comp["approved_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "current_stage_name": "Permis Munca Aprobat"})
+            comp["active_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "status": "activ"})
+            comp["approved_cases"] = await db.immigration_cases.count_documents({"company_id": cid, "status": "aprobat"})
+            comp["avize_count"] = await db.immigration_cases.count_documents({"company_id": cid, "aviz_number": {"$nin": [None, ""]}})
+            comp["placed_count"] = await db.candidates.count_documents({"company_id": cid, "status": "plasat"})
     return result
 
 @api_router.get("/companies/{company_id}", response_model=Company)
@@ -1084,6 +1086,138 @@ async def get_immigration_stats(date_from: Optional[str] = None, date_to: Option
         "top_companies": [{"name": c["_id"] or "Necunoscut", "cases": c["count"]} for c in by_company],
         "by_month": [{"month": m["_id"], "count": m["count"]} for m in by_month],
         "rata_aprobare": round((approved_cases / total * 100) if total else 0, 1),
+    }
+
+@api_router.get("/stats/cor")
+async def get_cor_stats():
+    """Statistici pe cod COR / funcție — câți candidați per funcție"""
+    pipeline = [
+        {"$match": {"cor_code": {"$nin": [None, ""]}}},
+        {"$group": {
+            "_id": {
+                "cor_code": "$cor_code",
+                "job_function": "$current_stage_name"
+            },
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}}
+    ]
+    # Preferăm câmpul job_function din immigration_cases
+    cor_agg = await db.immigration_cases.aggregate([
+        {"$match": {"cor_code": {"$nin": [None, ""]}}},
+        {"$group": {
+            "_id": {
+                "cor_code": "$cor_code",
+                "job_function": "$job_function"
+            },
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 50}
+    ]).to_list(50)
+    result = [
+        {
+            "cor_code": item["_id"]["cor_code"],
+            "job_function": item["_id"]["job_function"] or "Necunoscut",
+            "count": item["count"]
+        }
+        for item in cor_agg
+    ]
+    total_cu_cor = await db.immigration_cases.count_documents({"cor_code": {"$nin": [None, ""]}})
+    return {"by_cor": result, "total_with_cor": total_cu_cor}
+
+@api_router.get("/stats/avize")
+async def get_avize_stats():
+    """Statistici avize de muncă — total, pe companie, pe județ, pe funcție"""
+    # Total avize emise (dosare cu aviz_number)
+    total_avize = await db.immigration_cases.count_documents({"aviz_number": {"$nin": [None, ""]}})
+
+    # Pe județ (county din companies)
+    county_pipeline = [
+        {"$match": {"county": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$county", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]
+    by_county = await db.companies.aggregate(county_pipeline).to_list(20)
+
+    # Top companii după număr avize
+    company_pipeline = [
+        {"$match": {"aviz_number": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$company_name", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]
+    by_company = await db.immigration_cases.aggregate(company_pipeline).to_list(15)
+
+    # Pe funcție COR
+    cor_pipeline = [
+        {"$match": {"job_function": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$job_function", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]
+    by_function = await db.immigration_cases.aggregate(cor_pipeline).to_list(15)
+
+    # Pe țară naștere (candidați)
+    country_pipeline = [
+        {"$match": {"birth_country": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$birth_country", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    by_country = await db.candidates.aggregate(country_pipeline).to_list(10)
+
+    # Avize pe lună
+    month_pipeline = [
+        {"$match": {"aviz_date": {"$nin": [None, ""]}}},
+        {"$group": {"_id": {"$substr": ["$aviz_date", 0, 7]}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+        {"$limit": 24}
+    ]
+    by_month = await db.immigration_cases.aggregate(month_pipeline).to_list(24)
+
+    return {
+        "total_avize": total_avize,
+        "by_county": [{"county": x["_id"], "count": x["count"]} for x in by_county],
+        "by_company": [{"company": x["_id"] or "Necunoscut", "count": x["count"]} for x in by_company],
+        "by_function": [{"function": x["_id"], "count": x["count"]} for x in by_function],
+        "by_birth_country": [{"country": x["_id"], "count": x["count"]} for x in by_country],
+        "by_month": [{"month": x["_id"], "count": x["count"]} for x in by_month]
+    }
+
+@api_router.get("/stats/candidates")
+async def get_candidates_stats():
+    """Statistici candidați — total per status, naționalitate, companie, funcție"""
+    total = await db.candidates.count_documents({})
+    by_status = await db.candidates.aggregate([
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]).to_list(20)
+    by_nationality = await db.candidates.aggregate([
+        {"$match": {"nationality": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$nationality", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]).to_list(15)
+    by_birth_country = await db.candidates.aggregate([
+        {"$match": {"birth_country": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$birth_country", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]).to_list(15)
+    by_job = await db.candidates.aggregate([
+        {"$match": {"job_type": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$job_type", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]).to_list(15)
+    return {
+        "total": total,
+        "by_status": [{"status": x["_id"] or "nespecificat", "count": x["count"]} for x in by_status],
+        "by_nationality": [{"nationality": x["_id"], "count": x["count"]} for x in by_nationality],
+        "by_birth_country": [{"country": x["_id"], "count": x["count"]} for x in by_birth_country],
+        "by_job": [{"job": x["_id"], "count": x["count"]} for x in by_job]
     }
 
 @api_router.get("/immigration/stages")

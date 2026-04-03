@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText } from 'lucide-react';
+import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText, Award, MapPin } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -195,11 +195,13 @@ const CompaniesPage = ({ showNotification }) => {
               <tr>
                 <th>Companie</th>
                 <th>CUI</th>
-                <th>Oraș</th>
-                <th>Industrie</th>
+                <th>Județ</th>
+                <th>Nr. Reg. Com.</th>
                 <th>Contact</th>
-                <th>Candidați</th>
-                <th>Dosare Active</th>
+                <th title="Total candidați angajați la această companie">Candidați</th>
+                <th title="Candidați cu status Plasat">Plasați</th>
+                <th title="Avize de muncă emise">Avize</th>
+                <th title="Dosare imigrare active">Dosare Active</th>
                 <th>Status</th>
                 <th>Acțiuni</th>
               </tr>
@@ -209,11 +211,20 @@ const CompaniesPage = ({ showNotification }) => {
                 <tr key={company.id}>
                   <td className="company-name-cell">
                     <Building2 size={16} />
-                    {company.name}
+                    <div>
+                      <div>{company.name}</div>
+                      {company.industry && <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{company.industry}</small>}
+                    </div>
                   </td>
                   <td>{company.cui || "-"}</td>
-                  <td>{company.city || "-"}</td>
-                  <td>{company.industry || "-"}</td>
+                  <td>
+                    {company.county ? (
+                      <span className="county-badge"><MapPin size={11}/> {company.county}</span>
+                    ) : (company.city || "-")}
+                  </td>
+                  <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {company.reg_commerce || company.city || "-"}
+                  </td>
                   <td>
                     <div className="contact-info">
                       <span>{company.contact_person || "-"}</span>
@@ -223,14 +234,24 @@ const CompaniesPage = ({ showNotification }) => {
                   <td>
                     {company.candidates_count > 0 ? (
                       <span className="stat-badge blue"><Users size={12}/> {company.candidates_count}</span>
-                    ) : "-"}
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                  </td>
+                  <td>
+                    {company.placed_count > 0 ? (
+                      <span className="placed-badge">✓ {company.placed_count}</span>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                  </td>
+                  <td>
+                    {company.avize_count > 0 ? (
+                      <span className="aviz-count-badge"><Award size={11}/> {company.avize_count}</span>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
                     {company.active_cases > 0 ? (
                       <span className="stat-badge green"><FileText size={12}/> {company.active_cases}</span>
                     ) : company.approved_cases > 0 ? (
-                      <span className="stat-badge gray"><FileText size={12}/> {company.approved_cases} aprobate</span>
-                    ) : "-"}
+                      <span className="stat-badge gray">{company.approved_cases} ap.</span>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
                     <span className={`status-badge ${company.status}`}>{company.status}</span>
