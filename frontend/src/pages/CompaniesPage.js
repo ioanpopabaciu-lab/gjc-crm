@@ -21,6 +21,8 @@ const CompaniesPage = ({ showNotification }) => {
   const [cuiValidation, setCuiValidation] = useState({ status: null, loading: false, message: "" });
   // Modal avize
   const [avizeModal, setAvizeModal] = useState({ open: false, company: null, cases: [], loading: false });
+  // Modal programări
+  const [progModal, setProgModal] = useState({ open: false, company: null, candidates: [], loading: false });
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -185,6 +187,17 @@ const CompaniesPage = ({ showNotification }) => {
     navigate(`/candidates?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}`);
   };
 
+  // Deschide modal programări pentru companie
+  const openProgModal = async (company) => {
+    setProgModal({ open: true, company, candidates: [], loading: true });
+    try {
+      const resp = await axios.get(`${API}/companies/${company.id}/programari`);
+      setProgModal({ open: true, company, candidates: resp.data || [], loading: false });
+    } catch {
+      setProgModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // Deschide modal avize pentru companie
   const openAvizeModal = async (company) => {
     setAvizeModal({ open: true, company, cases: [], loading: true });
@@ -265,6 +278,7 @@ const CompaniesPage = ({ showNotification }) => {
                 <th>Contact</th>
                 <th title="Click pentru a vedea candidații companiei" style={{cursor:'pointer'}}>Candidați ↗</th>
                 <th title="Candidați cu status Plasat">Plasați</th>
+                <th title="Programări IGI viitoare — click pentru detalii" style={{cursor:'pointer', color:'#7c3aed'}}>Programări ↗</th>
                 <th title="Click pentru a vedea avizele companiei" style={{cursor:'pointer'}}>Avize ↗</th>
                 <th title="Dosare imigrare aprobate">Dosare</th>
                 <th>Status</th>
@@ -322,6 +336,17 @@ const CompaniesPage = ({ showNotification }) => {
                     ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
                   </td>
                   <td>
+                    {company.programari_count > 0 ? (
+                      <span
+                        style={{ background:'#ede9fe', color:'#7c3aed', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4 }}
+                        onClick={() => openProgModal(company)}
+                        title={`${company.programari_count} programări IGI viitoare`}
+                      >
+                        📅 {company.programari_count}
+                      </span>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                  </td>
+                  <td>
                     {company.avize_count > 0 ? (
                       <span
                         className="aviz-count-badge clickable-badge"
@@ -361,6 +386,59 @@ const CompaniesPage = ({ showNotification }) => {
               <p>Nu există companii. Adăugați prima companie!</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal Programări */}
+      {progModal.open && (
+        <div className="modal-overlay" onClick={() => setProgModal({ open: false, company: null, candidates: [], loading: false })}>
+          <div className="modal modal-wide" onClick={e => e.stopPropagation()} style={{maxWidth:'860px', width:'95vw'}}>
+            <div className="modal-header">
+              <div>
+                <h2 style={{margin:0}}>📅 Programări IGI Viitoare</h2>
+                <div style={{fontSize:'13px', color:'var(--text-muted)', marginTop:'2px'}}>
+                  {progModal.company?.name} — {progModal.candidates.length} programări
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setProgModal({ open: false, company: null, candidates: [], loading: false })}><X size={20}/></button>
+            </div>
+            <div className="modal-body" style={{padding:0, maxHeight:'65vh', overflowY:'auto'}}>
+              {progModal.loading ? (
+                <div style={{padding:'40px', textAlign:'center'}}><LoadingSpinner /></div>
+              ) : progModal.candidates.length === 0 ? (
+                <div style={{padding:'40px', textAlign:'center', color:'var(--text-muted)'}}>Nu există programări viitoare</div>
+              ) : (
+                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'0.85rem'}}>
+                  <thead style={{background:'var(--bg-secondary)'}}>
+                    <tr>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Candidat</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Naționalitate</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Data Programare</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Ora</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Locație</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {progModal.candidates.map((c, idx) => (
+                      <tr key={c.id} style={{borderBottom:'1px solid var(--border-color)', background: idx%2===0?'transparent':'var(--bg-secondary)'}}>
+                        <td style={{padding:'9px 14px', fontWeight:500}}>{c.first_name} {c.last_name}</td>
+                        <td style={{padding:'9px 14px', color:'var(--text-muted)'}}>{c.nationality || 'Nepal'}</td>
+                        <td style={{padding:'9px 14px'}}><strong style={{color:'#7c3aed'}}>{c.appointment_date || '—'}</strong></td>
+                        <td style={{padding:'9px 14px'}}>{c.appointment_time || '—'}</td>
+                        <td style={{padding:'9px 14px'}}>{c.appointment_location || '—'}</td>
+                        <td style={{padding:'9px 14px'}}><span className={`status-badge ${c.status}`}>{c.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="modal-footer" style={{padding:'12px 20px', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <span style={{fontSize:'12px', color:'var(--text-muted)'}}>{progModal.candidates.length} programări • {progModal.company?.name}</span>
+              <button className="btn btn-secondary" onClick={() => setProgModal({ open: false, company: null, candidates: [], loading: false })}>Închide</button>
+            </div>
+          </div>
         </div>
       )}
 

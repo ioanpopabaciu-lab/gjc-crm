@@ -656,6 +656,8 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
   overflow-x: scroll;
+  overflow-y: auto;
+  max-height: calc(100vh - 260px);
   box-shadow: var(--shadow-sm);
 }
 

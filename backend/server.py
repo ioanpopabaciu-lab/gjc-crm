@@ -142,6 +142,7 @@ class Company(BaseModel):
     avize_count: Optional[int] = None
     active_cases: Optional[int] = None
     approved_cases: Optional[int] = None
+    programari_count: Optional[int] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -1050,6 +1051,14 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
         ]).to_list(None)
         case_map = {r["_id"]: r for r in case_stats}
 
+        # Aggregation programari viitoare (appointment_date >= azi)
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        prog_stats = await db.candidates.aggregate([
+            {"$match": {"company_id": {"$nin": [None, ""]}, "appointment_date": {"$gte": today_str}}},
+            {"$group": {"_id": "$company_id", "total": {"$sum": 1}}}
+        ]).to_list(None)
+        prog_map = {r["_id"]: r["total"] for r in prog_stats}
+
         for comp in result:
             cid = comp.get("id")
             c = cand_map.get(cid, {})
@@ -1059,7 +1068,18 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
             comp["active_cases"] = ic.get("active", 0)
             comp["approved_cases"] = ic.get("approved", 0)
             comp["avize_count"] = ic.get("avize", 0)
+            comp["programari_count"] = prog_map.get(cid, 0)
     return result
+
+@api_router.get("/companies/{company_id}/programari")
+async def get_company_programari(company_id: str):
+    """Returneaza candidatii cu programare viitoare pentru o companie"""
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    candidates = await db.candidates.find(
+        {"company_id": company_id, "appointment_date": {"$gte": today_str}},
+        {"_id": 0}
+    ).sort("appointment_date", 1).to_list(None)
+    return [serialize_doc(c) for c in candidates]
 
 @api_router.get("/companies/{company_id}", response_model=Company)
 async def get_company(company_id: str):

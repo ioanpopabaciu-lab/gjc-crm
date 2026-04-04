@@ -255,6 +255,7 @@ const CandidatesPage = ({ showNotification }) => {
                 <th>Exp. Permis</th>
                 <th>Job</th>
                 <th>Companie</th>
+                <th>Agent/Partener</th>
                 <th>Status</th>
                 <th>Acțiuni</th>
               </tr>
@@ -297,6 +298,9 @@ const CandidatesPage = ({ showNotification }) => {
                     </td>
                     <td>{candidate.job_type || "-"}</td>
                     <td>{candidate.company_name || "-"}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      {candidate.source_partner_name || <span style={{color:'#d1d5db'}}>—</span>}
+                    </td>
                     <td>
                       <span className={`status-badge ${candidate.status}`}>{candidate.status}</span>
                     </td>
