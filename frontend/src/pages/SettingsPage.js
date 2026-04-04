@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Edit, Phone, Save, X, MessageCircle, Users } from 'lucide-react';
+import { Plus, Trash2, Edit, Phone, Save, X, MessageCircle, Users, Link, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -9,6 +9,13 @@ const SettingsPage = ({ showNotification }) => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingOp, setEditingOp] = useState(null);
+
+  // SmartBill state
+  const [sbForm, setSbForm] = useState({ cif: "", email: "", token: "", series: "" });
+  const [sbConfigured, setSbConfigured] = useState(false);
+  const [sbTesting, setSbTesting] = useState(false);
+  const [sbSyncing, setSbSyncing] = useState(false);
+  const [sbSyncResult, setSbSyncResult] = useState(null);
 
   const fetchOperators = useCallback(async () => {
     try {
@@ -23,7 +30,57 @@ const SettingsPage = ({ showNotification }) => {
     }
   }, []);
 
-  useEffect(() => { fetchOperators(); }, [fetchOperators]);
+  useEffect(() => {
+    fetchOperators();
+    // Incarca configuratia SmartBill existenta
+    axios.get(`${API}/integrations/smartbill`).then(r => {
+      if (r.data?.configured) {
+        setSbConfigured(true);
+        setSbForm(f => ({ ...f, cif: r.data.cif || "", email: r.data.email || "", series: r.data.series || "" }));
+      }
+    }).catch(() => {});
+  }, [fetchOperators]);
+
+  const handleSaveSmartBill = async () => {
+    if (!sbForm.cif || !sbForm.email || !sbForm.token) {
+      showNotification("Completați CIF, email și token API", "error");
+      return;
+    }
+    try {
+      await axios.post(`${API}/integrations/smartbill`, sbForm);
+      setSbConfigured(true);
+      setSbForm(f => ({ ...f, token: "" })); // sterge tokenul din UI dupa salvare
+      showNotification("Configurație SmartBill salvată!");
+    } catch {
+      showNotification("Eroare la salvarea configurației", "error");
+    }
+  };
+
+  const handleTestSmartBill = async () => {
+    setSbTesting(true);
+    try {
+      const r = await axios.post(`${API}/integrations/smartbill/test`);
+      showNotification(r.data.message || "Conexiune reușită!", "success");
+    } catch (e) {
+      showNotification(e.response?.data?.detail || "Eroare conexiune SmartBill", "error");
+    } finally {
+      setSbTesting(false);
+    }
+  };
+
+  const handleSyncSmartBill = async () => {
+    setSbSyncing(true);
+    setSbSyncResult(null);
+    try {
+      const r = await axios.post(`${API}/integrations/smartbill/sync`);
+      setSbSyncResult(r.data);
+      showNotification(r.data.message || `Importat ${r.data.added} facturi!`);
+    } catch (e) {
+      showNotification(e.response?.data?.detail || "Eroare sincronizare SmartBill", "error");
+    } finally {
+      setSbSyncing(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!editingOp?.name || !editingOp?.phone) {
@@ -170,6 +227,74 @@ const SettingsPage = ({ showNotification }) => {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* SmartBill Integration */}
+        <div style={{marginTop:'28px', background:'var(--bg-card)', border:'1px solid var(--border-color)', borderRadius:'10px', padding:'20px'}}>
+          <h3 style={{margin:'0 0 4px', fontSize:'1rem', fontWeight:700, display:'flex', alignItems:'center', gap:'8px'}}>
+            <Link size={18} style={{color:'#f59e0b'}} /> Integrare SmartBill
+            {sbConfigured && <span style={{background:'#dcfce7', color:'#166534', fontSize:'0.72rem', padding:'2px 8px', borderRadius:'12px', fontWeight:600}}><CheckCircle size={11} style={{marginRight:3}}/>Configurat</span>}
+          </h3>
+          <p style={{margin:'0 0 16px', fontSize:'0.82rem', color:'var(--text-muted)'}}>
+            Conectează SmartBill pentru a importa automat facturile emise în pagina Plăți din CRM.
+          </p>
+
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'12px'}}>
+            <div>
+              <label style={{display:'block', fontSize:'0.82rem', fontWeight:600, marginBottom:'4px'}}>CIF Firmă *</label>
+              <input type="text" value={sbForm.cif} onChange={e => setSbForm(f=>({...f,cif:e.target.value}))}
+                placeholder="ex: RO12345678"
+                style={{width:'100%', padding:'8px 10px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}} />
+            </div>
+            <div>
+              <label style={{display:'block', fontSize:'0.82rem', fontWeight:600, marginBottom:'4px'}}>Email cont SmartBill *</label>
+              <input type="email" value={sbForm.email} onChange={e => setSbForm(f=>({...f,email:e.target.value}))}
+                placeholder="ex: office@firma.ro"
+                style={{width:'100%', padding:'8px 10px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}} />
+            </div>
+            <div>
+              <label style={{display:'block', fontSize:'0.82rem', fontWeight:600, marginBottom:'4px'}}>Token API SmartBill *</label>
+              <input type="password" value={sbForm.token} onChange={e => setSbForm(f=>({...f,token:e.target.value}))}
+                placeholder={sbConfigured ? "••••••• (introdu din nou pentru a schimba)" : "Token din SmartBill → Setări → API"}
+                style={{width:'100%', padding:'8px 10px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}} />
+            </div>
+            <div>
+              <label style={{display:'block', fontSize:'0.82rem', fontWeight:600, marginBottom:'4px'}}>Serie facturi (opțional)</label>
+              <input type="text" value={sbForm.series} onChange={e => setSbForm(f=>({...f,series:e.target.value}))}
+                placeholder="ex: GJC (lasă gol pentru toate)"
+                style={{width:'100%', padding:'8px 10px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}} />
+            </div>
+          </div>
+
+          <div style={{background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'10px 14px', fontSize:'0.8rem', color:'#92400e', marginBottom:'14px'}}>
+            <strong>Unde găsesc Token-ul API?</strong> SmartBill → Contul meu → Setări → Integrare API → Generează token
+          </div>
+
+          <div style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
+            <button onClick={handleSaveSmartBill}
+              style={{display:'flex', alignItems:'center', gap:'6px', padding:'8px 16px', background:'#f59e0b', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:600, fontSize:'0.875rem'}}>
+              <Save size={15}/> Salvează
+            </button>
+            {sbConfigured && (
+              <>
+                <button onClick={handleTestSmartBill} disabled={sbTesting}
+                  style={{display:'flex', alignItems:'center', gap:'6px', padding:'8px 16px', background:'#6366f1', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:600, fontSize:'0.875rem', opacity: sbTesting ? 0.7 : 1}}>
+                  {sbTesting ? <><RefreshCw size={14} style={{animation:'spin 1s linear infinite'}}/> Se testează...</> : <><CheckCircle size={14}/> Testează conexiunea</>}
+                </button>
+                <button onClick={handleSyncSmartBill} disabled={sbSyncing}
+                  style={{display:'flex', alignItems:'center', gap:'6px', padding:'8px 16px', background:'#10b981', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:600, fontSize:'0.875rem', opacity: sbSyncing ? 0.7 : 1}}>
+                  {sbSyncing ? <><RefreshCw size={14} style={{animation:'spin 1s linear infinite'}}/> Se sincronizează...</> : <><RefreshCw size={14}/> Sincronizare acum (30 zile)</>}
+                </button>
+              </>
+            )}
+          </div>
+
+          {sbSyncResult && (
+            <div style={{marginTop:'12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'12px 16px', fontSize:'0.85rem', color:'#166534'}}>
+              <CheckCircle size={15} style={{marginRight:6, verticalAlign:'middle'}}/>
+              <strong>Sincronizare completă:</strong> {sbSyncResult.added} facturi importate · {sbSyncResult.skipped} deja existente · {sbSyncResult.total} total în SmartBill
+            </div>
+          )}
         </div>
       </div>
 

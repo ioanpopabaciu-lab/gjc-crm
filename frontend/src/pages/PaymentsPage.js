@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Plus, X, Edit2, Trash2, TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, TrendingUp, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -53,6 +53,8 @@ const PaymentsPage = ({ showNotification }) => {
   const [candidates, setCandidates] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [contracts, setContracts] = useState([]);
+  const [sbSyncing, setSbSyncing] = useState(false);
+  const [sbConfigured, setSbConfigured] = useState(false);
 
   const fetchPayments = useCallback(async () => {
     try {
@@ -78,7 +80,26 @@ const PaymentsPage = ({ showNotification }) => {
     axios.get(`${API}/candidates`).then(r => setCandidates(r.data)).catch(() => {});
     axios.get(`${API}/companies`).then(r => setCompanies(r.data)).catch(() => {});
     axios.get(`${API}/contracts`).then(r => setContracts(r.data)).catch(() => {});
+    axios.get(`${API}/integrations/smartbill`).then(r => setSbConfigured(r.data?.configured || false)).catch(() => {});
   }, [fetchPayments]);
+
+  const handleSmartBillSync = async () => {
+    setSbSyncing(true);
+    try {
+      const r = await axios.post(`${API}/integrations/smartbill/sync`);
+      showNotification(r.data.message || `Importat ${r.data.added} facturi din SmartBill!`);
+      fetchPayments();
+    } catch (e) {
+      const msg = e.response?.data?.detail || "Eroare sincronizare SmartBill";
+      if (msg.includes("configurat")) {
+        showNotification("SmartBill nu e configurat. Mergi la Setări → Integrare SmartBill.", "error");
+      } else {
+        showNotification(msg, "error");
+      }
+    } finally {
+      setSbSyncing(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingPayment(null);
@@ -202,9 +223,18 @@ const PaymentsPage = ({ showNotification }) => {
           <option value="">Toate statusurile</option>
           {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
-        <button onClick={openCreate} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>
-          <Plus size={16} /> Plată Nouă
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+          {sbConfigured && (
+            <button onClick={handleSmartBillSync} disabled={sbSyncing}
+              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#f59e0b", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600", opacity: sbSyncing ? 0.7 : 1 }}>
+              <RefreshCw size={15} style={sbSyncing ? { animation: "spin 1s linear infinite" } : {}} />
+              {sbSyncing ? "Se sincronizează..." : "SmartBill Sync"}
+            </button>
+          )}
+          <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>
+            <Plus size={16} /> Plată Nouă
+          </button>
+        </div>
       </div>
 
       {/* Table */}

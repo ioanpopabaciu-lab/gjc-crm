@@ -3097,6 +3097,145 @@ async def seed_database():
         }
     }
 
+# ===================== SMARTBILL INTEGRATION =====================
+
+class SmartBillConfig(BaseModel):
+    cif: str
+    email: str
+    token: str
+    series: Optional[str] = None  # serie factura (ex: "GJC")
+
+@api_router.get("/integrations/smartbill")
+async def get_smartbill_config():
+    """Returneaza configuratia SmartBill (fara token din motive de securitate)"""
+    config = await db.integrations.find_one({"type": "smartbill"}, {"_id": 0})
+    if config:
+        safe = {k: v for k, v in config.items() if k != "token"}
+        safe["configured"] = True
+        return safe
+    return {"configured": False}
+
+@api_router.post("/integrations/smartbill")
+async def save_smartbill_config(config: SmartBillConfig):
+    """Salveaza credentialele SmartBill in baza de date"""
+    await db.integrations.update_one(
+        {"type": "smartbill"},
+        {"$set": {"type": "smartbill", **config.model_dump()}},
+        upsert=True
+    )
+    return {"message": "Configuratie SmartBill salvata!"}
+
+@api_router.post("/integrations/smartbill/test")
+async def test_smartbill_connection():
+    """Testeaza conexiunea cu API-ul SmartBill"""
+    config = await db.integrations.find_one({"type": "smartbill"})
+    if not config:
+        raise HTTPException(status_code=400, detail="SmartBill nu este configurat. Salvati credentialele mai intai.")
+    try:
+        today = datetime.now()
+        start = today.strftime("%Y-%m-01")
+        end = today.strftime("%Y-%m-%d")
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://api.smartbill.ro/invoice/list",
+                params={"cif": config["cif"], "start": start, "end": end},
+                auth=(config["email"], config["token"]),
+                timeout=15
+            )
+        if resp.status_code == 200:
+            return {"ok": True, "message": "Conexiune reusita cu SmartBill!"}
+        else:
+            raise HTTPException(status_code=400, detail=f"SmartBill raspuns: {resp.status_code} — {resp.text[:200]}")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Timeout — SmartBill nu raspunde")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare conexiune: {str(e)}")
+
+@api_router.post("/integrations/smartbill/sync")
+async def sync_smartbill_invoices(start: Optional[str] = None, end: Optional[str] = None):
+    """Importa facturile din SmartBill ca inregistrari de plati in CRM"""
+    config = await db.integrations.find_one({"type": "smartbill"})
+    if not config:
+        raise HTTPException(status_code=400, detail="SmartBill nu este configurat")
+    if not start:
+        start = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    if not end:
+        end = datetime.now().strftime("%Y-%m-%d")
+
+    params = {"cif": config["cif"], "start": start, "end": end}
+    if config.get("series"):
+        params["seriesname"] = config["series"]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://api.smartbill.ro/invoice/list",
+                params=params,
+                auth=(config["email"], config["token"]),
+                timeout=30
+            )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Eroare SmartBill {resp.status_code}: {resp.text[:300]}")
+        data = resp.json()
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Timeout SmartBill")
+
+    invoices = data.get("list", [])
+    added = 0
+    skipped = 0
+
+    for inv in invoices:
+        series_name = inv.get("seriesname", "")
+        number = str(inv.get("number", ""))
+        inv_number = f"{series_name}{number}"
+
+        # Nu dubla importul
+        existing = await db.payments.find_one({"invoice_number": inv_number})
+        if existing:
+            skipped += 1
+            continue
+
+        # Client
+        client_data = inv.get("client", {})
+        entity_name = client_data.get("name", "") if isinstance(client_data, dict) else str(client_data)
+
+        # Status plata
+        total_amount = float(inv.get("totalAmount", 0))
+        total_paid = float(inv.get("totalPaid", 0))
+        if total_paid >= total_amount and total_amount > 0:
+            pay_status = "platit"
+        elif total_paid > 0:
+            pay_status = "partial"
+        else:
+            pay_status = "neplatit"
+
+        payment_doc = {
+            "id": str(uuid.uuid4()),
+            "type": "firma",
+            "entity_id": "",
+            "entity_name": entity_name,
+            "amount": total_amount,
+            "currency": inv.get("currency", "RON"),
+            "date_received": inv.get("issueDate", ""),
+            "invoice_number": inv_number,
+            "status": pay_status,
+            "method": "transfer",
+            "contract_id": "",
+            "notes": f"Importat din SmartBill — Serie: {series_name}, Nr: {number}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.payments.insert_one(payment_doc)
+        added += 1
+
+    return {
+        "added": added,
+        "skipped": skipped,
+        "total": len(invoices),
+        "message": f"Importat {added} facturi noi. {skipped} deja existente in CRM."
+    }
+
 # ===================== GLOBAL SEARCH =====================
 
 @api_router.get("/search")
