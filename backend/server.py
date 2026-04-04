@@ -3148,6 +3148,10 @@ async def test_smartbill_connection():
                 "message": f"Conexiune reusita cu SmartBill! Serii gasite: {', '.join(series_names) if series_names else 'niciuna'}"
             }
         elif resp.status_code == 401:
+            body = resp.json() if resp.headers.get("content-type","").startswith("application/json") else {}
+            err = body.get("errorText", "")
+            if "Nu aveti acces" in err or "cloud@smartbill.ro" in err:
+                raise HTTPException(status_code=400, detail="Acces API neactivat — contacteaza cloud@smartbill.ro sa activeze accesul API pentru contul tau SmartBill Silver")
             raise HTTPException(status_code=400, detail="Credentiale incorecte — verifica email si token SmartBill")
         else:
             raise HTTPException(status_code=400, detail=f"SmartBill raspuns: {resp.status_code} — {resp.text[:200]}")
