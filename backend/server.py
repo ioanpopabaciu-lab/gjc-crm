@@ -2574,7 +2574,7 @@ async def delete_operator(op_id: str):
 
 @api_router.get("/partners")
 async def get_partners():
-    partners = await db.partners.find({"_id": 0}).sort("name", 1).to_list(1000)
+    partners = await db.partners.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
     # Calculeaza statistici live
     for p in partners:
         p["candidates_sent"] = await db.candidates.count_documents({"source_partner_id": p["id"]})
