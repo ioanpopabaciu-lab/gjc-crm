@@ -3132,18 +3132,23 @@ async def test_smartbill_connection():
     if not config:
         raise HTTPException(status_code=400, detail="SmartBill nu este configurat. Salvati credentialele mai intai.")
     try:
-        today = datetime.now()
-        start = today.strftime("%Y-%m-01")
-        end = today.strftime("%Y-%m-%d")
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                "https://api.smartbill.ro/invoice/list",
-                params={"cif": config["cif"], "start": start, "end": end},
+                "https://ws.smartbill.ro/SBORO/api/series",
+                params={"cif": config["cif"], "type": "f"},
                 auth=(config["email"], config["token"]),
                 timeout=15
             )
         if resp.status_code == 200:
-            return {"ok": True, "message": "Conexiune reusita cu SmartBill!"}
+            data = resp.json()
+            series_list = data.get("list", [])
+            series_names = [s.get("name", "") for s in series_list] if series_list else []
+            return {
+                "ok": True,
+                "message": f"Conexiune reusita cu SmartBill! Serii gasite: {', '.join(series_names) if series_names else 'niciuna'}"
+            }
+        elif resp.status_code == 401:
+            raise HTTPException(status_code=400, detail="Credentiale incorecte — verifica email si token SmartBill")
         else:
             raise HTTPException(status_code=400, detail=f"SmartBill raspuns: {resp.status_code} — {resp.text[:200]}")
     except httpx.TimeoutException:
@@ -3154,86 +3159,135 @@ async def test_smartbill_connection():
         raise HTTPException(status_code=500, detail=f"Eroare conexiune: {str(e)}")
 
 @api_router.post("/integrations/smartbill/sync")
-async def sync_smartbill_invoices(start: Optional[str] = None, end: Optional[str] = None):
-    """Importa facturile din SmartBill ca inregistrari de plati in CRM"""
+async def sync_smartbill_invoices():
+    """
+    Importa facturile din SmartBill ca inregistrari de plati in CRM.
+    Strategie:
+    1. GET /series?cif=...&type=f  — obtine seriile de facturi si urmatorul numar
+    2. Pentru fiecare serie, itereaza ultimele N numere si apeleaza
+       GET /invoice/paymentstatus?cif=...&seriesname=...&number=...
+    3. Importa facturile gasite ca plati in CRM (fara duplicate)
+    """
     config = await db.integrations.find_one({"type": "smartbill"})
     if not config:
         raise HTTPException(status_code=400, detail="SmartBill nu este configurat")
-    if not start:
-        start = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-    if not end:
-        end = datetime.now().strftime("%Y-%m-%d")
 
-    params = {"cif": config["cif"], "start": start, "end": end}
-    if config.get("series"):
-        params["seriesname"] = config["series"]
+    cif = config["cif"]
+    email = config["email"]
+    token = config["token"]
+    series_filter = config.get("series", "").strip()  # serie preferata (optional)
+    base_url = "https://ws.smartbill.ro/SBORO/api"
 
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                "https://api.smartbill.ro/invoice/list",
-                params=params,
-                auth=(config["email"], config["token"]),
-                timeout=30
-            )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Eroare SmartBill {resp.status_code}: {resp.text[:300]}")
-        data = resp.json()
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Timeout SmartBill")
-
-    invoices = data.get("list", [])
     added = 0
     skipped = 0
+    errors = 0
+    checked = 0
 
-    for inv in invoices:
-        series_name = inv.get("seriesname", "")
-        number = str(inv.get("number", ""))
-        inv_number = f"{series_name}{number}"
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            # Pasul 1: obtine seriile de facturi
+            series_resp = await client.get(
+                f"{base_url}/series",
+                params={"cif": cif, "type": "f"},
+                auth=(email, token)
+            )
+            if series_resp.status_code != 200:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Nu am putut obtine seriile SmartBill: {series_resp.status_code} — {series_resp.text[:200]}"
+                )
+            series_data = series_resp.json()
+            all_series = series_data.get("list", [])
 
-        # Nu dubla importul
-        existing = await db.payments.find_one({"invoice_number": inv_number})
-        if existing:
-            skipped += 1
-            continue
+            # Filtreaza dupa seria configurata (daca exista)
+            if series_filter:
+                all_series = [s for s in all_series if s.get("name", "") == series_filter]
+            if not all_series:
+                return {"added": 0, "skipped": 0, "checked": 0, "message": "Nu s-au gasit serii de facturi in SmartBill."}
 
-        # Client
-        client_data = inv.get("client", {})
-        entity_name = client_data.get("name", "") if isinstance(client_data, dict) else str(client_data)
+            # Pasul 2: pentru fiecare serie, itereaza ultimele 50 numere
+            for serie in all_series:
+                series_name = serie.get("name", "")
+                next_number = int(serie.get("nextNumber", 1))
+                # Itereaza de la (nextNumber-1) in jos, max 50 facturi per serie
+                start_num = max(1, next_number - 50)
 
-        # Status plata
-        total_amount = float(inv.get("totalAmount", 0))
-        total_paid = float(inv.get("totalPaid", 0))
-        if total_paid >= total_amount and total_amount > 0:
-            pay_status = "platit"
-        elif total_paid > 0:
-            pay_status = "partial"
-        else:
-            pay_status = "neplatit"
+                for num in range(next_number - 1, start_num - 1, -1):
+                    checked += 1
+                    inv_number = f"{series_name}{num}"
 
-        payment_doc = {
-            "id": str(uuid.uuid4()),
-            "type": "firma",
-            "entity_id": "",
-            "entity_name": entity_name,
-            "amount": total_amount,
-            "currency": inv.get("currency", "RON"),
-            "date_received": inv.get("issueDate", ""),
-            "invoice_number": inv_number,
-            "status": pay_status,
-            "method": "transfer",
-            "contract_id": "",
-            "notes": f"Importat din SmartBill — Serie: {series_name}, Nr: {number}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-        await db.payments.insert_one(payment_doc)
-        added += 1
+                    # Nu importa duplicate
+                    existing = await db.payments.find_one({"invoice_number": inv_number})
+                    if existing:
+                        skipped += 1
+                        continue
+
+                    # Obtine statusul platii pentru aceasta factura
+                    pay_resp = await client.get(
+                        f"{base_url}/invoice/paymentstatus",
+                        params={"cif": cif, "seriesname": series_name, "number": str(num)},
+                        auth=(email, token)
+                    )
+                    if pay_resp.status_code == 404:
+                        # Factura nu exista (posibil numar lipsa din secventa)
+                        continue
+                    if pay_resp.status_code != 200:
+                        errors += 1
+                        continue
+
+                    inv_data = pay_resp.json()
+                    if inv_data.get("errorText"):
+                        # Factura nu exista sau eroare
+                        continue
+
+                    total_amount = float(inv_data.get("totalAmount", 0) or 0)
+                    unpaid_amount = float(inv_data.get("unpaidAmount", 0) or 0)
+                    currency = inv_data.get("currency", "RON") or "RON"
+                    issue_date = inv_data.get("invoiceDate", "") or ""
+                    client_name = inv_data.get("clientName", "") or ""
+
+                    if total_amount <= 0:
+                        continue  # factura fara valoare, skip
+
+                    paid_amount = total_amount - unpaid_amount
+                    if unpaid_amount <= 0:
+                        pay_status = "platit"
+                    elif paid_amount > 0:
+                        pay_status = "partial"
+                    else:
+                        pay_status = "neplatit"
+
+                    payment_doc = {
+                        "id": str(uuid.uuid4()),
+                        "type": "firma",
+                        "entity_id": "",
+                        "entity_name": client_name,
+                        "amount": total_amount,
+                        "currency": currency,
+                        "date_received": issue_date,
+                        "invoice_number": inv_number,
+                        "status": pay_status,
+                        "method": "transfer",
+                        "contract_id": "",
+                        "notes": f"Importat din SmartBill — Serie: {series_name}, Nr: {num}",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    await db.payments.insert_one(payment_doc)
+                    added += 1
+
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Timeout — SmartBill nu raspunde")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare sincronizare SmartBill: {str(e)}")
 
     return {
         "added": added,
         "skipped": skipped,
-        "total": len(invoices),
-        "message": f"Importat {added} facturi noi. {skipped} deja existente in CRM."
+        "checked": checked,
+        "errors": errors,
+        "message": f"Importat {added} facturi noi din SmartBill. {skipped} deja existente în CRM."
     }
 
 # ===================== GLOBAL SEARCH =====================
