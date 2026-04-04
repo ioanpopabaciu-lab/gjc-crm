@@ -31,6 +31,11 @@ const ImmigrationPage = ({ showNotification }) => {
   const [emailModal, setEmailModal] = useState({ open: false, caseData: null });
   const [emailForm, setEmailForm] = useState({ to: "", cc: "", subject: "", body: "" });
   const [emailSending, setEmailSending] = useState(false);
+  // Tab vizualizare principală
+  const [pageView, setPageView] = useState("dosare"); // "dosare" | "avize"
+  const [avizSearch, setAvizSearch] = useState("");
+  const [avizEditModal, setAvizEditModal] = useState(null); // case object sau null
+  const [avizEditForm, setAvizEditForm] = useState({});
 
   const fetchCases = useCallback(async () => {
     try {
@@ -101,6 +106,52 @@ const ImmigrationPage = ({ showNotification }) => {
     const a = document.createElement('a'); a.href = url;
     a.download = `dosare_imigrare_${new Date().toISOString().slice(0,10)}.xls`;
     a.click(); URL.revokeObjectURL(url);
+  };
+
+  const exportAvizeXLS = (avize) => {
+    const headers = ["Nr. Aviz", "Candidat", "Companie", "Funcție", "Cod COR", "Data Aviz", "Nr. IGI", "Etapă", "Status"];
+    const rows = avize.map(c => [
+      c.aviz_number || "", c.candidate_name || "", c.company_name || "",
+      c.job_function || "", c.cor_code || "", c.aviz_date || "",
+      c.igi_number || "", c.current_stage_name || "", c.status || ""
+    ]);
+    const esc = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let html = `<table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r => { html += `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`; });
+    html += '</tbody></table>';
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `avize_munca_${new Date().toISOString().slice(0,10)}.xls`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const openAvizEdit = (caseItem) => {
+    setAvizEditForm({
+      aviz_number: caseItem.aviz_number || "",
+      aviz_date: caseItem.aviz_date || "",
+      igi_number: caseItem.igi_number || "",
+      job_function: caseItem.job_function || "",
+      cor_code: caseItem.cor_code || "",
+      appointment_date: caseItem.appointment_date || "",
+      appointment_time: caseItem.appointment_time || "",
+    });
+    setAvizEditModal(caseItem);
+  };
+
+  const handleSaveAviz = async () => {
+    if (!avizEditModal) return;
+    try {
+      await axios.put(`${API}/immigration/${avizEditModal.id}`, {
+        ...avizEditModal,
+        ...avizEditForm,
+      });
+      showNotification("Aviz actualizat!");
+      setAvizEditModal(null);
+      fetchCases();
+    } catch (err) {
+      showNotification("Eroare la salvare aviz", "error");
+    }
   };
 
   const clearFilters = () => {
@@ -384,6 +435,180 @@ const ImmigrationPage = ({ showNotification }) => {
           </div>
         )}
 
+        {/* Tab switcher: Dosare / Avize de Muncă */}
+        <div style={{ display:'flex', gap:8, margin:'12px 0 4px', borderBottom:'2px solid var(--border-color)' }}>
+          <button
+            onClick={() => setPageView("dosare")}
+            style={{
+              padding:'8px 20px', border:'none', background:'none', cursor:'pointer', fontWeight:600,
+              borderBottom: pageView==="dosare" ? '3px solid var(--primary)' : '3px solid transparent',
+              color: pageView==="dosare" ? 'var(--primary)' : 'var(--text-muted)',
+              marginBottom:'-2px'
+            }}
+          >
+            📁 Dosare ({cases.length})
+          </button>
+          <button
+            onClick={() => setPageView("avize")}
+            style={{
+              padding:'8px 20px', border:'none', background:'none', cursor:'pointer', fontWeight:600,
+              borderBottom: pageView==="avize" ? '3px solid #7c3aed' : '3px solid transparent',
+              color: pageView==="avize" ? '#7c3aed' : 'var(--text-muted)',
+              marginBottom:'-2px'
+            }}
+          >
+            🏅 Avize de Muncă ({cases.filter(c => c.aviz_number).length})
+          </button>
+        </div>
+
+        {/* ======= TAB AVIZE ======= */}
+        {pageView === "avize" && (() => {
+          const avize = cases.filter(c => c.aviz_number).filter(c => {
+            if (!avizSearch) return true;
+            const s = avizSearch.toLowerCase();
+            return (c.aviz_number||"").toLowerCase().includes(s)
+              || (c.candidate_name||"").toLowerCase().includes(s)
+              || (c.company_name||"").toLowerCase().includes(s)
+              || (c.igi_number||"").toLowerCase().includes(s);
+          });
+          return (
+            <div>
+              <div style={{ display:'flex', gap:8, alignItems:'center', margin:'12px 0' }}>
+                <div className="search-box" style={{ flex:1, maxWidth:320 }}>
+                  <Search size={16} className="search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Caută după nr. aviz, candidat, companie..."
+                    value={avizSearch}
+                    onChange={e => setAvizSearch(e.target.value)}
+                    className="search-input"
+                  />
+                  {avizSearch && <button className="clear-search" onClick={() => setAvizSearch("")}><X size={14}/></button>}
+                </div>
+                <span className="records-count">{avize.length} avize</span>
+                <button className="btn btn-secondary" style={{ background:'#7c3aed', color:'#fff', borderColor:'#7c3aed' }} onClick={() => exportAvizeXLS(avize)}>
+                  <Download size={16} /> Export XLS
+                </button>
+              </div>
+              {loading ? <LoadingSpinner /> : (
+                <div className="data-table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Nr. Aviz</th>
+                        <th>Candidat</th>
+                        <th>Companie</th>
+                        <th>Funcție</th>
+                        <th>Cod COR</th>
+                        <th>Data Aviz</th>
+                        <th>Nr. IGI</th>
+                        <th>Programare IGI</th>
+                        <th>Etapă</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {avize.map(c => (
+                        <tr key={c.id}>
+                          <td><strong style={{ color:'#7c3aed' }}>{c.aviz_number}</strong></td>
+                          <td>{c.candidate_name}</td>
+                          <td style={{ color:'var(--text-muted)' }}>{c.company_name}</td>
+                          <td>{c.job_function || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                          <td>{c.cor_code || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                          <td>{c.aviz_date || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                          <td>{c.igi_number || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                          <td>{c.appointment_date ? `${c.appointment_date}${c.appointment_time ? ' '+c.appointment_time : ''}` : <span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                          <td><span className="stage-chip" style={{fontSize:'0.7rem'}}>{c.current_stage_name}</span></td>
+                          <td><span className={`case-status ${c.status}`}>{c.status}</span></td>
+                          <td>
+                            <button className="btn btn-secondary btn-sm" style={{padding:'4px 10px', fontSize:'0.78rem'}} onClick={() => openAvizEdit(c)}>
+                              ✏️ Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {avize.length === 0 && (
+                        <tr><td colSpan={11} style={{textAlign:'center', padding:'32px', color:'var(--text-muted)'}}>
+                          Niciun aviz găsit{avizSearch ? ` pentru "${avizSearch}"` : ""}
+                        </td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Modal Edit Aviz */}
+              {avizEditModal && (
+                <div className="modal-overlay" onClick={() => setAvizEditModal(null)}>
+                  <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth:520 }}>
+                    <div className="modal-header">
+                      <h2>✏️ Editează Aviz — {avizEditModal.candidate_name}</h2>
+                      <button className="close-btn" onClick={() => setAvizEditModal(null)}><X size={20}/></button>
+                    </div>
+                    <div className="modal-body">
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Nr. Aviz *</label>
+                          <input type="text" value={avizEditForm.aviz_number}
+                            onChange={e => setAvizEditForm({...avizEditForm, aviz_number: e.target.value})}
+                            placeholder="ex: 12345" />
+                        </div>
+                        <div className="form-group">
+                          <label>Data Aviz</label>
+                          <input type="date" value={avizEditForm.aviz_date}
+                            onChange={e => setAvizEditForm({...avizEditForm, aviz_date: e.target.value})} />
+                        </div>
+                        <div className="form-group">
+                          <label>Nr. IGI</label>
+                          <input type="text" value={avizEditForm.igi_number}
+                            onChange={e => setAvizEditForm({...avizEditForm, igi_number: e.target.value})}
+                            placeholder="ex: IGI/2024/..." />
+                        </div>
+                        <div className="form-group">
+                          <label>Programare IGI (data)</label>
+                          <input type="date" value={avizEditForm.appointment_date}
+                            onChange={e => setAvizEditForm({...avizEditForm, appointment_date: e.target.value})} />
+                        </div>
+                        <div className="form-group">
+                          <label>Programare IGI (ora)</label>
+                          <input type="time" value={avizEditForm.appointment_time}
+                            onChange={e => setAvizEditForm({...avizEditForm, appointment_time: e.target.value})} />
+                        </div>
+                        <div className="form-group">
+                          <label>Cod COR</label>
+                          <input type="text" value={avizEditForm.cor_code}
+                            onChange={e => setAvizEditForm({...avizEditForm, cor_code: e.target.value})}
+                            placeholder="ex: 711101" />
+                        </div>
+                        <div className="form-group full-width">
+                          <label>Funcție (meserie)</label>
+                          <input list="cor-aviz-edit-list" value={avizEditForm.job_function}
+                            onChange={e => {
+                              const match = (window._corCodes||[]).find(c => c.name === e.target.value);
+                              setAvizEditForm({...avizEditForm, job_function: e.target.value, cor_code: match?.code || avizEditForm.cor_code});
+                            }}
+                            placeholder="Caută meserie din lista COR..." />
+                          <datalist id="cor-aviz-edit-list">
+                            {(window._corCodes||[]).map(c => <option key={c.code} value={c.name}>{c.code} — {c.name}</option>)}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="modal-footer">
+                      <button className="btn btn-secondary" onClick={() => setAvizEditModal(null)}>Anulează</button>
+                      <button className="btn btn-primary" onClick={handleSaveAviz}>Salvează Aviz</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ======= TAB DOSARE (existent) ======= */}
+        {pageView === "dosare" && (
+        <div>
         {/* Legenda etape */}
         <div className="stages-legend-bar">
           {stages.slice(0, 5).map((stage, idx) => (
@@ -459,6 +684,8 @@ const ImmigrationPage = ({ showNotification }) => {
               </div>
             )}
           </div>
+        )}
+        </div>
         )}
 
         {/* New Case Modal */}
@@ -933,8 +1160,6 @@ const ImmigrationPage = ({ showNotification }) => {
           </div>
         </div>
       )}
-    </div>
-
       {/* ====== EMAIL MODAL ====== */}
       {emailModal.open && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
