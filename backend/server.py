@@ -3294,6 +3294,159 @@ async def sync_smartbill_invoices():
         "message": f"Importat {added} facturi noi din SmartBill. {skipped} deja existente în CRM."
     }
 
+# ===================== IMPORT PASAPOARTE (OCR AI) =====================
+
+@api_router.post("/import/passport")
+async def ocr_passport(file: UploadFile = File(...)):
+    """Citeste datele dintr-o fotografie de pasaport folosind Claude AI Vision"""
+    import base64
+    import json
+
+    # Validare tip fisier
+    allowed_types = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Fisier invalid. Acceptam: JPG, PNG, WEBP, GIF")
+
+    # Verificam ca avem API key
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY nu este configurat. Adauga cheia API Anthropic in variabilele de mediu ale serverului."
+        )
+
+    # Citim imaginea si o convertim la base64
+    image_bytes = await file.read()
+    base64_image = base64.standard_b64encode(image_bytes).decode("utf-8")
+
+    try:
+        import anthropic as anthropic_sdk
+        client_ai = anthropic_sdk.Anthropic(api_key=api_key)
+
+        message = client_ai.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1024,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": file.content_type,
+                            "data": base64_image,
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": """Analizezi o fotografie de pasaport. Extrage EXACT aceste informatii si returneaza DOAR un JSON valid, fara alt text:
+{
+  "first_name": "prenumele (GIVEN NAMES din pasaport)",
+  "last_name": "numele de familie (SURNAME din pasaport)",
+  "passport_number": "numarul pasaportului exact cum apare",
+  "nationality": "nationalitatea in limba romana (ex: Nepaleза, Indiana, Sri Lankeza, Filipineza, Vietnameza)",
+  "date_of_birth": "data nasterii in format YYYY-MM-DD",
+  "passport_expiry": "data expirarii in format YYYY-MM-DD",
+  "gender": "M sau F",
+  "issuing_country": "tara emitenta (codul de 3 litere sau numele tarii)"
+}
+Daca un camp nu este vizibil sau nu il poti citi cu certitudine, pune null.
+Returneaza DOAR JSON-ul, fara markdown, fara explicatii."""
+                    }
+                ]
+            }]
+        )
+
+        # Parsam raspunsul JSON
+        raw_text = message.content[0].text.strip()
+        # Curatam markdown daca exista
+        if raw_text.startswith("```"):
+            raw_text = raw_text.split("```")[1]
+            if raw_text.startswith("json"):
+                raw_text = raw_text[4:]
+            raw_text = raw_text.strip()
+
+        extracted = json.loads(raw_text)
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="AI-ul nu a putut extrage datele din imagine. Asigura-te ca poza este clara si pasaportul este vizibil.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare la procesarea imaginii: {str(e)[:200]}")
+
+    # Cautam daca exista deja un candidat cu acelasi numar de pasaport
+    existing_candidate = None
+    passport_num = extracted.get("passport_number")
+    if passport_num:
+        found = await db.candidates.find_one(
+            {"passport_number": {"$regex": passport_num.replace(" ", ""), "$options": "i"}},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}
+        )
+        if found:
+            existing_candidate = {
+                "id": found.get("id"),
+                "name": f"{found.get('first_name', '')} {found.get('last_name', '')}".strip()
+            }
+
+    return {
+        "extracted": extracted,
+        "existing_candidate": existing_candidate
+    }
+
+
+@api_router.post("/import/passport/confirm")
+async def confirm_passport_import(body: dict):
+    """Salveaza datele extrase din pasaport ca candidat in CRM"""
+    data = body.get("data", {})
+    update_existing = body.get("update_existing", False)
+    candidate_id = body.get("candidate_id")
+
+    if not data:
+        raise HTTPException(status_code=400, detail="Nu exista date de salvat")
+
+    if update_existing and candidate_id:
+        # Actualizam candidatul existent
+        update_fields = {}
+        if data.get("passport_number"):
+            update_fields["passport_number"] = data["passport_number"]
+        if data.get("passport_expiry"):
+            update_fields["passport_expiry"] = data["passport_expiry"]
+        if data.get("nationality"):
+            update_fields["nationality"] = data["nationality"]
+        if data.get("date_of_birth"):
+            update_fields["date_of_birth"] = data["date_of_birth"]
+        if data.get("gender"):
+            update_fields["gender"] = data["gender"]
+
+        await db.candidates.update_one(
+            {"id": candidate_id},
+            {"$set": update_fields}
+        )
+        return {"saved": True, "candidate_id": candidate_id, "message": "Candidat actualizat cu datele din pasaport!"}
+    else:
+        # Cream candidat nou
+        new_candidate = {
+            "id": str(uuid.uuid4()),
+            "first_name": data.get("first_name") or "",
+            "last_name": data.get("last_name") or "",
+            "passport_number": data.get("passport_number") or "",
+            "passport_expiry": data.get("passport_expiry") or "",
+            "nationality": data.get("nationality") or "",
+            "date_of_birth": data.get("date_of_birth") or "",
+            "gender": data.get("gender") or "",
+            "phone": "",
+            "email": "",
+            "job_type": "",
+            "status": "activ",
+            "company_id": "",
+            "company_name": "",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "source": "import_pasaport",
+        }
+        await db.candidates.insert_one(new_candidate)
+        new_candidate.pop("_id", None)
+        return {"saved": True, "candidate_id": new_candidate["id"], "message": f"Candidat nou creat: {new_candidate['first_name']} {new_candidate['last_name']}"}
+
+
 # ===================== GLOBAL SEARCH =====================
 
 @api_router.get("/search")

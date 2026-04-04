@@ -124,3 +124,4 @@ xlrd==2.0.2
 yarl==1.23.0
 zipp==3.23.0
 reportlab==4.1.0
+anthropic>=0.40.0
