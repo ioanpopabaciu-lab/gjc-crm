@@ -146,6 +146,22 @@ const PaymentsPage = ({ showNotification }) => {
     }
   };
 
+  // Calculare totaluri per valută din datele locale (corect indiferent de valuta)
+  const statsByCurrency = payments.reduce((acc, p) => {
+    const cur = p.currency || "EUR";
+    const st = p.status || "neplatit";
+    if (!acc[cur]) acc[cur] = { platit: 0, partial: 0, neplatit: 0 };
+    acc[cur][st] = (acc[cur][st] || 0) + (Number(p.amount) || 0);
+    return acc;
+  }, {});
+  const formatStat = (field) =>
+    Object.entries(statsByCurrency)
+      .map(([cur, s]) => s[field] > 0 ? `${s[field].toLocaleString("ro-RO")} ${cur}` : null)
+      .filter(Boolean).join(" · ") || "0";
+  const totalIncasat = formatStat("platit");
+  const totalPartial = formatStat("partial");
+  const totalNeincasat = formatStat("neplatit");
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -154,20 +170,20 @@ const PaymentsPage = ({ showNotification }) => {
       <div style={{ display: "flex", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px 24px", minWidth: "160px" }}>
           <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>Total Încasat</div>
-          <div style={{ fontSize: "1.8rem", fontWeight: "700", color: "#10b981" }}>
-            {(stats.platit || 0).toLocaleString("ro-RO")} EUR
+          <div style={{ fontSize: "1.3rem", fontWeight: "700", color: "#10b981", lineHeight: 1.4 }}>
+            {totalIncasat}
           </div>
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px 24px", minWidth: "160px" }}>
           <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>Parțial</div>
-          <div style={{ fontSize: "1.8rem", fontWeight: "700", color: "#f59e0b" }}>
-            {(stats.partial || 0).toLocaleString("ro-RO")} EUR
+          <div style={{ fontSize: "1.3rem", fontWeight: "700", color: "#f59e0b", lineHeight: 1.4 }}>
+            {totalPartial}
           </div>
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px 24px", minWidth: "160px" }}>
           <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>Neîncasat</div>
-          <div style={{ fontSize: "1.8rem", fontWeight: "700", color: "#ef4444" }}>
-            {(stats.neplatit || 0).toLocaleString("ro-RO")} EUR
+          <div style={{ fontSize: "1.3rem", fontWeight: "700", color: "#ef4444", lineHeight: 1.4 }}>
+            {totalNeincasat}
           </div>
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px 24px", minWidth: "160px" }}>

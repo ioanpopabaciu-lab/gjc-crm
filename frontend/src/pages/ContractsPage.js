@@ -119,8 +119,22 @@ const ContractsPage = ({ showNotification }) => {
         await axios.put(`${API}/contracts/${editingContract.id}`, payload);
         showNotification("Contract actualizat!");
       } else {
-        await axios.post(`${API}/contracts`, payload);
-        showNotification("Contract creat!");
+        const newContractRes = await axios.post(`${API}/contracts`, payload);
+        const newContract = newContractRes.data;
+        // Creare automată înregistrare plată "neplatit" în Plăți
+        if (payload.value && payload.value > 0) {
+          await axios.post(`${API}/payments`, {
+            type: payload.company_id ? "firma" : "candidat",
+            entity_id: payload.company_id || payload.candidate_id || "",
+            entity_name: payload.company_name || payload.candidate_name || "",
+            amount: payload.value,
+            currency: payload.currency || "EUR",
+            status: "neplatit",
+            contract_id: newContract.id,
+            notes: `Creat automat din contract ${payload.type === "contract_mediere" ? "mediere" : "prestări servicii"}`,
+          }).catch(() => {}); // nu blocam daca plata nu se poate crea
+        }
+        showNotification("Contract creat! Plata apare automat în Plăți → Neîncasat.");
       }
       setShowModal(false);
       fetchContracts();
@@ -140,7 +154,17 @@ const ContractsPage = ({ showNotification }) => {
     }
   };
 
-  const totalValue = contracts.reduce((sum, c) => sum + (c.value || 0), 0);
+  // Totaluri grupate pe valută
+  const byCurrency = contracts.reduce((acc, c) => {
+    if (c.value) {
+      const cur = c.currency || "EUR";
+      acc[cur] = (acc[cur] || 0) + c.value;
+    }
+    return acc;
+  }, {});
+  const totalDisplay = Object.entries(byCurrency)
+    .map(([cur, val]) => `${val.toLocaleString("ro-RO", { minimumFractionDigits: 0 })} ${cur}`)
+    .join(" · ") || "0";
   const activeCount = contracts.filter(c => c.status === "activ").length;
 
   if (loading) return <LoadingSpinner />;
@@ -159,8 +183,8 @@ const ContractsPage = ({ showNotification }) => {
         </div>
         <div className="stat-card" style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px 24px", minWidth: "200px" }}>
           <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>Valoare Totală</div>
-          <div style={{ fontSize: "1.8rem", fontWeight: "700", color: "#3b82f6" }}>
-            {totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 0 })} EUR
+          <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#3b82f6", lineHeight: 1.3 }}>
+            {totalDisplay}
           </div>
         </div>
       </div>
