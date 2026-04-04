@@ -26,6 +26,7 @@ import TasksPage from './pages/TasksPage';
 import PlacementsPage from './pages/PlacementsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import PassportImportPage from './pages/PassportImportPage';
+import AvizImportPage from './pages/AvizImportPage';
 
 function App() {
   const { loading: authLoading, login, isAuthenticated } = useAuth();
@@ -75,6 +76,7 @@ function App() {
             <Route path="/placements" element={<PlacementsPage showNotification={showNotification} />} />
             <Route path="/templates" element={<TemplatesPage showNotification={showNotification} />} />
             <Route path="/import-pasapoarte" element={<PassportImportPage showNotification={showNotification} />} />
+            <Route path="/import-avize" element={<AvizImportPage showNotification={showNotification} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </MainLayout>

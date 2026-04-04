@@ -3502,7 +3502,7 @@ async def ocr_passport(file: UploadFile = File(...)):
         client_ai = anthropic_sdk.Anthropic(api_key=api_key)
 
         message = client_ai.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-5-20250929",
             max_tokens=1024,
             messages=[{
                 "role": "user",
@@ -3623,6 +3623,319 @@ async def confirm_passport_import(body: dict):
         await db.candidates.insert_one(new_candidate)
         new_candidate.pop("_id", None)
         return {"saved": True, "candidate_id": new_candidate["id"], "message": f"Candidat nou creat: {new_candidate['first_name']} {new_candidate['last_name']}"}
+
+
+# ===================== IMPORT AVIZE DE MUNCA IGI =====================
+
+@api_router.get("/avize")
+async def get_avize(status: Optional[str] = None, search: Optional[str] = None):
+    """Lista tuturor avizelor de munca importate (staging)"""
+    query = {}
+    if status and status != "toate":
+        query["import_status"] = status
+    if search:
+        regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"candidate_name": regex},
+            {"company_name": regex},
+            {"permit_number": regex},
+            {"passport_number": regex},
+            {"cnp": regex},
+        ]
+    docs = await db.avize_munca.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return [serialize_doc(d) for d in docs]
+
+
+@api_router.post("/import/aviz")
+async def ocr_aviz(file: UploadFile = File(...)):
+    """OCR pe un aviz de munca PDF folosind Claude AI — extrage toate datele si le salveaza in staging"""
+    import base64, json, re
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY nu este configurat")
+
+    # Citim fisierul
+    file_bytes = await file.read()
+    filename = file.filename or "aviz.pdf"
+
+    # Verificam daca fisierul este PDF
+    is_pdf = file.content_type == "application/pdf" or filename.lower().endswith(".pdf")
+
+    extracted_text = ""
+
+    if is_pdf:
+        # Incercam intai extractia de text cu pypdf
+        try:
+            import pypdf
+            import io
+            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+            for page in reader.pages:
+                extracted_text += page.extract_text() or ""
+        except Exception:
+            extracted_text = ""
+
+    # Daca avem text extras (PDF cu text), folosim Claude text
+    # Daca nu (PDF scanat sau imagine), convertim la imagine
+    try:
+        import anthropic as anthropic_sdk
+        client_ai = anthropic_sdk.Anthropic(api_key=api_key)
+
+        if len(extracted_text.strip()) > 100:
+            # PDF cu text — trimitem textul la Claude
+            prompt_content = [{"type": "text", "text": f"""Esti un expert in citirea avizelor de munca din Romania emise de IGI (Inspectoratul General pentru Imigrari).
+Analizeaza urmatorul text extras dintr-un aviz de munca si extrage EXACT aceste informatii in format JSON:
+
+{{
+  "candidate_name": "numele complet al candidatului (SURNAME GIVEN_NAME asa cum apare in aviz)",
+  "cnp": "codul numeric personal al candidatului",
+  "birth_date": "data nasterii in format YYYY-MM-DD",
+  "birth_place": "tara sau locul nasterii",
+  "nationality": "nationalitatea candidatului (tara de origine)",
+  "passport_number": "numarul pasaportului",
+  "company_name": "denumirea companiei angajatoare",
+  "company_cui": "codul fiscal/CUI al companiei (fara RO prefix)",
+  "company_j": "numarul de inregistrare la Registrul Comertului (J.../...)",
+  "job_title": "functia/ocupatia (ex: barman, ospatar, bucatar)",
+  "cor_code": "codul COR al functiei",
+  "permit_number": "numarul avizului de munca",
+  "permit_date": "data emiterii avizului in format YYYY-MM-DD",
+  "work_type": "tipul muncii: PERMANENT sau SEZONIER"
+}}
+
+Reguli:
+- Extrage DOAR ce este explicit in text, nu inventa
+- Pentru date foloseste formatul YYYY-MM-DD
+- CUI fara prefix RO (ex: 31555494 nu RO31555494)
+- Daca un camp lipseste pune string gol ""
+
+TEXT AVIZ:
+{extracted_text[:4000]}
+
+Returneaza DOAR JSON-ul valid, fara alt text."""}]
+        else:
+            # PDF fara text sau imagine — trimitem ca imagine la Claude Vision
+            base64_data = base64.standard_b64encode(file_bytes).decode("utf-8")
+
+            # Determinam media type
+            if is_pdf:
+                media_type = "application/pdf"
+            elif filename.lower().endswith(".png"):
+                media_type = "image/png"
+            else:
+                media_type = "image/jpeg"
+
+            prompt_content = [
+                {
+                    "type": "image" if not is_pdf else "document",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": base64_data,
+                    }
+                } if not is_pdf else {
+                    "type": "document",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "application/pdf",
+                        "data": base64_data,
+                    }
+                },
+                {"type": "text", "text": """Esti un expert in citirea avizelor de munca din Romania emise de IGI.
+Extrage datele din acest aviz si returneaza DOAR un JSON cu:
+{
+  "candidate_name": "numele complet",
+  "cnp": "CNP-ul",
+  "birth_date": "YYYY-MM-DD",
+  "birth_place": "tara nasterii",
+  "nationality": "nationalitatea",
+  "passport_number": "nr pasaport",
+  "company_name": "denumire companie",
+  "company_cui": "CUI fara RO",
+  "company_j": "nr J",
+  "job_title": "functia",
+  "cor_code": "cod COR",
+  "permit_number": "nr aviz",
+  "permit_date": "YYYY-MM-DD",
+  "work_type": "PERMANENT sau SEZONIER"
+}
+Returneaza DOAR JSON valid."""}
+            ]
+
+        message = client_ai.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt_content}]
+        )
+
+        raw = message.content[0].text.strip()
+        # Curata markdown
+        if "```" in raw:
+            raw = re.search(r'\{.*\}', raw, re.DOTALL)
+            raw = raw.group() if raw else "{}"
+
+        extracted = json.loads(raw)
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="AI-ul nu a putut extrage datele. Verifica ca fisierul este un aviz IGI valid.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare procesare: {str(e)[:300]}")
+
+    # Salvam in MongoDB (staging) cu status "nou"
+    aviz_doc = {
+        "id": str(uuid.uuid4()),
+        "filename": filename,
+        "import_status": "nou",  # nou / importat / eroare
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        **{k: (v or "") for k, v in extracted.items()},
+    }
+    await db.avize_munca.insert_one(aviz_doc)
+    aviz_doc.pop("_id", None)
+
+    return {"id": aviz_doc["id"], "extracted": extracted, "doc": serialize_doc(aviz_doc)}
+
+
+@api_router.put("/avize/{aviz_id}")
+async def update_aviz(aviz_id: str, body: dict):
+    """Actualizeaza datele unui aviz din staging (editare manuala)"""
+    allowed = {"candidate_name","cnp","birth_date","birth_place","nationality","passport_number",
+               "company_name","company_cui","company_j","job_title","cor_code","permit_number","permit_date","work_type"}
+    update = {k: v for k, v in body.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="Niciun camp de actualizat")
+    await db.avize_munca.update_one({"id": aviz_id}, {"$set": update})
+    return {"updated": True}
+
+
+@api_router.post("/avize/{aviz_id}/import")
+async def import_aviz_to_crm(aviz_id: str):
+    """Importa un aviz din staging in CRM: actualizeaza/creeaza candidat si dosar imigrare"""
+    aviz = await db.avize_munca.find_one({"id": aviz_id})
+    if not aviz:
+        raise HTTPException(status_code=404, detail="Aviz negasit")
+
+    candidate_name = aviz.get("candidate_name", "")
+    passport_number = aviz.get("passport_number", "")
+    cnp = aviz.get("cnp", "")
+
+    # 1. Gaseste sau creeaza candidatul
+    candidate = None
+    if passport_number:
+        candidate = await db.candidates.find_one({"passport_number": {"$regex": passport_number.strip(), "$options": "i"}})
+    if not candidate and cnp:
+        candidate = await db.candidates.find_one({"personal_number": cnp})
+    if not candidate and candidate_name:
+        parts = candidate_name.strip().split()
+        if len(parts) >= 2:
+            candidate = await db.candidates.find_one({"last_name": {"$regex": parts[0], "$options": "i"}})
+
+    # Split nume pentru candidat
+    parts = candidate_name.strip().split()
+    last_name = parts[0] if parts else candidate_name
+    first_name = " ".join(parts[1:]) if len(parts) > 1 else ""
+
+    if candidate:
+        # Actualizeaza candidatul existent
+        update_fields = {}
+        if passport_number and not candidate.get("passport_number"):
+            update_fields["passport_number"] = passport_number
+        if cnp and not candidate.get("personal_number"):
+            update_fields["personal_number"] = cnp
+        if aviz.get("birth_date") and not candidate.get("birth_date"):
+            update_fields["birth_date"] = aviz["birth_date"]
+        if aviz.get("nationality") and not candidate.get("nationality"):
+            update_fields["nationality"] = aviz["nationality"]
+        if aviz.get("birth_place") and not candidate.get("birth_country"):
+            update_fields["birth_country"] = aviz["birth_place"]
+        if aviz.get("job_title") and not candidate.get("job_type"):
+            update_fields["job_type"] = aviz["job_title"]
+        if aviz.get("company_name") and not candidate.get("company_name"):
+            update_fields["company_name"] = aviz["company_name"]
+        if update_fields:
+            await db.candidates.update_one({"id": candidate["id"]}, {"$set": update_fields})
+        candidate_id = candidate["id"]
+    else:
+        # Creeaza candidat nou
+        new_candidate = {
+            "id": str(uuid.uuid4()),
+            "first_name": first_name,
+            "last_name": last_name,
+            "passport_number": passport_number,
+            "personal_number": cnp,
+            "birth_date": aviz.get("birth_date", ""),
+            "birth_country": aviz.get("birth_place", ""),
+            "nationality": aviz.get("nationality", ""),
+            "job_type": aviz.get("job_title", ""),
+            "company_name": aviz.get("company_name", ""),
+            "status": "plasat",
+            "phone": "", "email": "",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "source": "import_aviz",
+        }
+        await db.candidates.insert_one(new_candidate)
+        candidate_id = new_candidate["id"]
+
+    # 2. Gaseste sau creeaza compania
+    company_id = ""
+    company_name = aviz.get("company_name", "")
+    company_cui = aviz.get("company_cui", "")
+    if company_cui:
+        company = await db.companies.find_one({"cui": {"$regex": company_cui, "$options": "i"}})
+        if not company and company_name:
+            company = await db.companies.find_one({"name": {"$regex": company_name[:15], "$options": "i"}})
+        if company:
+            company_id = company.get("id", "")
+
+    # 3. Actualizeaza dosarul de imigrare existent sau creeaza unul nou
+    existing_case = None
+    if candidate_id:
+        existing_case = await db.immigration_cases.find_one({"candidate_id": candidate_id})
+    if not existing_case and aviz.get("permit_number"):
+        existing_case = await db.immigration_cases.find_one({"aviz_number": aviz["permit_number"]})
+
+    aviz_update = {
+        "aviz_number": aviz.get("permit_number", ""),
+        "aviz_date": aviz.get("permit_date", ""),
+        "cor_code": aviz.get("cor_code", ""),
+        "job_title": aviz.get("job_title", ""),
+    }
+
+    if existing_case:
+        await db.immigration_cases.update_one(
+            {"id": existing_case["id"]},
+            {"$set": {k: v for k, v in aviz_update.items() if v}}
+        )
+    else:
+        new_case = {
+            "id": str(uuid.uuid4()),
+            "candidate_id": candidate_id,
+            "candidate_name": candidate_name,
+            "company_id": company_id,
+            "company_name": company_name,
+            "case_type": "angajare",
+            "current_stage_name": "Aviz obtinut",
+            "status": "activ",
+            **aviz_update,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.immigration_cases.insert_one(new_case)
+
+    # 4. Marcheaza avizul ca importat
+    await db.avize_munca.update_one(
+        {"id": aviz_id},
+        {"$set": {"import_status": "importat", "candidate_id": candidate_id, "imported_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {"imported": True, "candidate_id": candidate_id, "message": f"Aviz importat cu succes pentru {candidate_name}"}
+
+
+@api_router.delete("/avize/{aviz_id}")
+async def delete_aviz(aviz_id: str):
+    """Sterge un aviz din staging"""
+    result = await db.avize_munca.delete_one({"id": aviz_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Aviz negasit")
+    return {"deleted": True}
 
 
 # ===================== GLOBAL SEARCH =====================
