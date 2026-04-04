@@ -25,7 +25,7 @@ const CandidatesPage = ({ showNotification }) => {
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [partners, setPartners] = useState([]);
-  const [showFilters, setShowFilters] = useState(() => !!searchParams.get("company_id"));
+  const [showFilters, setShowFilters] = useState(true);
 
   const fetchCandidates = useCallback(async () => {
     try {

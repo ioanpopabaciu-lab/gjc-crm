@@ -25,7 +25,7 @@ const ImmigrationPage = ({ showNotification }) => {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [operators, setOperators] = useState([]);
   // Email modal
   const [emailModal, setEmailModal] = useState({ open: false, caseData: null });
