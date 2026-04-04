@@ -3294,6 +3294,184 @@ async def sync_smartbill_invoices():
         "message": f"Importat {added} facturi noi din SmartBill. {skipped} deja existente în CRM."
     }
 
+# ===================== IMPORT SMARTBILL EXCEL =====================
+
+@api_router.post("/payments/import-smartbill")
+async def import_smartbill_excel(file: UploadFile = File(...)):
+    """
+    Importa facturile dintr-un fisier Excel/CSV exportat din SmartBill.
+    Accepta orice format de export SmartBill (detecteaza coloanele automat).
+    """
+    import io
+    import pandas as pd
+
+    # Validare fisier
+    fname = file.filename or ""
+    if not (fname.endswith(".xlsx") or fname.endswith(".xls") or fname.endswith(".csv")):
+        raise HTTPException(status_code=400, detail="Fisier invalid. Acceptam: .xlsx, .xls, .csv")
+
+    content = await file.read()
+
+    try:
+        if fname.endswith(".csv"):
+            # Incearca mai multe encodinguri
+            for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1250"]:
+                try:
+                    df = pd.read_csv(io.BytesIO(content), encoding=enc, sep=None, engine="python")
+                    break
+                except Exception:
+                    continue
+            else:
+                raise HTTPException(status_code=400, detail="Nu am putut citi fisierul CSV. Incearca sa il salvezi ca Excel (.xlsx) din SmartBill.")
+        else:
+            df = pd.read_excel(io.BytesIO(content))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Nu am putut citi fisierul: {str(e)[:200]}")
+
+    if df.empty:
+        raise HTTPException(status_code=400, detail="Fisierul este gol sau nu contine date.")
+
+    # Normalizam coloanele (lowercase, fara spatii, fara diacritice)
+    import unicodedata
+    def normalize_col(s):
+        s = str(s).lower().strip()
+        s = unicodedata.normalize('NFD', s)
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        return s.replace(" ", "_").replace(".", "").replace("/", "_").replace("-", "_")
+
+    col_map = {normalize_col(c): c for c in df.columns}
+
+    # Detectie coloana client (denumire client / cumparator)
+    client_col = next((col_map[k] for k in col_map if any(x in k for x in ["client", "cumparator", "denumire_client", "beneficiar", "partener"])), None)
+    # Detectie suma / total
+    total_col = next((col_map[k] for k in col_map if any(x in k for x in ["total", "valoare_totala", "suma", "total_cu_tva", "valoare"])), None)
+    # Detectie numar factura
+    nr_col = next((col_map[k] for k in col_map if any(x in k for x in ["numar", "nr_", "serie_si_numar", "factura_nr", "document_nr", "numar_factura"])), None)
+    # Detectie serie
+    serie_col = next((col_map[k] for k in col_map if any(x in k for x in ["serie", "seria"])), None)
+    # Detectie data
+    data_col = next((col_map[k] for k in col_map if any(x in k for x in ["data_emitere", "data_factura", "data_doc", "data_document", "data"])), None)
+    # Detectie moneda
+    moneda_col = next((col_map[k] for k in col_map if any(x in k for x in ["moneda", "valuta", "currency"])), None)
+    # Detectie status / achitat
+    status_col = next((col_map[k] for k in col_map if any(x in k for x in ["status", "achitat", "platit", "stare"])), None)
+    # Detectie rest de plata
+    rest_col = next((col_map[k] for k in col_map if any(x in k for x in ["rest", "neachitat", "neplatit", "sold"])), None)
+    # Detectie CIF client
+    cif_col = next((col_map[k] for k in col_map if any(x in k for x in ["cif", "cui", "cod_fiscal"])), None)
+
+    added = 0
+    skipped = 0
+    errors = 0
+    error_details = []
+
+    for _, row in df.iterrows():
+        try:
+            # Numar factura
+            nr = str(row[nr_col]).strip() if nr_col and pd.notna(row.get(nr_col)) else ""
+            serie = str(row[serie_col]).strip() if serie_col and pd.notna(row.get(serie_col)) else ""
+            inv_number = f"{serie}{nr}".strip() if (serie or nr) else ""
+
+            # Skip randuri goale sau header duplicat
+            if not inv_number or inv_number.lower() in ["nan", "none", ""]:
+                continue
+
+            # Nu dubla importul
+            existing = await db.payments.find_one({"invoice_number": inv_number})
+            if existing:
+                skipped += 1
+                continue
+
+            # Client
+            entity_name = str(row[client_col]).strip() if client_col and pd.notna(row.get(client_col)) else ""
+            if entity_name.lower() in ["nan", "none", ""]:
+                entity_name = ""
+
+            # Suma
+            amount = 0.0
+            if total_col and pd.notna(row.get(total_col)):
+                try:
+                    val = str(row[total_col]).replace(",", ".").replace(" ", "").replace("\xa0", "")
+                    amount = float(val)
+                except Exception:
+                    amount = 0.0
+
+            # Data
+            issue_date = ""
+            if data_col and pd.notna(row.get(data_col)):
+                try:
+                    d = pd.to_datetime(row[data_col], dayfirst=True, errors="coerce")
+                    issue_date = d.strftime("%Y-%m-%d") if pd.notna(d) else str(row[data_col])
+                except Exception:
+                    issue_date = str(row[data_col])
+
+            # Moneda
+            currency = "RON"
+            if moneda_col and pd.notna(row.get(moneda_col)):
+                cur_raw = str(row[moneda_col]).strip().upper()
+                if cur_raw in ["EUR", "USD", "RON", "GBP"]:
+                    currency = cur_raw
+
+            # Status plata
+            pay_status = "neplatit"
+            if rest_col and pd.notna(row.get(rest_col)):
+                try:
+                    rest = float(str(row[rest_col]).replace(",", ".").replace(" ", ""))
+                    if rest <= 0:
+                        pay_status = "platit"
+                    elif rest < amount:
+                        pay_status = "partial"
+                    else:
+                        pay_status = "neplatit"
+                except Exception:
+                    pass
+            elif status_col and pd.notna(row.get(status_col)):
+                st_raw = str(row[status_col]).lower().strip()
+                if any(x in st_raw for x in ["platit", "achitat", "incasat"]):
+                    pay_status = "platit"
+                elif any(x in st_raw for x in ["partial", "partial"]):
+                    pay_status = "partial"
+
+            payment_doc = {
+                "id": str(uuid.uuid4()),
+                "type": "firma",
+                "entity_id": "",
+                "entity_name": entity_name,
+                "amount": amount,
+                "currency": currency,
+                "date_received": issue_date,
+                "invoice_number": inv_number,
+                "status": pay_status,
+                "method": "transfer",
+                "contract_id": "",
+                "notes": f"Importat din SmartBill Excel — {inv_number}",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.payments.insert_one(payment_doc)
+            added += 1
+
+        except Exception as e:
+            errors += 1
+            error_details.append(str(e)[:100])
+
+    return {
+        "added": added,
+        "skipped": skipped,
+        "errors": errors,
+        "total_rows": len(df),
+        "message": f"Importat {added} facturi noi din SmartBill. {skipped} deja existente in CRM.",
+        "columns_detected": {
+            "client": client_col,
+            "total": total_col,
+            "numar": nr_col,
+            "data": data_col,
+            "moneda": moneda_col,
+        }
+    }
+
+
 # ===================== IMPORT PASAPOARTE (OCR AI) =====================
 
 @api_router.post("/import/passport")

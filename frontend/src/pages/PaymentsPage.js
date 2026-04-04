@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Plus, X, Edit2, Trash2, TrendingUp, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, TrendingUp, CheckCircle, Clock, AlertCircle, RefreshCw, Upload, FileSpreadsheet } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -55,6 +55,9 @@ const PaymentsPage = ({ showNotification }) => {
   const [contracts, setContracts] = useState([]);
   const [sbSyncing, setSbSyncing] = useState(false);
   const [sbConfigured, setSbConfigured] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const importFileRef = useRef();
 
   const fetchPayments = useCallback(async () => {
     try {
@@ -98,6 +101,30 @@ const PaymentsPage = ({ showNotification }) => {
       }
     } finally {
       setSbSyncing(false);
+    }
+  };
+
+  const handleImportSmartBill = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const r = await axios.post(`${API}/payments/import-smartbill`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setImportResult({ ok: true, ...r.data });
+      showNotification(r.data.message || `Importat ${r.data.added} facturi!`);
+      fetchPayments();
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Eroare la import";
+      setImportResult({ ok: false, message: msg });
+      showNotification(msg, "error");
+    } finally {
+      setImporting(false);
+      e.target.value = "";
     }
   };
 
@@ -223,18 +250,44 @@ const PaymentsPage = ({ showNotification }) => {
           <option value="">Toate statusurile</option>
           {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
-        <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Import SmartBill Excel */}
+          <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleImportSmartBill} />
+          <button
+            onClick={() => importFileRef.current?.click()}
+            disabled={importing}
+            title="Importă facturi din fișierul Excel exportat din SmartBill"
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#6366f1", color: "#fff", border: "none", borderRadius: "8px", cursor: importing ? "wait" : "pointer", fontWeight: "600", opacity: importing ? 0.7 : 1 }}>
+            {importing ? <RefreshCw size={15} style={{ animation: "spin 1s linear infinite" }} /> : <FileSpreadsheet size={15} />}
+            {importing ? "Se importă..." : "Import SmartBill Excel"}
+          </button>
           {sbConfigured && (
             <button onClick={handleSmartBillSync} disabled={sbSyncing}
               style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#f59e0b", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600", opacity: sbSyncing ? 0.7 : 1 }}>
               <RefreshCw size={15} style={sbSyncing ? { animation: "spin 1s linear infinite" } : {}} />
-              {sbSyncing ? "Se sincronizează..." : "SmartBill Sync"}
+              {sbSyncing ? "Se sincronizează..." : "SmartBill API Sync"}
             </button>
           )}
           <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>
             <Plus size={16} /> Plată Nouă
           </button>
         </div>
+        {importResult && (
+          <div style={{
+            width: "100%", marginTop: "8px", padding: "10px 14px", borderRadius: "8px",
+            background: importResult.ok ? "#f0fdf4" : "#fef2f2",
+            border: `1px solid ${importResult.ok ? "#86efac" : "#fca5a5"}`,
+            fontSize: "13px", color: importResult.ok ? "#166534" : "#991b1b",
+            display: "flex", justifyContent: "space-between", alignItems: "center"
+          }}>
+            <span>
+              {importResult.ok
+                ? `✓ ${importResult.message} (${importResult.added} adăugate, ${importResult.skipped} deja existente)`
+                : `✗ ${importResult.message}`}
+            </span>
+            <button onClick={() => setImportResult(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "inherit" }}>×</button>
+          </div>
+        )}
       </div>
 
       {/* Table */}
