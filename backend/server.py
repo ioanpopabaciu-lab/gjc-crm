@@ -3134,7 +3134,7 @@ async def test_smartbill_connection():
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                "https://api.smartbill.ro/series",
+                "https://ws.smartbill.ro/SBORO/api/series",
                 params={"cif": config["cif"], "type": "f"},
                 auth=(config["email"], config["token"]),
                 timeout=15
@@ -3176,7 +3176,7 @@ async def sync_smartbill_invoices():
     email = config["email"]
     token = config["token"]
     series_filter = config.get("series", "").strip()  # serie preferata (optional)
-    base_url = "https://api.smartbill.ro"
+    base_url = "https://ws.smartbill.ro/SBORO/api"
 
     added = 0
     skipped = 0
