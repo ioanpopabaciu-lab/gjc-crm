@@ -9,8 +9,13 @@ Rulare: python enrich_companies_anaf.py
 import asyncio
 import requests
 import time
+import sys
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
+
+# Fix Unicode pe Windows
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 MONGO_URL = "mongodb+srv://gjc_admin:GJC2026admin@cluster0.4l9rft3.mongodb.net/gjc_crm?retryWrites=true&w=majority&appName=Cluster0"
 DB_NAME = "gjc_crm_db"
@@ -111,7 +116,7 @@ async def main():
     errors = 0
 
     for idx, company in enumerate(companies, 1):
-        cui = company.get("cui", "").strip()
+        cui = (company.get("cui") or "").strip()
         name = company.get("name", "N/A")
         comp_id = company.get("id")
 
@@ -124,8 +129,8 @@ async def main():
             continue
 
         # Skip daca are deja telefon SI adresa
-        has_phone = bool(company.get("phone", "").strip())
-        has_address = bool(company.get("address", "").strip())
+        has_phone = bool((company.get("phone") or "").strip())
+        has_address = bool((company.get("address") or "").strip())
         if has_phone and has_address:
             print(f"{prefix} -> SKIP (are deja date)")
             skipped_has_data += 1
