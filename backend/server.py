@@ -440,6 +440,13 @@ class Interview(BaseModel):
     result: Optional[str] = None  # admis, respins, in_asteptare
     assigned_to: Optional[str] = None
     notes: Optional[str] = None
+    interview_location: Optional[str] = None
+    interviewer_name: Optional[str] = None
+    interviewer_contact: Optional[str] = None
+    candidate_experience: Optional[str] = None
+    job_id: Optional[str] = None
+    feedback: Optional[str] = None
+    interview_link: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class InterviewCreate(BaseModel):
@@ -456,6 +463,13 @@ class InterviewCreate(BaseModel):
     result: Optional[str] = None
     assigned_to: Optional[str] = None
     notes: Optional[str] = None
+    interview_location: Optional[str] = None
+    interviewer_name: Optional[str] = None
+    interviewer_contact: Optional[str] = None
+    candidate_experience: Optional[str] = None
+    job_id: Optional[str] = None
+    feedback: Optional[str] = None
+    interview_link: Optional[str] = None
 
 class Task(BaseModel):
     """Sarcină / reminder intern"""
@@ -579,6 +593,14 @@ class Job(BaseModel):
     # Status
     status: str = "activ"  # activ, pauza, inchis
     start_date: Optional[str] = None
+    # Extra fields
+    contract_type: Optional[str] = "full_time"  # full_time, part_time, sezonier, proiect
+    accommodation: bool = False  # cazare inclusă
+    meals: bool = False  # masă inclusă
+    transport: bool = False  # transport inclus
+    notes: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
     # Metadata
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -597,6 +619,13 @@ class JobCreate(BaseModel):
     currency: str = "EUR"
     headcount_needed: int = 1
     start_date: Optional[str] = None
+    contract_type: Optional[str] = "full_time"
+    accommodation: bool = False
+    meals: bool = False
+    transport: bool = False
+    notes: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
 
 class Application(BaseModel):
     """Application linking candidate to job"""

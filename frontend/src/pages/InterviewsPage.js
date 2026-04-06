@@ -35,7 +35,18 @@ const emptyForm = {
   scheduled_date: "", scheduled_time: "",
   interview_type: "tehnic", status: "programat",
   result: "", assigned_to: "", notes: "",
+  interview_location: "",
+  interviewer_name: "",
+  interviewer_contact: "",
+  candidate_experience: "",
+  job_id: "",
+  feedback: "",
+  interview_link: "",
 };
+
+const inputStyle = { width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box", fontSize: "0.875rem" };
+const labelStyle = { display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px", color: "#374151" };
+const sectionTitleStyle = { fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em", margin: "16px 0 8px 0", borderBottom: "1px solid #f3f4f6", paddingBottom: "4px" };
 
 const InterviewsPage = ({ showNotification }) => {
   const [interviews, setInterviews] = useState([]);
@@ -153,17 +164,21 @@ const InterviewsPage = ({ showNotification }) => {
               <th>Tip</th>
               <th>Data</th>
               <th>Oră</th>
+              <th>Locație</th>
               <th>Status</th>
               <th>Rezultat</th>
+              <th>Feedback</th>
               <th>Responsabil</th>
               <th>Acțiuni</th>
             </tr>
           </thead>
           <tbody>
             {interviews.length === 0 ? (
-              <tr><td colSpan={10} style={{ textAlign: "center", color: "#9ca3af", padding: "40px" }}>Niciun interviu înregistrat.</td></tr>
+              <tr><td colSpan={12} style={{ textAlign: "center", color: "#9ca3af", padding: "40px" }}>Niciun interviu înregistrat.</td></tr>
             ) : interviews.map(item => {
               const st = STATUS_OPTIONS.find(s => s.value === item.status);
+              const feedbackText = item.feedback ? (item.feedback.length > 30 ? item.feedback.slice(0, 30) + "…" : item.feedback) : "—";
+              const locationText = item.interview_location || (item.interview_link && item.interview_type === "online" ? "Online" : "—");
               return (
                 <tr key={item.id}>
                   <td style={{ fontWeight: "600" }}>{item.candidate_name || "—"}</td>
@@ -172,6 +187,7 @@ const InterviewsPage = ({ showNotification }) => {
                   <td>{INTERVIEW_TYPES.find(t => t.value === item.interview_type)?.label || item.interview_type}</td>
                   <td>{item.scheduled_date || "—"}</td>
                   <td>{item.scheduled_time || "—"}</td>
+                  <td style={{ maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.interview_location || ""}>{locationText}</td>
                   <td>
                     <span style={{ padding: "2px 10px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600", background: st?.color || "#6b7280", color: "#fff" }}>
                       {st?.label || item.status}
@@ -184,6 +200,7 @@ const InterviewsPage = ({ showNotification }) => {
                       </span>
                     ) : "—"}
                   </td>
+                  <td style={{ color: "#6b7280", fontSize: "0.8rem", maxWidth: "150px" }} title={item.feedback || ""}>{feedbackText}</td>
                   <td>{item.assigned_to || "—"}</td>
                   <td>
                     <div style={{ display: "flex", gap: "6px" }}>
@@ -201,75 +218,122 @@ const InterviewsPage = ({ showNotification }) => {
       {/* Modal */}
       {showModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: "12px", padding: "28px", width: "100%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ background: "#fff", borderRadius: "12px", padding: "28px", width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "700" }}>{editing ? "Editează Interviu" : "Interviu Nou"}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={20} /></button>
             </div>
+
+            {/* Secțiunea 1: Candidat & Post */}
+            <div style={sectionTitleStyle}>Candidat & Post</div>
             <div style={{ display: "grid", gap: "12px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Candidat *</label>
-                <select value={form.candidate_id} onChange={e => handleCandidateChange(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+                <label style={labelStyle}>Candidat *</label>
+                <select value={form.candidate_id} onChange={e => handleCandidateChange(e.target.value)} style={inputStyle}>
                   <option value="">— Selectează —</option>
                   {candidates.map(c => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Companie</label>
-                <select value={form.company_id} onChange={e => handleCompanyChange(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+                <label style={labelStyle}>Companie</label>
+                <select value={form.company_id} onChange={e => handleCompanyChange(e.target.value)} style={inputStyle}>
                   <option value="">— Selectează —</option>
                   {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Post / Funcție</label>
-                <input type="text" value={form.job_title} onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
+                <label style={labelStyle}>Post / Funcție</label>
+                <input type="text" value={form.job_title} onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Experiența Candidatului</label>
+                <input type="text" value={form.candidate_experience} onChange={e => setForm(f => ({ ...f, candidate_experience: e.target.value }))} placeholder="ex: 2 ani ospătar, fără experiență" style={inputStyle} />
+              </div>
+            </div>
+
+            {/* Secțiunea 2: Programare */}
+            <div style={sectionTitleStyle}>Programare</div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={labelStyle}>Data</label>
+                  <input type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ora</label>
+                  <input type="time" value={form.scheduled_time} onChange={e => setForm(f => ({ ...f, scheduled_time: e.target.value }))} style={inputStyle} />
+                </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Data</label>
-                  <input type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Ora</label>
-                  <input type="time" value={form.scheduled_time} onChange={e => setForm(f => ({ ...f, scheduled_time: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Tip Interviu</label>
-                  <select value={form.interview_type} onChange={e => setForm(f => ({ ...f, interview_type: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+                  <label style={labelStyle}>Tip Interviu</label>
+                  <select value={form.interview_type} onChange={e => setForm(f => ({ ...f, interview_type: e.target.value }))} style={inputStyle}>
                     {INTERVIEW_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Status</label>
-                  <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+                  <label style={labelStyle}>Locație</label>
+                  <input type="text" value={form.interview_location} onChange={e => setForm(f => ({ ...f, interview_location: e.target.value }))} placeholder="Adresă sau locație" style={inputStyle} />
+                </div>
+              </div>
+              {form.interview_type === "online" && (
+                <div>
+                  <label style={labelStyle}>Link Video</label>
+                  <input type="text" value={form.interview_link} onChange={e => setForm(f => ({ ...f, interview_link: e.target.value }))} placeholder="https://zoom.us/..." style={inputStyle} />
+                </div>
+              )}
+            </div>
+
+            {/* Secțiunea 3: Persoană de Contact */}
+            <div style={sectionTitleStyle}>Persoană Contact (la Companie)</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div>
+                <label style={labelStyle}>Numele Intervievatorului</label>
+                <input type="text" value={form.interviewer_name} onChange={e => setForm(f => ({ ...f, interviewer_name: e.target.value }))} placeholder="Cine face interviul" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Contact Intervievator</label>
+                <input type="text" value={form.interviewer_contact} onChange={e => setForm(f => ({ ...f, interviewer_contact: e.target.value }))} placeholder="Telefon / email" style={inputStyle} />
+              </div>
+            </div>
+
+            {/* Secțiunea 4: Evaluare */}
+            <div style={sectionTitleStyle}>Evaluare</div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={labelStyle}>Status</label>
+                  <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={inputStyle}>
                     {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Rezultat</label>
-                  <select value={form.result} onChange={e => setForm(f => ({ ...f, result: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+                  <label style={labelStyle}>Rezultat</label>
+                  <select value={form.result} onChange={e => setForm(f => ({ ...f, result: e.target.value }))} style={inputStyle}>
                     {RESULT_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Responsabil</label>
-                  <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
-                    <option value="">— Selectează —</option>
-                    <option value="Ioan Baciu">Ioan Baciu</option>
-                    {operators.filter(op => op.active !== false).map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Note</label>
-                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", resize: "vertical", boxSizing: "border-box" }} />
+                <label style={labelStyle}>Responsabil</label>
+                <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} style={inputStyle}>
+                  <option value="">— Selectează —</option>
+                  <option value="Ioan Baciu">Ioan Baciu</option>
+                  {operators.filter(op => op.active !== false).map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Feedback după Interviu</label>
+                <textarea value={form.feedback} onChange={e => setForm(f => ({ ...f, feedback: e.target.value }))} rows={4} placeholder="Impresii, observații detaliate după interviu..." style={{ ...inputStyle, resize: "vertical" }} />
               </div>
             </div>
+
+            {/* Secțiunea 5: Note */}
+            <div style={sectionTitleStyle}>Note</div>
+            <div>
+              <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Note scurte..." style={{ ...inputStyle, resize: "vertical" }} />
+            </div>
+
             <div style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
               <button onClick={() => setShowModal(false)} style={{ padding: "8px 20px", border: "1px solid #e5e7eb", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>Anulează</button>
               <button onClick={handleSave} style={{ padding: "8px 20px", background: "#6366f1", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>

@@ -4,7 +4,7 @@ import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
   Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
   Search, X, Settings, Globe, CreditCard, Receipt, Target,
-  CheckSquare, UserCheck, FileEdit, FilePlus2
+  CheckSquare, UserCheck, FileEdit, FilePlus2, Briefcase
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
@@ -20,6 +20,7 @@ const modules = [
   { id: "leads", path: "/leads", name: "Leads B2B", icon: Target },
   { id: "pipeline", path: "/pipeline", name: "Pipeline Vânzări", icon: TrendingUp },
   { id: "interviews", path: "/interviews", name: "Interviuri", icon: Calendar },
+  { id: "jobs", path: "/jobs", name: "Poziții Vacante", icon: Briefcase },
   { id: "placements", path: "/placements", name: "Post-Plasare", icon: UserCheck },
   { id: "tasks", path: "/tasks", name: "Sarcini", icon: CheckSquare },
   { id: "contracts", path: "/contracts", name: "Contracte", icon: Receipt },

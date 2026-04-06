@@ -22,6 +22,7 @@ import ContractsPage from './pages/ContractsPage';
 import PaymentsPage from './pages/PaymentsPage';
 import LeadsPage from './pages/LeadsPage';
 import InterviewsPage from './pages/InterviewsPage';
+import JobsPage from './pages/JobsPage';
 import TasksPage from './pages/TasksPage';
 import PlacementsPage from './pages/PlacementsPage';
 import TemplatesPage from './pages/TemplatesPage';
@@ -72,6 +73,7 @@ function App() {
             <Route path="/payments" element={<PaymentsPage showNotification={showNotification} />} />
             <Route path="/leads" element={<LeadsPage showNotification={showNotification} />} />
             <Route path="/interviews" element={<InterviewsPage showNotification={showNotification} />} />
+            <Route path="/jobs" element={<JobsPage showNotification={showNotification} />} />
             <Route path="/tasks" element={<TasksPage showNotification={showNotification} />} />
             <Route path="/placements" element={<PlacementsPage showNotification={showNotification} />} />
             <Route path="/templates" element={<TemplatesPage showNotification={showNotification} />} />
