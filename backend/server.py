@@ -163,8 +163,8 @@ class CompanyCreate(BaseModel):
 class Candidate(BaseModel):
     model_config = ConfigDict(extra="allow")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    first_name: str
-    last_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     nationality: Optional[str] = None
     passport_number: Optional[str] = None
     passport_expiry: Optional[str] = None
