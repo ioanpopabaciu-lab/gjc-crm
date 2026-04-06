@@ -22,6 +22,7 @@ export default function AvizImportPage({ showNotification }) {
   const [editingCell, setEditingCell] = useState(null); // {id, field}
   const [importingId, setImportingId] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [emailImporting, setEmailImporting] = useState(false);
   const fileInputRef = useRef();
 
   // ─── Incarca avizele din baza de date ─────────────────────────
@@ -83,6 +84,32 @@ export default function AvizImportPage({ showNotification }) {
     setDragging(false);
     processFiles(e.dataTransfer.files);
   }, []);
+
+  // ─── Import din Email ──────────────────────────────────────────
+  const importFromEmail = async () => {
+    setEmailImporting(true);
+    try {
+      const res = await axios.post(`${API}/import/avize-email`, {}, { timeout: 120000 });
+      const { imported, skipped, errors } = res.data;
+      let msg = `${imported} avize noi importate din email`;
+      if (skipped > 0) msg += ` · ${skipped} duplicate omise`;
+      if (errors && errors.length > 0) msg += ` · ${errors.length} erori`;
+      showNotification?.(msg, imported > 0 ? 'success' : 'info');
+      if (imported > 0) await loadAvize();
+    } catch (err) {
+      if (err.response?.status === 503) {
+        showNotification?.(
+          'IMAP neconfigurat. Adaugă IMAP_USER (sau SMTP_USER) și IMAP_PASS (sau SMTP_PASS) în fișierul .env de pe server.',
+          'error'
+        );
+      } else {
+        const msg = err.response?.data?.detail || err.message;
+        showNotification?.(msg, 'error');
+      }
+    } finally {
+      setEmailImporting(false);
+    }
+  };
 
   // ─── Editare inline ────────────────────────────────────────────
   const handleCellEdit = async (id, field, value) => {
@@ -171,6 +198,14 @@ export default function AvizImportPage({ showNotification }) {
           )}
           <button onClick={exportCSV} disabled={!avize.length} style={btnStyle('#6b7280', true)}>
             <Download size={15}/> Export CSV
+          </button>
+          <button
+            onClick={importFromEmail}
+            disabled={emailImporting || uploading}
+            style={btnStyle('#8b5cf6')}
+          >
+            {emailImporting ? <Loader size={15} className="spin"/> : <span style={{fontSize:'15px'}}>📧</span>}
+            {emailImporting ? 'Se caută în email...' : 'Import din Email'}
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}

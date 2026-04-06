@@ -22,7 +22,11 @@ const ENTITY_TYPES = ["general", "candidate", "company", "case", "contract", "pa
 const emptyForm = {
   title: "", description: "",
   entity_type: "general", entity_id: "", entity_name: "",
-  due_date: "", priority: "normal", status: "pending", assigned_to: "",
+  due_date: "", due_time: "09:00", priority: "normal", status: "pending",
+  assigned_to: "", assigned_email: "",
+  notify_24h: true, notify_3h: true,
+  meeting_scheduled: false, meeting_with: "", meeting_contact: "",
+  meeting_datetime: "", meeting_materials: "",
 };
 
 const TasksPage = ({ showNotification }) => {
@@ -144,10 +148,16 @@ const TasksPage = ({ showNotification }) => {
                   {isOverdue && <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "#ef4444", fontSize: "0.75rem", fontWeight: "600" }}><AlertCircle size={12} /> Depășit</span>}
                 </div>
                 {task.description && <div style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: "2px" }}>{task.description}</div>}
-                <div style={{ display: "flex", gap: "14px", marginTop: "4px", fontSize: "0.75rem", color: "#9ca3af", flexWrap: "wrap" }}>
-                  {task.due_date && <span style={{ display: "flex", alignItems: "center", gap: "3px" }}><Clock size={11} /> {task.due_date}</span>}
+                <div style={{ display: "flex", gap: "14px", marginTop: "4px", fontSize: "0.75rem", color: "#9ca3af", flexWrap: "wrap", alignItems: "center" }}>
+                  {task.due_date && <span style={{ display: "flex", alignItems: "center", gap: "3px" }}><Clock size={11} /> {task.due_date}{task.due_time ? ` ${task.due_time}` : ""}</span>}
+                  {task.created_at && <span>Adăugat: {new Date(task.created_at).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>}
                   {task.assigned_to && <span>→ {task.assigned_to}</span>}
                   {task.entity_name && <span>📎 {task.entity_name}</span>}
+                  {task.meeting_scheduled && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#d1fae5", color: "#065f46", borderRadius: "10px", padding: "1px 8px", fontWeight: 600, fontSize: "0.7rem" }}>
+                      📅 Întâlnire{task.meeting_with ? ` cu ${task.meeting_with}` : ""}{task.meeting_datetime ? ` · ${task.meeting_datetime}` : ""}
+                    </span>
+                  )}
                   <span style={{ color: status?.color }}>{status?.label}</span>
                 </div>
               </div>
@@ -197,6 +207,12 @@ const TasksPage = ({ showNotification }) => {
                   <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
                 </div>
                 <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Ora termenului</label>
+                  <input type="time" value={form.due_time || "09:00"} onChange={e => setForm(f => ({ ...f, due_time: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
                   <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Atribuit</label>
                   <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
                     <option value="">— Selectează —</option>
@@ -204,6 +220,60 @@ const TasksPage = ({ showNotification }) => {
                     {operators.filter(op => op.active !== false).map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
                   </select>
                 </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", marginBottom: "4px" }}>Email persoană atribuită</label>
+                  <input type="text" value={form.assigned_email || ""} onChange={e => setForm(f => ({ ...f, assigned_email: e.target.value }))} placeholder="ex: persoana@firma.ro" style={{ width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box" }} />
+                </div>
+              </div>
+              {/* Notificări */}
+              <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ fontSize: "0.875rem", fontWeight: "600", marginBottom: "8px", color: "#374151" }}>🔔 Notificări email</div>
+                <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.875rem", cursor: "pointer" }}>
+                    <input type="checkbox" checked={form.notify_24h} onChange={e => setForm(f => ({ ...f, notify_24h: e.target.checked }))} style={{ width: "16px", height: "16px", accentColor: "#8b5cf6" }} />
+                    Email 24h înainte
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.875rem", cursor: "pointer" }}>
+                    <input type="checkbox" checked={form.notify_3h} onChange={e => setForm(f => ({ ...f, notify_3h: e.target.checked }))} style={{ width: "16px", height: "16px", accentColor: "#8b5cf6" }} />
+                    Email 3h înainte
+                  </label>
+                </div>
+              </div>
+              {/* Secțiune Întâlnire */}
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, meeting_scheduled: !f.meeting_scheduled }))}
+                  style={{ width: "100%", padding: "10px 14px", background: form.meeting_scheduled ? "#d1fae5" : "#f9fafb", border: "none", borderBottom: form.meeting_scheduled ? "1px solid #a7f3d0" : "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.875rem", fontWeight: "600", color: form.meeting_scheduled ? "#065f46" : "#6b7280", textAlign: "left" }}
+                >
+                  <span style={{ fontSize: "16px" }}>📅</span>
+                  Întâlnire programată
+                  <span style={{ marginLeft: "auto", fontSize: "0.75rem", background: form.meeting_scheduled ? "#10b981" : "#d1d5db", color: "white", borderRadius: "10px", padding: "1px 8px" }}>
+                    {form.meeting_scheduled ? "ON" : "OFF"}
+                  </span>
+                </button>
+                {form.meeting_scheduled && (
+                  <div style={{ padding: "12px", display: "grid", gap: "10px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: "600", marginBottom: "4px" }}>Cu cine</label>
+                        <input type="text" value={form.meeting_with || ""} onChange={e => setForm(f => ({ ...f, meeting_with: e.target.value }))} placeholder="Nume persoană / firmă" style={{ width: "100%", padding: "7px 10px", border: "1px solid #e5e7eb", borderRadius: "6px", boxSizing: "border-box", fontSize: "0.875rem" }} />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: "600", marginBottom: "4px" }}>Date contact</label>
+                        <input type="text" value={form.meeting_contact || ""} onChange={e => setForm(f => ({ ...f, meeting_contact: e.target.value }))} placeholder="Telefon / email" style={{ width: "100%", padding: "7px 10px", border: "1px solid #e5e7eb", borderRadius: "6px", boxSizing: "border-box", fontSize: "0.875rem" }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: "600", marginBottom: "4px" }}>Data și ora întâlnirii</label>
+                      <input type="datetime-local" value={form.meeting_datetime || ""} onChange={e => setForm(f => ({ ...f, meeting_datetime: e.target.value }))} style={{ width: "100%", padding: "7px 10px", border: "1px solid #e5e7eb", borderRadius: "6px", boxSizing: "border-box", fontSize: "0.875rem" }} />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: "600", marginBottom: "4px" }}>Materiale necesare</label>
+                      <textarea value={form.meeting_materials || ""} onChange={e => setForm(f => ({ ...f, meeting_materials: e.target.value }))} rows={2} placeholder="Ce trebuie pregătit..." style={{ width: "100%", padding: "7px 10px", border: "1px solid #e5e7eb", borderRadius: "6px", resize: "vertical", boxSizing: "border-box", fontSize: "0.875rem" }} />
+                    </div>
+                  </div>
+                )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>

@@ -17,8 +17,13 @@ from passlib.context import CryptContext
 import jwt
 import smtplib
 import asyncio
+import imaplib
+import email as email_lib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler()
 from pdf_generator import generate_angajament_plata, generate_contract_mediere, generate_oferta_angajare
 
 ROOT_DIR = Path(__file__).parent
@@ -462,9 +467,21 @@ class Task(BaseModel):
     entity_id: Optional[str] = None
     entity_name: Optional[str] = None
     due_date: Optional[str] = None
+    due_time: Optional[str] = "09:00"
     priority: str = "normal"  # urgent, high, normal, low
     status: str = "pending"  # pending, in_progress, done
     assigned_to: Optional[str] = None
+    assigned_email: Optional[str] = None
+    notify_24h: bool = True
+    notify_3h: bool = True
+    notify_sent_24h: bool = False
+    notify_sent_3h: bool = False
+    # Întâlnire
+    meeting_scheduled: bool = False
+    meeting_with: Optional[str] = None
+    meeting_contact: Optional[str] = None
+    meeting_materials: Optional[str] = None
+    meeting_datetime: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TaskCreate(BaseModel):
@@ -474,9 +491,19 @@ class TaskCreate(BaseModel):
     entity_id: Optional[str] = None
     entity_name: Optional[str] = None
     due_date: Optional[str] = None
+    due_time: Optional[str] = "09:00"
     priority: str = "normal"
     status: str = "pending"
     assigned_to: Optional[str] = None
+    assigned_email: Optional[str] = None
+    notify_24h: bool = True
+    notify_3h: bool = True
+    # Întâlnire
+    meeting_scheduled: bool = False
+    meeting_with: Optional[str] = None
+    meeting_contact: Optional[str] = None
+    meeting_materials: Optional[str] = None
+    meeting_datetime: Optional[str] = None
 
 class Placement(BaseModel):
     """Plasament finalizat — tracking post-plasare"""
@@ -3646,26 +3673,18 @@ async def get_avize(status: Optional[str] = None, search: Optional[str] = None):
     return [serialize_doc(d) for d in docs]
 
 
-@api_router.post("/import/aviz")
-async def ocr_aviz(file: UploadFile = File(...)):
-    """OCR pe un aviz de munca PDF folosind Claude AI — extrage toate datele si le salveaza in staging"""
+async def ocr_aviz_bytes(file_bytes: bytes, filename: str) -> dict:
+    """Helper: rulează OCR Claude pe bytes-urile unui aviz PDF și returnează datele extrase"""
     import base64, json, re
 
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY nu este configurat")
 
-    # Citim fisierul
-    file_bytes = await file.read()
-    filename = file.filename or "aviz.pdf"
-
-    # Verificam daca fisierul este PDF
-    is_pdf = file.content_type == "application/pdf" or filename.lower().endswith(".pdf")
-
+    is_pdf = filename.lower().endswith(".pdf")
     extracted_text = ""
 
     if is_pdf:
-        # Incercam intai extractia de text cu pypdf
         try:
             import pypdf
             import io
@@ -3675,14 +3694,11 @@ async def ocr_aviz(file: UploadFile = File(...)):
         except Exception:
             extracted_text = ""
 
-    # Daca avem text extras (PDF cu text), folosim Claude text
-    # Daca nu (PDF scanat sau imagine), convertim la imagine
     try:
         import anthropic as anthropic_sdk
         client_ai = anthropic_sdk.Anthropic(api_key=api_key)
 
         if len(extracted_text.strip()) > 100:
-            # PDF cu text — trimitem textul la Claude
             prompt_content = [{"type": "text", "text": f"""Esti un expert in citirea avizelor de munca din Romania emise de IGI (Inspectoratul General pentru Imigrari).
 Analizeaza urmatorul text extras dintr-un aviz de munca si extrage EXACT aceste informatii in format JSON:
 
@@ -3714,10 +3730,7 @@ TEXT AVIZ:
 
 Returneaza DOAR JSON-ul valid, fara alt text."""}]
         else:
-            # PDF fara text sau imagine — trimitem ca imagine la Claude Vision
             base64_data = base64.standard_b64encode(file_bytes).decode("utf-8")
-
-            # Determinam media type
             if is_pdf:
                 media_type = "application/pdf"
             elif filename.lower().endswith(".png"):
@@ -3727,17 +3740,17 @@ Returneaza DOAR JSON-ul valid, fara alt text."""}]
 
             prompt_content = [
                 {
-                    "type": "image" if not is_pdf else "document",
-                    "source": {
-                        "type": "base64",
-                        "media_type": media_type,
-                        "data": base64_data,
-                    }
-                } if not is_pdf else {
                     "type": "document",
                     "source": {
                         "type": "base64",
                         "media_type": "application/pdf",
+                        "data": base64_data,
+                    }
+                } if is_pdf else {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
                         "data": base64_data,
                     }
                 },
@@ -3769,23 +3782,32 @@ Returneaza DOAR JSON valid."""}
         )
 
         raw = message.content[0].text.strip()
-        # Curata markdown
         if "```" in raw:
-            raw = re.search(r'\{.*\}', raw, re.DOTALL)
-            raw = raw.group() if raw else "{}"
+            m = re.search(r'\{.*\}', raw, re.DOTALL)
+            raw = m.group() if m else "{}"
 
-        extracted = json.loads(raw)
+        return json.loads(raw)
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=422, detail="AI-ul nu a putut extrage datele. Verifica ca fisierul este un aviz IGI valid.")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Eroare procesare: {str(e)[:300]}")
 
-    # Salvam in MongoDB (staging) cu status "nou"
+
+@api_router.post("/import/aviz")
+async def ocr_aviz(file: UploadFile = File(...)):
+    """OCR pe un aviz de munca PDF folosind Claude AI — extrage toate datele si le salveaza in staging"""
+    file_bytes = await file.read()
+    filename = file.filename or "aviz.pdf"
+
+    extracted = await ocr_aviz_bytes(file_bytes, filename)
+
     aviz_doc = {
         "id": str(uuid.uuid4()),
         "filename": filename,
-        "import_status": "nou",  # nou / importat / eroare
+        "import_status": "nou",
         "created_at": datetime.now(timezone.utc).isoformat(),
         **{k: (v or "") for k, v in extracted.items()},
     }
@@ -3793,6 +3815,120 @@ Returneaza DOAR JSON valid."""}
     aviz_doc.pop("_id", None)
 
     return {"id": aviz_doc["id"], "extracted": extracted, "doc": serialize_doc(aviz_doc)}
+
+
+@api_router.post("/import/avize-email")
+async def import_avize_from_email(current_user=Depends(get_current_user)):
+    """Importă avize IGI din emailuri IMAP — caută PDF-uri cu 'aviz' în subiect sau în numele fișierului"""
+    imap_host = os.environ.get("IMAP_HOST", "imap.gmail.com")
+    imap_user = os.environ.get("IMAP_USER") or os.environ.get("SMTP_USER", "")
+    imap_pass = os.environ.get("IMAP_PASS") or os.environ.get("SMTP_PASS", "")
+
+    if not imap_user or not imap_pass:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "IMAP neconfigurat. Adaugă în fișierul .env variabilele: "
+                "IMAP_USER (sau SMTP_USER) și IMAP_PASS (sau SMTP_PASS). "
+                "Pentru Gmail activează 'Acces aplicații mai puțin sigure' sau folosește o parolă de aplicație."
+            )
+        )
+
+    imported_count = 0
+    skipped_count = 0
+    errors = []
+
+    def _fetch_emails():
+        """Funcție sincronă pentru conexiunea IMAP"""
+        results = []
+        try:
+            mail = imaplib.IMAP4_SSL(imap_host)
+            mail.login(imap_user, imap_pass)
+            mail.select("INBOX")
+
+            # Data de acum 90 zile
+            since_date = (datetime.now() - timedelta(days=90)).strftime("%d-%b-%Y")
+
+            # Caută emailuri cu "aviz" în subiect
+            _, msg_ids_subj = mail.search(None, f'(SINCE {since_date} SUBJECT "aviz")')
+            # Caută toate emailurile din ultimele 90 zile (pentru a verifica attachment-uri)
+            _, msg_ids_all = mail.search(None, f'(SINCE {since_date})')
+
+            all_ids = set()
+            if msg_ids_subj[0]:
+                all_ids.update(msg_ids_subj[0].split())
+            if msg_ids_all[0]:
+                all_ids.update(msg_ids_all[0].split())
+
+            for msg_id in all_ids:
+                try:
+                    _, msg_data = mail.fetch(msg_id, "(RFC822)")
+                    raw_email = msg_data[0][1]
+                    msg = email_lib.message_from_bytes(raw_email)
+
+                    subject = msg.get("Subject", "")
+                    has_aviz_subject = "aviz" in subject.lower()
+
+                    for part in msg.walk():
+                        content_disposition = part.get("Content-Disposition", "")
+                        filename_part = part.get_filename()
+                        if not filename_part:
+                            continue
+                        # Decodează filename dacă e encoded
+                        decoded_parts = email_lib.header.decode_header(filename_part)
+                        filename_part = "".join(
+                            p.decode(enc or "utf-8") if isinstance(p, bytes) else p
+                            for p, enc in decoded_parts
+                        )
+                        is_pdf = filename_part.lower().endswith(".pdf")
+                        has_aviz_in_name = "aviz" in filename_part.lower()
+
+                        if is_pdf and (has_aviz_subject or has_aviz_in_name):
+                            pdf_bytes = part.get_payload(decode=True)
+                            if pdf_bytes:
+                                results.append((pdf_bytes, filename_part))
+                except Exception as e:
+                    errors.append(f"Eroare citire email {msg_id}: {str(e)[:100]}")
+
+            mail.logout()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Eroare conexiune IMAP: {str(e)[:200]}")
+        return results
+
+    loop = asyncio.get_event_loop()
+    try:
+        pdf_attachments = await loop.run_in_executor(None, _fetch_emails)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare IMAP: {str(e)[:200]}")
+
+    for pdf_bytes, pdf_filename in pdf_attachments:
+        try:
+            extracted = await ocr_aviz_bytes(pdf_bytes, pdf_filename)
+            permit_number = extracted.get("permit_number", "").strip()
+
+            # Skip dacă permit_number există deja
+            if permit_number:
+                existing = await db.avize_munca.find_one({"permit_number": permit_number})
+                if existing:
+                    skipped_count += 1
+                    continue
+
+            aviz_doc = {
+                "id": str(uuid.uuid4()),
+                "filename": pdf_filename,
+                "import_status": "nou",
+                "source": "email",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                **{k: (v or "") for k, v in extracted.items()},
+            }
+            await db.avize_munca.insert_one(aviz_doc)
+            imported_count += 1
+        except Exception as e:
+            errors.append(f"{pdf_filename}: {str(e)[:150]}")
+
+    return {"imported": imported_count, "skipped": skipped_count, "errors": errors}
 
 
 @api_router.put("/avize/{aviz_id}")
@@ -3989,13 +4125,117 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+async def send_task_reminders():
+    """Trimite email remindere pentru sarcinile cu termen apropiat (24h și 3h)"""
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+
+    if not smtp_user or not smtp_pass:
+        return {"sent_24h": 0, "sent_3h": 0}
+
+    sent_24h = 0
+    sent_3h = 0
+    now = datetime.now(timezone.utc)
+
+    tasks_cursor = db.tasks.find({"status": {"$ne": "done"}}, {"_id": 0})
+    tasks_list = await tasks_cursor.to_list(1000)
+
+    for task in tasks_list:
+        due_date = task.get("due_date")
+        if not due_date:
+            continue
+
+        due_time = task.get("due_time") or "09:00"
+        try:
+            due_dt = datetime.fromisoformat(f"{due_date}T{due_time}:00").replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        diff_hours = (due_dt - now).total_seconds() / 3600
+
+        def _build_body(label):
+            body = f"Reminder sarcină — {label}\n\n"
+            body += f"Titlu: {task.get('title', '')}\n"
+            body += f"Termen: {due_date} {due_time}\n"
+            body += f"Prioritate: {task.get('priority', 'normal')}\n"
+            if task.get("description"):
+                body += f"Descriere: {task['description']}\n"
+            if task.get("assigned_to"):
+                body += f"Atribuit: {task['assigned_to']}\n"
+            if task.get("meeting_scheduled"):
+                body += "\n📅 ÎNTÂLNIRE PROGRAMATĂ\n"
+                if task.get("meeting_with"):
+                    body += f"  Cu cine: {task['meeting_with']}\n"
+                if task.get("meeting_contact"):
+                    body += f"  Contact: {task['meeting_contact']}\n"
+                if task.get("meeting_datetime"):
+                    body += f"  Data/ora: {task['meeting_datetime']}\n"
+                if task.get("meeting_materials"):
+                    body += f"  Materiale: {task['meeting_materials']}\n"
+            return body
+
+        def _send_reminder(subject, body, recipients):
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = smtp_user
+            msg["To"] = recipients[0]
+            if len(recipients) > 1:
+                msg["Cc"] = ", ".join(recipients[1:])
+            msg.attach(MIMEText(body, "plain", "utf-8"))
+            html_body = body.replace("\n", "<br>")
+            msg.attach(MIMEText(f"<html><body style='font-family:Arial,sans-serif;'>{html_body}</body></html>", "html", "utf-8"))
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, recipients, msg.as_string())
+
+        try:
+            if task.get("notify_24h") and not task.get("notify_sent_24h") and 23 <= diff_hours <= 25:
+                label = "24h înainte de termen"
+                subject = f"⏰ Reminder 24h: {task.get('title', '')}"
+                body = _build_body(label)
+                recipients = [smtp_user]
+                if task.get("assigned_email"):
+                    recipients.append(task["assigned_email"])
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, _send_reminder, subject, body, recipients)
+                await db.tasks.update_one({"id": task["id"]}, {"$set": {"notify_sent_24h": True}})
+                sent_24h += 1
+
+            elif task.get("notify_3h") and not task.get("notify_sent_3h") and 2 <= diff_hours <= 4:
+                label = "3h înainte de termen"
+                subject = f"⏰ Reminder 3h: {task.get('title', '')}"
+                body = _build_body(label)
+                recipients = [smtp_user]
+                if task.get("assigned_email"):
+                    recipients.append(task["assigned_email"])
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, _send_reminder, subject, body, recipients)
+                await db.tasks.update_one({"id": task["id"]}, {"$set": {"notify_sent_3h": True}})
+                sent_3h += 1
+        except Exception as e:
+            logger.warning(f"Eroare trimitere reminder task {task.get('id')}: {e}")
+
+    return {"sent_24h": sent_24h, "sent_3h": sent_3h}
+
+
+@api_router.post("/tasks/send-reminders")
+async def manual_send_reminders(current_user=Depends(get_current_user)):
+    """Trimite manual remindere pentru sarcinile cu termen apropiat"""
+    result = await send_task_reminders()
+    return result
+
+
 @app.on_event("startup")
 async def startup_event():
     """Create default admin user on startup"""
     # Check if admin user exists
     admin_email = "ioan@gjc.ro"
     admin_exists = await db.users.find_one({"email": admin_email})
-    
+
     if not admin_exists:
         admin_user = {
             "id": str(uuid.uuid4()),
@@ -4009,8 +4249,14 @@ async def startup_event():
     else:
         logger.info(f"Admin user already exists: {admin_email}")
 
+    # Pornește scheduler pentru remindere sarcini
+    scheduler.add_job(send_task_reminders, 'interval', hours=1, id='task_reminders', replace_existing=True)
+    scheduler.start()
+    logger.info("Scheduler pornit: remindere sarcini la fiecare oră")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    scheduler.shutdown(wait=False)
     client.close()
 
 if __name__ == "__main__":
