@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Plus, X, Edit2, Trash2, Users } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Users, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { COR_CODES } from '../data/corCodes';
 
 const CONTRACT_TYPES = [
   { value: "full_time", label: "Full-time" },
@@ -27,6 +28,82 @@ const emptyForm = {
   currency: "EUR", headcount_needed: 1, start_date: "", status: "activ",
   contract_type: "full_time", accommodation: false, meals: false,
   transport: false, notes: "", contact_person: "", contact_phone: "",
+  cor_code: "", cor_name: "",
+};
+
+// ─── COR Selector Component ────────────────────────────────────────────────
+const CORSelector = ({ value, valueName, onChange }) => {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = search.trim().length >= 2
+    ? COR_CODES.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.code.includes(search) ||
+        c.group.toLowerCase().includes(search.toLowerCase())
+      ).slice(0, 40)
+    : [];
+
+  const handleSelect = (cor) => {
+    onChange(cor.code, cor.name);
+    setSearch("");
+    setOpen(false);
+  };
+
+  const handleClear = () => { onChange("", ""); setSearch(""); };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      {value ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", border: "1px solid #6366f1", borderRadius: "8px", background: "#eef2ff" }}>
+          <span style={{ fontWeight: "700", color: "#4338ca", fontSize: "0.875rem" }}>{value}</span>
+          <span style={{ color: "#374151", fontSize: "0.875rem" }}>{valueName}</span>
+          <button onClick={handleClear} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0 }}><X size={14}/></button>
+        </div>
+      ) : (
+        <div style={{ position: "relative" }}>
+          <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}/>
+          <input
+            type="text"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder="Caută meserie sau cod COR..."
+            style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box", fontSize: "0.875rem" }}
+          />
+        </div>
+      )}
+      {open && filtered.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", maxHeight: "240px", overflowY: "auto", marginTop: "4px" }}>
+          {filtered.map(cor => (
+            <div key={cor.code} onClick={() => handleSelect(cor)}
+              style={{ padding: "8px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f3f4f6", fontSize: "0.875rem" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f5f3ff"}
+              onMouseLeave={e => e.currentTarget.style.background = ""}
+            >
+              <div>
+                <span style={{ fontWeight: "600", color: "#1f2937" }}>{cor.name}</span>
+                <span style={{ fontSize: "0.75rem", color: "#9ca3af", marginLeft: "8px" }}>{cor.group}</span>
+              </div>
+              <span style={{ fontWeight: "700", color: "#6366f1", fontSize: "0.8rem", marginLeft: "12px", whiteSpace: "nowrap" }}>{cor.code}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {open && search.trim().length >= 2 && filtered.length === 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 14px", color: "#9ca3af", fontSize: "0.875rem", marginTop: "4px" }}>
+          Niciun rezultat pentru "{search}"
+        </div>
+      )}
+    </div>
+  );
 };
 
 const inputStyle = { width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box", fontSize: "0.875rem" };
@@ -78,6 +155,8 @@ const JobsPage = ({ showNotification }) => {
       ...item,
       salary_min: item.salary_min != null ? String(item.salary_min) : "",
       salary_max: item.salary_max != null ? String(item.salary_max) : "",
+      cor_code: item.cor_code || "",
+      cor_name: item.cor_name || "",
     });
     setNationalitiesInput(Array.isArray(item.required_nationality) ? item.required_nationality.join(", ") : "");
     setShowModal(true);
@@ -184,6 +263,7 @@ const JobsPage = ({ showNotification }) => {
             <tr>
               <th>Companie</th>
               <th>Titlu Post</th>
+              <th>Cod COR</th>
               <th>Locație</th>
               <th>Tip Contract</th>
               <th>Experiență</th>
@@ -210,6 +290,13 @@ const JobsPage = ({ showNotification }) => {
                 <tr key={job.id}>
                   <td style={{ fontWeight: "600" }}>{job.company_name || "—"}</td>
                   <td>{job.title}</td>
+                  <td>
+                    {job.cor_code ? (
+                      <span title={job.cor_name || ""} style={{ fontFamily: "monospace", fontWeight: "600", color: "#6366f1", fontSize: "0.8rem", background: "#eef2ff", padding: "2px 7px", borderRadius: "6px" }}>
+                        {job.cor_code}
+                      </span>
+                    ) : "—"}
+                  </td>
                   <td>{job.location || "—"}</td>
                   <td>{ct?.label || job.contract_type || "—"}</td>
                   <td>{job.required_experience_years ? `${job.required_experience_years} ani` : "—"}</td>
@@ -273,6 +360,14 @@ const JobsPage = ({ showNotification }) => {
               <div>
                 <label style={labelStyle}>Titlu Post *</label>
                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="ex: Ospătar, Bucătar" style={inputStyle} />
+              </div>
+              <div style={{ gridColumn: "span 2" }}>
+                <label style={labelStyle}>Cod COR <span style={{ fontWeight: 400, color: "#9ca3af" }}>(Clasificarea Ocupațiilor din România)</span></label>
+                <CORSelector
+                  value={form.cor_code}
+                  valueName={form.cor_name}
+                  onChange={(code, name) => setForm(f => ({ ...f, cor_code: code, cor_name: name }))}
+                />
               </div>
               <div>
                 <label style={labelStyle}>Locație</label>

@@ -601,6 +601,8 @@ class Job(BaseModel):
     notes: Optional[str] = None
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
+    cor_code: Optional[str] = None
+    cor_name: Optional[str] = None
     # Metadata
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -626,6 +628,8 @@ class JobCreate(BaseModel):
     notes: Optional[str] = None
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
+    cor_code: Optional[str] = None
+    cor_name: Optional[str] = None
 
 class Application(BaseModel):
     """Application linking candidate to job"""
