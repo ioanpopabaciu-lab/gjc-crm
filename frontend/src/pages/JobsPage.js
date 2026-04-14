@@ -83,7 +83,8 @@ const CORSelector = ({ value, valueName, onChange }) => {
       {open && filtered.length > 0 && (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", maxHeight: "240px", overflowY: "auto", marginTop: "4px" }}>
           {filtered.map(cor => (
-            <div key={cor.code} onClick={() => handleSelect(cor)}
+            <div key={cor.code}
+              onMouseDown={e => { e.preventDefault(); handleSelect(cor); }}
               style={{ padding: "8px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f3f4f6", fontSize: "0.875rem" }}
               onMouseEnter={e => e.currentTarget.style.background = "#f5f3ff"}
               onMouseLeave={e => e.currentTarget.style.background = ""}
