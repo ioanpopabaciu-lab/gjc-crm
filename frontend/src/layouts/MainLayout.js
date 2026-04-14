@@ -19,9 +19,7 @@ const modules = [
   { id: "partners", path: "/partners", name: "Parteneri", icon: Globe },
   { id: "leads", path: "/leads", name: "Leads B2B", icon: Target },
   { id: "pipeline", path: "/pipeline", name: "Pipeline Vânzări", icon: TrendingUp },
-  { id: "interviews", path: "/interviews", name: "Interviuri", icon: Calendar },
-  { id: "jobs", path: "/jobs", name: "Poziții Vacante", icon: Briefcase },
-  { id: "placements", path: "/placements", name: "Post-Plasare", icon: UserCheck },
+  { id: "recrutare", path: "/recrutare", name: "Recrutare & Plasare", icon: Briefcase },
   { id: "tasks", path: "/tasks", name: "Sarcini", icon: CheckSquare },
   { id: "contracts", path: "/contracts", name: "Contracte", icon: Receipt },
   { id: "payments", path: "/payments", name: "Plăți", icon: CreditCard },
@@ -124,7 +122,10 @@ const MainLayout = ({ children, notification }) => {
   const location = useLocation();
 
   const activeModulePath = location.pathname;
-  const activeModule = modules.find(m => activeModulePath === m.path || (m.path !== "/" && activeModulePath.startsWith(m.path))) || modules[0];
+  const activeModule = modules.find(m => {
+    if (m.path === "/") return activeModulePath === "/";
+    return activeModulePath === m.path || activeModulePath.startsWith(m.path + "/");
+  }) || modules[0];
 
   return (
     <div className="app-container" data-testid="gjc-crm-app">

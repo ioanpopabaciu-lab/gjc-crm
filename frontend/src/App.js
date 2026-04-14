@@ -25,6 +25,7 @@ import InterviewsPage from './pages/InterviewsPage';
 import JobsPage from './pages/JobsPage';
 import TasksPage from './pages/TasksPage';
 import PlacementsPage from './pages/PlacementsPage';
+import RecruitmentPage from './pages/RecruitmentPage';
 import TemplatesPage from './pages/TemplatesPage';
 import PassportImportPage from './pages/PassportImportPage';
 import AvizImportPage from './pages/AvizImportPage';
@@ -72,10 +73,11 @@ function App() {
             <Route path="/contracts" element={<ContractsPage showNotification={showNotification} />} />
             <Route path="/payments" element={<PaymentsPage showNotification={showNotification} />} />
             <Route path="/leads" element={<LeadsPage showNotification={showNotification} />} />
-            <Route path="/interviews" element={<InterviewsPage showNotification={showNotification} />} />
-            <Route path="/jobs" element={<JobsPage showNotification={showNotification} />} />
+            <Route path="/recrutare" element={<RecruitmentPage showNotification={showNotification} />} />
+            <Route path="/interviews" element={<Navigate to="/recrutare" replace />} />
+            <Route path="/jobs" element={<Navigate to="/recrutare" replace />} />
+            <Route path="/placements" element={<Navigate to="/recrutare" replace />} />
             <Route path="/tasks" element={<TasksPage showNotification={showNotification} />} />
-            <Route path="/placements" element={<PlacementsPage showNotification={showNotification} />} />
             <Route path="/templates" element={<TemplatesPage showNotification={showNotification} />} />
             <Route path="/import-pasapoarte" element={<PassportImportPage showNotification={showNotification} />} />
             <Route path="/import-avize" element={<AvizImportPage showNotification={showNotification} />} />
