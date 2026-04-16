@@ -360,7 +360,6 @@ const CompaniesPage = ({ showNotification }) => {
                 <th>Județ</th>
                 <th>Nr. Reg. Com.</th>
                 <th>Contact</th>
-                <th title="Posturi vacante ale companiei — click pentru detalii" style={{cursor:'pointer', color:'#6366f1'}}>Posturi ↗</th>
                 <th title="Click pentru a vedea candidații companiei" style={{cursor:'pointer'}}>Candidați ↗</th>
                 <th title="Candidați cu status Plasat">Plasați</th>
                 <th title="Programări IGI viitoare — click pentru detalii" style={{cursor:'pointer', color:'#7c3aed'}}>Programări ↗</th>
@@ -402,15 +401,6 @@ const CompaniesPage = ({ showNotification }) => {
                       <span>{company.contact_person || "-"}</span>
                       {company.phone && <small><Phone size={11} /> {company.phone}</small>}
                     </div>
-                  </td>
-                  <td>
-                    <span
-                      style={{ background:'#eef2ff', color:'#4f46e5', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4 }}
-                      onClick={() => openJobsModal(company)}
-                      title="Vezi / adaugă posturi vacante"
-                    >
-                      <Briefcase size={12}/> {company.jobs_count || 0}
-                    </span>
                   </td>
                   <td>
                     {company.candidates_count > 0 ? (
@@ -463,6 +453,13 @@ const CompaniesPage = ({ showNotification }) => {
                     <span className={`status-badge ${company.status}`}>{company.status}</span>
                   </td>
                   <td className="actions-cell">
+                    <button
+                      title="Posturi Vacante"
+                      onClick={() => openJobsModal(company)}
+                      style={{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'4px 9px', background:'#eef2ff', color:'#4f46e5', border:'1px solid #c7d2fe', borderRadius:'7px', cursor:'pointer', fontSize:'0.75rem', fontWeight:600 }}
+                    >
+                      <Briefcase size={13}/> {company.jobs_count != null ? company.jobs_count : '+'}
+                    </button>
                     <button className="icon-btn" onClick={() => { setEditingCompany(company); setShowModal(true); }} data-testid={`edit-company-${company.id}`}>
                       <Edit size={14} />
                     </button>

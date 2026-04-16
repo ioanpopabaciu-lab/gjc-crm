@@ -1119,6 +1119,13 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
         ]).to_list(None)
         prog_map = {r["_id"]: r["total"] for r in prog_stats}
 
+        # Aggregation posturi vacante per companie
+        jobs_stats = await db.jobs.aggregate([
+            {"$match": {"company_id": {"$nin": [None, ""]}}},
+            {"$group": {"_id": "$company_id", "total": {"$sum": 1}}}
+        ]).to_list(None)
+        jobs_map = {r["_id"]: r["total"] for r in jobs_stats}
+
         for comp in result:
             cid = comp.get("id")
             c = cand_map.get(cid, {})
@@ -1129,6 +1136,7 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
             comp["approved_cases"] = ic.get("approved", 0)
             comp["avize_count"] = ic.get("avize", 0)
             comp["programari_count"] = prog_map.get(cid, 0)
+            comp["jobs_count"] = jobs_map.get(cid, 0)
     return result
 
 @api_router.get("/companies/{company_id}/programari")
