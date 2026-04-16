@@ -98,6 +98,9 @@ const CompaniesPage = ({ showNotification }) => {
   const [jobsModal, setJobsModal] = useState({ open: false, company: null, jobs: [], loading: false });
   const [showJobForm, setShowJobForm] = useState(false);
   const [jobForm, setJobForm] = useState({});
+  // Posturi in modalul companiei
+  const [pendingJobs, setPendingJobs] = useState([]);
+  const [newJobRow, setNewJobRow] = useState({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false });
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -173,13 +176,38 @@ const CompaniesPage = ({ showNotification }) => {
 
   const handleSave = async () => {
     try {
+      let companyId = editingCompany?.id;
+      let companyName = editingCompany?.name;
       if (editingCompany?.id) {
         await axios.put(`${API}/companies/${editingCompany.id}`, editingCompany);
         showNotification("Companie actualizată!");
       } else {
-        await axios.post(`${API}/companies`, editingCompany);
+        const resp = await axios.post(`${API}/companies`, editingCompany);
+        companyId = resp.data.id;
+        companyName = resp.data.name;
         showNotification("Companie adăugată!");
       }
+      // Crează posturile vacante adăugate în modal
+      if (pendingJobs.length > 0) {
+        for (const job of pendingJobs) {
+          await axios.post(`${API}/jobs`, {
+            ...job,
+            company_id: companyId,
+            company_name: companyName,
+            status: 'activ',
+            required_nationality: [],
+            required_skills: [],
+            required_experience_years: 0,
+            cor_code: '', cor_name: '',
+            salary_min: job.salary_min !== '' ? parseFloat(job.salary_min) : null,
+            salary_max: job.salary_max !== '' ? parseFloat(job.salary_max) : null,
+            headcount_needed: parseInt(job.headcount_needed, 10) || 1,
+          });
+        }
+        showNotification(`Companie salvată cu ${pendingJobs.length} post(uri) vacante!`);
+      }
+      setPendingJobs([]);
+      setNewJobRow({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false });
       setShowModal(false);
       setEditingCompany(null);
       fetchCompanies();
@@ -335,7 +363,7 @@ const CompaniesPage = ({ showNotification }) => {
           </button>
           <button
             className="btn btn-primary"
-            onClick={() => { setEditingCompany({}); setShowModal(true); }}
+            onClick={() => { setEditingCompany({}); setPendingJobs([]); setNewJobRow({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false }); setShowModal(true); }}
             data-testid="add-company-btn"
           >
             <Plus size={16} /> Adaugă Companie
@@ -893,6 +921,97 @@ const CompaniesPage = ({ showNotification }) => {
                 />
               </div>
             </div>
+
+            {/* ── Secțiunea Posturi Vacante ── */}
+            <div style={{ borderTop: '2px solid #e5e7eb', marginTop: '12px', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Briefcase size={16} style={{ color: '#6366f1' }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1f2937' }}>Posturi Vacante</span>
+                  {pendingJobs.length > 0 && (
+                    <span style={{ background: '#6366f1', color: '#fff', borderRadius: '12px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: 700 }}>{pendingJobs.length}</span>
+                  )}
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Se salvează odată cu compania</span>
+              </div>
+
+              {/* Lista posturi adăugate */}
+              {pendingJobs.length > 0 && (
+                <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {pendingJobs.map((job, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '0.85rem' }}>
+                      <Briefcase size={13} style={{ color: '#10b981' }} />
+                      <span style={{ fontWeight: 600, flex: 1 }}>{job.title}</span>
+                      {job.location && <span style={{ color: '#6b7280' }}>📍 {job.location}</span>}
+                      <span style={{ color: '#6b7280' }}>× {job.headcount_needed} locuri</span>
+                      {job.salary_min && <span style={{ color: '#6b7280' }}>{job.salary_min}-{job.salary_max||'?'} {job.currency}</span>}
+                      <button onClick={() => setPendingJobs(p => p.filter((_, i) => i !== idx))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0 4px' }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Formular de adăugare post rapid */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', marginBottom: '3px', color: '#374151' }}>Titlu Post</label>
+                    <input type="text" value={newJobRow.title} onChange={e => setNewJobRow(r => ({ ...r, title: e.target.value }))}
+                      placeholder="ex: Ospătar, Electrician, Stivuitorist"
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', marginBottom: '3px', color: '#374151' }}>Locație</label>
+                    <input type="text" value={newJobRow.location} onChange={e => setNewJobRow(r => ({ ...r, location: e.target.value }))}
+                      placeholder="Oraș, țară"
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', marginBottom: '3px', color: '#374151' }}>Nr. Locuri</label>
+                    <input type="number" min="1" value={newJobRow.headcount_needed} onChange={e => setNewJobRow(r => ({ ...r, headcount_needed: e.target.value }))}
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', marginBottom: '3px', color: '#374151' }}>Salariu Min</label>
+                    <input type="number" min="0" value={newJobRow.salary_min} onChange={e => setNewJobRow(r => ({ ...r, salary_min: e.target.value }))}
+                      placeholder="ex: 1200"
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', marginBottom: '3px', color: '#374151' }}>Salariu Max</label>
+                    <input type="number" min="0" value={newJobRow.salary_max} onChange={e => setNewJobRow(r => ({ ...r, salary_max: e.target.value }))}
+                      placeholder="ex: 1800"
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', marginBottom: '3px', color: '#374151' }}>Valută</label>
+                    <select value={newJobRow.currency} onChange={e => setNewJobRow(r => ({ ...r, currency: e.target.value }))}
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '0.85rem', boxSizing: 'border-box' }}>
+                      <option>EUR</option><option>RON</option><option>USD</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {[{ key: 'accommodation', label: '🏠 Cazare' }, { key: 'meals', label: '🍽️ Masă' }, { key: 'transport', label: '🚌 Transport' }].map(b => (
+                    <label key={b.key} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.82rem' }}>
+                      <input type="checkbox" checked={!!newJobRow[b.key]} onChange={e => setNewJobRow(r => ({ ...r, [b.key]: e.target.checked }))} />
+                      {b.label}
+                    </label>
+                  ))}
+                  <button
+                    onClick={() => {
+                      if (!newJobRow.title) return showNotification("Completează titlul postului", "error");
+                      setPendingJobs(p => [...p, { ...newJobRow }]);
+                      setNewJobRow({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false });
+                    }}
+                    style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 16px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
+                    <Plus size={14} /> Adaugă Post
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Anulează</button>
               <button className="btn btn-primary" onClick={handleSave} data-testid="save-company-btn">Salvează</button>
