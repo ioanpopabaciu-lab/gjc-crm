@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText, Award, MapPin, ExternalLink, ChevronRight, Briefcase } from 'lucide-react';
+import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, Download, Users, FileText, Award, MapPin, ExternalLink, ChevronRight, Briefcase } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { CAEN_CODES } from '../data/caenCodes';
@@ -90,7 +90,6 @@ const CompaniesPage = ({ showNotification }) => {
   const [editingCompany, setEditingCompany] = useState(null);
   const [cuiLookup, setCuiLookup] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [cuiValidation, setCuiValidation] = useState({ status: null, loading: false, message: "" });
   // Modal avize
   const [avizeModal, setAvizeModal] = useState({ open: false, company: null, cases: [], loading: false });
   // Modal programări
@@ -136,10 +135,13 @@ const CompaniesPage = ({ showNotification }) => {
   }, [fetchCompanies]);
 
   const lookupCUI = async () => {
-    if (!cuiLookup) return;
+    const cuiToLookup = cuiLookup || editingCompany?.cui;
+    if (!cuiToLookup) return showNotification("Introdu CUI-ul în câmpul de mai sus", "error");
+    if (cuiLookup !== cuiToLookup) setCuiLookup(cuiToLookup);
     setLookupLoading(true);
     try {
-      const response = await axios.get(`${API}/anaf/${cuiLookup}`);
+      const cuiToLookup = cuiLookup || editingCompany?.cui;
+      const response = await axios.get(`${API}/anaf/${cuiToLookup}`);
       if (response.data.success) {
         const d = response.data.data;
         // Find CAEN section name from our nomenclator
@@ -168,62 +170,6 @@ const CompaniesPage = ({ showNotification }) => {
     }
   };
 
-  // Validare automată CUI cu debounce
-  const validateCUI = useCallback(async (cui) => {
-    if (!cui) {
-      setCuiValidation({ status: null, loading: false, message: "" });
-      return;
-    }
-    
-    // Curăță CUI-ul
-    const cleanCui = cui.replace(/RO/gi, "").replace(/\s/g, "").trim();
-    
-    // Verifică dacă e format valid (doar cifre, min 2)
-    if (!cleanCui || cleanCui.length < 2 || !/^\d+$/.test(cleanCui)) {
-      setCuiValidation({ status: null, loading: false, message: "" });
-      return;
-    }
-    
-    setCuiValidation({ status: null, loading: true, message: "Se verifică..." });
-    
-    try {
-      const response = await axios.get(`${API}/anaf/${cleanCui}`);
-      if (response.data.success) {
-        setCuiValidation({ 
-          status: 'valid', 
-          loading: false, 
-          message: `✓ ${response.data.data.name}`,
-          data: response.data.data
-        });
-      } else {
-        setCuiValidation({ 
-          status: 'invalid', 
-          loading: false, 
-          message: response.data.error || "CUI negăsit în ANAF"
-        });
-      }
-    } catch (error) {
-      setCuiValidation({ status: 'invalid', loading: false, message: "Eroare verificare" });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Debounce pentru validare CUI (800ms după ce utilizatorul termină de scris)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (editingCompany?.cui && showModal) {
-        validateCUI(editingCompany.cui);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [editingCompany?.cui, showModal, validateCUI]);
-
-  // Resetare validare când se deschide/închide modalul
-  useEffect(() => {
-    if (!showModal) {
-      setCuiValidation({ status: null, loading: false, message: "" });
-    }
-  }, [showModal]);
 
   const handleSave = async () => {
     try {
@@ -868,35 +814,13 @@ const CompaniesPage = ({ showNotification }) => {
                 </div>
                 <div className="form-group">
                   <label>CUI</label>
-                  <div className="cui-input-wrapper">
-                    <input
-                      type="text"
-                      value={editingCompany?.cui || ""}
-                      onChange={(e) => setEditingCompany({ ...editingCompany, cui: e.target.value })}
-                      className={cuiValidation.status === 'valid' ? 'cui-valid' : cuiValidation.status === 'invalid' ? 'cui-invalid' : ''}
-                      data-testid="company-cui-input"
-                    />
-                    {cuiValidation.loading && (
-                      <span className="cui-validation-indicator loading">
-                        <RefreshCw size={14} className="spin" />
-                      </span>
-                    )}
-                    {cuiValidation.status === 'valid' && (
-                      <span className="cui-validation-indicator valid" title={cuiValidation.message}>
-                        <CheckCircle size={14} />
-                      </span>
-                    )}
-                    {cuiValidation.status === 'invalid' && (
-                      <span className="cui-validation-indicator invalid" title={cuiValidation.message}>
-                        <XCircle size={14} />
-                      </span>
-                    )}
-                  </div>
-                  {cuiValidation.message && (
-                    <small className={`cui-validation-message ${cuiValidation.status}`}>
-                      {cuiValidation.message}
-                    </small>
-                  )}
+                  <input
+                    type="text"
+                    value={editingCompany?.cui || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, cui: e.target.value })}
+                    placeholder="ex: RO12345678"
+                    data-testid="company-cui-input"
+                  />
                 </div>
                 <div className="form-group">
                   <label>Oraș</label>
