@@ -2499,37 +2499,18 @@ async def lookup_anaf(cui: str):
     
     def sync_anaf_lookup(clean_cui: str, today: str):
         """Synchronous ANAF lookup using requests library"""
-        # Step 1: Submit async request to ANAF
+        # Use synchronous ANAF API (faster and more reliable than async version)
         response = requests.post(
-            "https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva",
+            "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva",
             json=[{"cui": int(clean_cui), "data": today}],
             headers={"Content-Type": "application/json"},
-            timeout=30
+            timeout=15
         )
-        
+
         if response.status_code != 200:
             return {"success": False, "error": f"Eroare ANAF: {response.status_code}"}
-        
-        data = response.json()
-        correlation_id = data.get("correlationId")
-        
-        if not correlation_id:
-            return {"success": False, "error": "Nu s-a putut inițializa cererea ANAF"}
-        
-        # Step 2: Wait for processing
-        import time
-        time.sleep(3)
-        
-        # Step 3: Get results
-        result_response = requests.get(
-            f"https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva?id={correlation_id}",
-            timeout=30
-        )
-        
-        if result_response.status_code != 200:
-            return {"success": False, "error": "Nu s-a putut obține răspunsul de la ANAF"}
-        
-        result_data = result_response.json()
+
+        result_data = response.json()
         
         # Check for found companies
         found_list = result_data.get("found", [])

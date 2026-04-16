@@ -1,9 +1,81 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText, Award, MapPin, ExternalLink, ChevronRight } from 'lucide-react';
+import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, CheckCircle, XCircle, Download, Users, FileText, Award, MapPin, ExternalLink, ChevronRight, Briefcase } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { CAEN_CODES } from '../data/caenCodes';
+
+// ─── CAEN Selector ────────────────────────────────────────────────────────────
+const CAENSelector = ({ value, valueName, onChange }) => {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = search.trim().length >= 2
+    ? CAEN_CODES.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.code.includes(search) ||
+        c.section.toLowerCase().includes(search.toLowerCase())
+      ).slice(0, 40)
+    : [];
+
+  const handleSelect = (caen) => { onChange(caen.code, caen.name, caen.section); setSearch(""); setOpen(false); };
+  const handleClear = () => { onChange("", "", ""); setSearch(""); };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      {value ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", border: "1px solid #10b981", borderRadius: "8px", background: "#ecfdf5" }}>
+          <span style={{ fontWeight: "700", color: "#065f46", fontSize: "0.875rem" }}>{value}</span>
+          <span style={{ color: "#374151", fontSize: "0.875rem", flex: 1 }} title={valueName}>{valueName?.length > 50 ? valueName.substring(0,50)+"…" : valueName}</span>
+          <button onClick={handleClear} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0 }}><X size={14}/></button>
+        </div>
+      ) : (
+        <div style={{ position: "relative" }}>
+          <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}/>
+          <input
+            type="text"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder="Caută cod CAEN sau domeniu de activitate..."
+            style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box", fontSize: "0.875rem" }}
+          />
+        </div>
+      )}
+      {open && filtered.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", maxHeight: "260px", overflowY: "auto", marginTop: "4px" }}>
+          {filtered.map(caen => (
+            <div key={caen.code}
+              onMouseDown={e => { e.preventDefault(); handleSelect(caen); }}
+              style={{ padding: "8px 14px", cursor: "pointer", display: "flex", gap: "10px", alignItems: "center", borderBottom: "1px solid #f3f4f6", fontSize: "0.85rem" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"}
+              onMouseLeave={e => e.currentTarget.style.background = ""}
+            >
+              <span style={{ fontWeight: "700", color: "#10b981", fontSize: "0.82rem", minWidth: "38px" }}>{caen.code}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: "500", color: "#1f2937" }}>{caen.name.length > 70 ? caen.name.substring(0,70)+"…" : caen.name}</div>
+                <div style={{ fontSize: "0.72rem", color: "#9ca3af" }}>{caen.section}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {open && search.trim().length >= 2 && filtered.length === 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999, background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 14px", color: "#9ca3af", fontSize: "0.875rem", marginTop: "4px" }}>
+          Niciun rezultat pentru "{search}"
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CompaniesPage = ({ showNotification }) => {
   const navigate = useNavigate();
@@ -23,6 +95,10 @@ const CompaniesPage = ({ showNotification }) => {
   const [avizeModal, setAvizeModal] = useState({ open: false, company: null, cases: [], loading: false });
   // Modal programări
   const [progModal, setProgModal] = useState({ open: false, company: null, candidates: [], loading: false });
+  // Modal posturi vacante companie
+  const [jobsModal, setJobsModal] = useState({ open: false, company: null, jobs: [], loading: false });
+  const [showJobForm, setShowJobForm] = useState(false);
+  const [jobForm, setJobForm] = useState({});
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -65,15 +141,25 @@ const CompaniesPage = ({ showNotification }) => {
     try {
       const response = await axios.get(`${API}/anaf/${cuiLookup}`);
       if (response.data.success) {
+        const d = response.data.data;
+        // Find CAEN section name from our nomenclator
+        const caenEntry = d.cod_CAEN ? CAEN_CODES.find(c => c.code === d.cod_CAEN) : null;
         setEditingCompany(prev => ({
           ...prev,
-          name: response.data.data.name,
-          cui: response.data.data.cui,
-          city: response.data.data.city
+          name: d.name || prev?.name,
+          cui: d.cui || prev?.cui,
+          city: d.city || prev?.city,
+          address: d.address || prev?.address,
+          reg_commerce: d.nrRegCom || prev?.reg_commerce,
+          phone: d.phone || prev?.phone,
+          status: d.status || prev?.status || "activ",
+          caen_code: d.cod_CAEN || prev?.caen_code,
+          caen_name: caenEntry?.name || prev?.caen_name,
+          industry: caenEntry?.section || prev?.industry,
         }));
-        showNotification("Date ANAF preluate cu succes!");
+        showNotification(`Date ANAF preluate: ${d.name}`);
       } else {
-        showNotification("CUI negăsit în baza ANAF", "error");
+        showNotification(response.data.error || "CUI negăsit în baza ANAF", "error");
       }
     } catch (error) {
       showNotification("Eroare la interogarea ANAF", "error");
@@ -198,6 +284,58 @@ const CompaniesPage = ({ showNotification }) => {
     }
   };
 
+  // Deschide modal posturi vacante pentru companie
+  const openJobsModal = async (company) => {
+    setJobsModal({ open: true, company, jobs: [], loading: true });
+    setShowJobForm(false);
+    setJobForm({
+      company_id: company.id, company_name: company.name,
+      title: "", location: company.city || "", cor_code: "", cor_name: "",
+      contract_type: "full_time", salary_min: "", salary_max: "", currency: "EUR",
+      headcount_needed: 1, accommodation: false, meals: false, transport: false,
+      description: "", requirements: "", contact_person: company.contact_person || "",
+      contact_phone: company.phone || "", status: "activ",
+    });
+    try {
+      const resp = await axios.get(`${API}/jobs`, { params: { company_id: company.id } });
+      setJobsModal({ open: true, company, jobs: resp.data || [], loading: false });
+    } catch {
+      setJobsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const saveJobFromCompany = async () => {
+    if (!jobForm.title) return showNotification("Completează titlul postului", "error");
+    try {
+      await axios.post(`${API}/jobs`, {
+        ...jobForm,
+        salary_min: jobForm.salary_min !== "" ? parseFloat(jobForm.salary_min) : null,
+        salary_max: jobForm.salary_max !== "" ? parseFloat(jobForm.salary_max) : null,
+        headcount_needed: parseInt(jobForm.headcount_needed, 10) || 1,
+        required_nationality: [],
+        required_skills: [],
+        required_experience_years: 0,
+      });
+      showNotification("Post vacant adăugat!");
+      setShowJobForm(false);
+      // Reîncarcă posturile
+      const resp = await axios.get(`${API}/jobs`, { params: { company_id: jobsModal.company.id } });
+      setJobsModal(prev => ({ ...prev, jobs: resp.data || [] }));
+      fetchCompanies();
+    } catch { showNotification("Eroare la salvare", "error"); }
+  };
+
+  const deleteJobFromCompany = async (jobId) => {
+    if (!window.confirm("Ștergi acest post vacant?")) return;
+    try {
+      await axios.delete(`${API}/jobs/${jobId}`);
+      showNotification("Post șters!");
+      const resp = await axios.get(`${API}/jobs`, { params: { company_id: jobsModal.company.id } });
+      setJobsModal(prev => ({ ...prev, jobs: resp.data || [] }));
+      fetchCompanies();
+    } catch { showNotification("Eroare", "error"); }
+  };
+
   // Deschide modal avize pentru companie
   const openAvizeModal = async (company) => {
     setAvizeModal({ open: true, company, cases: [], loading: true });
@@ -227,7 +365,7 @@ const CompaniesPage = ({ showNotification }) => {
           </div>
           <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.875rem", background: "var(--bg-card)", color: "var(--text-primary)" }}>
             <option value="">Toate industriile</option>
-            {["Construcții","HoReCa","Agricultură","Industrie","Transport","Curățenie","Logistică","Sănătate","Servicii","IT","Retail"].map(i => <option key={i} value={i}>{i}</option>)}
+            {[...new Set(CAEN_CODES.map(c => c.section))].sort().map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--border-color)", borderRadius: "8px", fontSize: "0.875rem", background: "var(--bg-card)", color: "var(--text-primary)" }}>
             <option value="">Toate statusurile</option>
@@ -276,6 +414,7 @@ const CompaniesPage = ({ showNotification }) => {
                 <th>Județ</th>
                 <th>Nr. Reg. Com.</th>
                 <th>Contact</th>
+                <th title="Posturi vacante ale companiei — click pentru detalii" style={{cursor:'pointer', color:'#6366f1'}}>Posturi ↗</th>
                 <th title="Click pentru a vedea candidații companiei" style={{cursor:'pointer'}}>Candidați ↗</th>
                 <th title="Candidați cu status Plasat">Plasați</th>
                 <th title="Programări IGI viitoare — click pentru detalii" style={{cursor:'pointer', color:'#7c3aed'}}>Programări ↗</th>
@@ -317,6 +456,15 @@ const CompaniesPage = ({ showNotification }) => {
                       <span>{company.contact_person || "-"}</span>
                       {company.phone && <small><Phone size={11} /> {company.phone}</small>}
                     </div>
+                  </td>
+                  <td>
+                    <span
+                      style={{ background:'#eef2ff', color:'#4f46e5', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4 }}
+                      onClick={() => openJobsModal(company)}
+                      title="Vezi / adaugă posturi vacante"
+                    >
+                      <Briefcase size={12}/> {company.jobs_count || 0}
+                    </span>
                   </td>
                   <td>
                     {company.candidates_count > 0 ? (
@@ -535,6 +683,157 @@ const CompaniesPage = ({ showNotification }) => {
         </div>
       )}
 
+      {/* Modal Posturi Vacante Companie */}
+      {jobsModal.open && (
+        <div className="modal-overlay" onClick={() => setJobsModal({ open: false, company: null, jobs: [], loading: false })}>
+          <div className="modal modal-wide" onClick={e => e.stopPropagation()} style={{maxWidth:'900px', width:'95vw', maxHeight:'92vh', overflowY:'auto'}}>
+            <div className="modal-header">
+              <div>
+                <h2 style={{margin:0}}>💼 Posturi Vacante</h2>
+                <div style={{fontSize:'13px', color:'var(--text-muted)', marginTop:'2px'}}>
+                  {jobsModal.company?.name} — {jobsModal.jobs.length} posturi înregistrate
+                </div>
+              </div>
+              <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+                <button className="btn btn-primary" style={{fontSize:'0.8rem'}} onClick={() => setShowJobForm(!showJobForm)}>
+                  <Plus size={14}/> {showJobForm ? "Anulează" : "Post Nou"}
+                </button>
+                <button className="close-btn" onClick={() => setJobsModal({ open: false, company: null, jobs: [], loading: false })}><X size={20}/></button>
+              </div>
+            </div>
+
+            {/* Formular adăugare post rapid */}
+            {showJobForm && (
+              <div style={{padding:'16px 20px', background:'#f8fafc', borderBottom:'1px solid var(--border-color)'}}>
+                <div style={{fontWeight:700, fontSize:'0.9rem', marginBottom:'12px', color:'#4f46e5'}}>Adaugă Post Vacant Nou</div>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'10px', marginBottom:'10px'}}>
+                  <div>
+                    <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Titlu Post *</label>
+                    <input type="text" value={jobForm.title || ""} onChange={e => setJobForm(f => ({...f, title: e.target.value}))}
+                      placeholder="ex: Ospătar, Electrician" style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Locație</label>
+                    <input type="text" value={jobForm.location || ""} onChange={e => setJobForm(f => ({...f, location: e.target.value}))}
+                      placeholder="Oraș, țară" style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Nr. Locuri</label>
+                    <input type="number" min="1" value={jobForm.headcount_needed || 1} onChange={e => setJobForm(f => ({...f, headcount_needed: e.target.value}))}
+                      style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Salariu Min</label>
+                    <input type="number" min="0" value={jobForm.salary_min || ""} onChange={e => setJobForm(f => ({...f, salary_min: e.target.value}))}
+                      style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Salariu Max</label>
+                    <input type="number" min="0" value={jobForm.salary_max || ""} onChange={e => setJobForm(f => ({...f, salary_max: e.target.value}))}
+                      style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Valută</label>
+                    <select value={jobForm.currency || "EUR"} onChange={e => setJobForm(f => ({...f, currency: e.target.value}))}
+                      style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box'}}>
+                      <option>EUR</option><option>RON</option><option>USD</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{marginBottom:'10px'}}>
+                  <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Cod COR</label>
+                  <div style={{maxWidth:'500px'}}>
+                    {/* Import inline COR selector using same CAEN pattern */}
+                    <input type="text" value={jobForm.cor_code ? `${jobForm.cor_code} — ${jobForm.cor_name}` : ""}
+                      readOnly placeholder="Completează din secțiunea Poziții Vacante pentru COR detaliat"
+                      style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box', background:'#f9fafb', cursor:'not-allowed'}} />
+                  </div>
+                </div>
+                <div style={{marginBottom:'10px'}}>
+                  <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Descriere Post</label>
+                  <textarea value={jobForm.description || ""} onChange={e => setJobForm(f => ({...f, description: e.target.value}))}
+                    rows={2} placeholder="Detalii despre post, responsabilități..."
+                    style={{width:'100%', padding:'7px 10px', border:'1px solid #e5e7eb', borderRadius:'7px', fontSize:'0.85rem', boxSizing:'border-box', resize:'vertical'}} />
+                </div>
+                <div style={{display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap'}}>
+                  {[{key:'accommodation', label:'🏠 Cazare'},{key:'meals', label:'🍽️ Masă'},{key:'transport', label:'🚌 Transport'}].map(b => (
+                    <label key={b.key} style={{display:'flex', alignItems:'center', gap:6, cursor:'pointer', fontSize:'0.85rem'}}>
+                      <input type="checkbox" checked={!!jobForm[b.key]} onChange={e => setJobForm(f => ({...f, [b.key]: e.target.checked}))} /> {b.label}
+                    </label>
+                  ))}
+                  <button onClick={saveJobFromCompany} style={{marginLeft:'auto', padding:'7px 18px', background:'#6366f1', color:'#fff', border:'none', borderRadius:'7px', cursor:'pointer', fontWeight:600, fontSize:'0.85rem'}}>
+                    Salvează Post
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista posturi existente */}
+            <div className="modal-body" style={{padding:0, maxHeight:'50vh', overflowY:'auto'}}>
+              {jobsModal.loading ? (
+                <div style={{padding:'40px', textAlign:'center'}}><LoadingSpinner /></div>
+              ) : jobsModal.jobs.length === 0 ? (
+                <div style={{padding:'40px', textAlign:'center', color:'var(--text-muted)'}}>
+                  Nu există posturi vacante pentru această companie.<br/>
+                  <span style={{fontSize:'0.85rem'}}>Apasă "Post Nou" pentru a adăuga.</span>
+                </div>
+              ) : (
+                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'0.85rem'}}>
+                  <thead style={{background:'var(--bg-secondary)'}}>
+                    <tr>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Titlu Post</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Locație</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Cod COR</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Salariu</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Locuri</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Beneficii</th>
+                      <th style={{padding:'10px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Status</th>
+                      <th style={{padding:'10px 14px', textAlign:'center', borderBottom:'1px solid var(--border-color)'}}>Acțiuni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobsModal.jobs.map((job, idx) => (
+                      <tr key={job.id} style={{borderBottom:'1px solid var(--border-color)', background: idx%2===0?'transparent':'var(--bg-secondary)'}}>
+                        <td style={{padding:'9px 14px', fontWeight:600}}>{job.title}</td>
+                        <td style={{padding:'9px 14px', color:'var(--text-muted)'}}>{job.location || '—'}</td>
+                        <td style={{padding:'9px 14px'}}>
+                          {job.cor_code ? <span style={{background:'#eef2ff', color:'#4f46e5', padding:'2px 7px', borderRadius:'6px', fontWeight:700, fontSize:'0.78rem'}}>{job.cor_code}</span> : '—'}
+                        </td>
+                        <td style={{padding:'9px 14px', fontSize:'0.82rem'}}>
+                          {job.salary_min || job.salary_max ? `${job.salary_min||'—'} - ${job.salary_max||'—'} ${job.currency||'EUR'}` : '—'}
+                        </td>
+                        <td style={{padding:'9px 14px'}}>
+                          <span style={{fontWeight:600}}>{job.positions_filled||0}/{job.headcount_needed||1}</span>
+                        </td>
+                        <td style={{padding:'9px 14px'}}>
+                          {job.accommodation && '🏠'}{job.meals && '🍽️'}{job.transport && '🚌'}
+                          {!job.accommodation && !job.meals && !job.transport && '—'}
+                        </td>
+                        <td style={{padding:'9px 14px'}}>
+                          <span style={{padding:'2px 8px', borderRadius:'10px', fontSize:'0.75rem', fontWeight:600, background: job.status==='activ'?'#d1fae5':job.status==='pauza'?'#fef3c7':'#f3f4f6', color: job.status==='activ'?'#065f46':job.status==='pauza'?'#92400e':'#374151'}}>
+                            {job.status}
+                          </span>
+                        </td>
+                        <td style={{padding:'9px 14px', textAlign:'center'}}>
+                          <button onClick={() => deleteJobFromCompany(job.id)}
+                            style={{background:'none', border:'none', cursor:'pointer', color:'#ef4444'}} title="Șterge">
+                            <Trash2 size={14}/>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="modal-footer" style={{padding:'12px 20px', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <span style={{fontSize:'12px', color:'var(--text-muted)'}}>{jobsModal.jobs.length} posturi • {jobsModal.company?.name}</span>
+              <button className="btn btn-secondary" onClick={() => setJobsModal({ open: false, company: null, jobs: [], loading: false })}>Închide</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Company Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -607,34 +906,16 @@ const CompaniesPage = ({ showNotification }) => {
                     onChange={(e) => setEditingCompany({ ...editingCompany, city: e.target.value })}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Industrie</label>
-                  <select
-                    value={editingCompany?.industry || ""}
-                    onChange={(e) => setEditingCompany({ ...editingCompany, industry: e.target.value })}
-                  >
-                    <option value="">Selectează...</option>
-                    <option value="Construcții">Construcții</option>
-                    <option value="HoReCa">HoReCa</option>
-                    <option value="Agricultură">Agricultură</option>
-                    <option value="Transport">Transport</option>
-                    <option value="Industrie">Industrie</option>
-                    <option value="Curățenie">Curățenie</option>
-                    <option value="Logistică">Logistică</option>
-                    <option value="Sănătate">Sănătate</option>
-                    <option value="Servicii">Servicii</option>
-                    <option value="IT">IT</option>
-                    <option value="Altele">Altele</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Subcategorie Industrie</label>
-                  <input
-                    type="text"
-                    value={editingCompany?.industry_category || ""}
-                    onChange={(e) => setEditingCompany({ ...editingCompany, industry_category: e.target.value })}
-                    placeholder="Ex: Instalații sanitare, Cofetărie..."
+                <div className="form-group" style={{gridColumn:'span 2'}}>
+                  <label>Cod CAEN — Domeniu de Activitate</label>
+                  <CAENSelector
+                    value={editingCompany?.caen_code || ""}
+                    valueName={editingCompany?.caen_name || ""}
+                    onChange={(code, name, section) => setEditingCompany({ ...editingCompany, caen_code: code, caen_name: name, industry: section })}
                   />
+                  {editingCompany?.industry && (
+                    <small style={{color:'#6b7280', marginTop:'4px', display:'block'}}>Sector: {editingCompany.industry}</small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Nr. Posturi Cerute</label>
