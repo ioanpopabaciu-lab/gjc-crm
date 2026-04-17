@@ -2507,16 +2507,36 @@ async def lookup_anaf(cui: str):
     
     def sync_anaf_lookup(clean_cui: str, today: str):
         """Synchronous ANAF lookup using requests library"""
-        # Use synchronous ANAF API (faster and more reliable than async version)
-        response = requests.post(
-            "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva",
-            json=[{"cui": int(clean_cui), "data": today}],
-            headers={"Content-Type": "application/json"},
-            timeout=15
-        )
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "ro-RO,ro;q=0.9,en;q=0.8",
+            "Origin": "https://www.anaf.ro",
+            "Referer": "https://www.anaf.ro/",
+        }
+        payload = [{"cui": int(clean_cui), "data": today}]
 
-        if response.status_code != 200:
-            return {"success": False, "error": f"Eroare ANAF: {response.status_code}"}
+        # Try sync endpoint first
+        endpoints = [
+            "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva",
+            "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v7/ws/tva",
+        ]
+        response = None
+        last_error = ""
+        for url in endpoints:
+            try:
+                r = requests.post(url, json=payload, headers=headers, timeout=20)
+                if r.status_code == 200:
+                    response = r
+                    break
+                last_error = f"HTTP {r.status_code}"
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+        if response is None:
+            return {"success": False, "error": f"ANAF indisponibil momentan ({last_error}). Completează manual datele."}
 
         result_data = response.json()
         
