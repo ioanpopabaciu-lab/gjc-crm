@@ -138,36 +138,64 @@ const CompaniesPage = ({ showNotification }) => {
   }, [fetchCompanies]);
 
   const lookupCUI = async () => {
-    const cuiToLookup = cuiLookup || editingCompany?.cui;
-    if (!cuiToLookup) return showNotification("Introdu CUI-ul în câmpul de mai sus", "error");
-    if (cuiLookup !== cuiToLookup) setCuiLookup(cuiToLookup);
+    const rawCui = cuiLookup || editingCompany?.cui || "";
+    if (!rawCui) return showNotification("Introdu CUI-ul în câmpul de mai sus", "error");
+    const cleanCui = rawCui.replace(/RO/gi, "").replace(/\s/g, "").trim();
+    if (!cleanCui || !/^\d+$/.test(cleanCui)) return showNotification("CUI invalid — doar cifre", "error");
+
     setLookupLoading(true);
     try {
-      const cuiToLookup = cuiLookup || editingCompany?.cui;
-      const response = await axios.get(`${API}/anaf/${cuiToLookup}`);
-      if (response.data.success) {
-        const d = response.data.data;
-        // Find CAEN section name from our nomenclator
-        const caenEntry = d.cod_CAEN ? CAEN_CODES.find(c => c.code === d.cod_CAEN) : null;
+      const today = new Date().toISOString().split("T")[0];
+      const anafUrl = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva";
+
+      // Apelăm ANAF direct din browser (IP românesc) prin proxy CORS
+      const resp = await fetch(
+        `https://corsproxy.io/?${encodeURIComponent(anafUrl)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify([{ cui: parseInt(cleanCui, 10), data: today }]),
+        }
+      );
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+
+      const found = data?.found?.[0];
+      if (found) {
+        const dg = found.date_generale || {};
+        // Extrage județul din adresă
+        let city = "";
+        const adresa = dg.adresa || "";
+        if (adresa) {
+          const parts = adresa.split(",").map(p => p.trim());
+          for (const p of parts) {
+            if (p.toUpperCase().includes("JUD.")) { city = p.replace(/JUD\./i, "").trim(); break; }
+          }
+          if (!city && parts.length > 1) city = parts[1];
+        }
+        const caenEntry = dg.cod_CAEN ? CAEN_CODES.find(c => c.code === dg.cod_CAEN) : null;
         setEditingCompany(prev => ({
           ...prev,
-          name: d.name || prev?.name,
-          cui: d.cui || prev?.cui,
-          city: d.city || prev?.city,
-          address: d.address || prev?.address,
-          reg_commerce: d.nrRegCom || prev?.reg_commerce,
-          phone: d.phone || prev?.phone,
-          status: d.status || prev?.status || "activ",
-          caen_code: d.cod_CAEN || prev?.caen_code,
+          name: dg.denumire || prev?.name,
+          cui: `RO${cleanCui}`,
+          city: city || dg.localitate || prev?.city,
+          address: adresa || prev?.address,
+          reg_commerce: dg.nrRegCom || prev?.reg_commerce,
+          phone: dg.telefon || prev?.phone,
+          status: (dg.stare_inregistrare || "").toUpperCase().includes("INREGISTRAT") ? "activ" : (prev?.status || "activ"),
+          caen_code: dg.cod_CAEN || prev?.caen_code,
           caen_name: caenEntry?.name || prev?.caen_name,
           industry: caenEntry?.section || prev?.industry,
         }));
-        showNotification(`Date ANAF preluate: ${d.name}`);
+        showNotification(`✓ Date preluate: ${dg.denumire}`);
+      } else if (data?.notfound?.length) {
+        showNotification("CUI negăsit în baza ANAF", "error");
       } else {
-        showNotification(response.data.error || "CUI negăsit în baza ANAF", "error");
+        showNotification("Răspuns neașteptat de la ANAF", "error");
       }
-    } catch (error) {
-      showNotification("Eroare la interogarea ANAF", "error");
+    } catch (err) {
+      showNotification("ANAF indisponibil momentan. Completați manual datele.", "error");
     } finally {
       setLookupLoading(false);
     }
