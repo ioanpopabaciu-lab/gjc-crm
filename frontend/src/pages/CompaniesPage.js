@@ -871,43 +871,53 @@ const CompaniesPage = ({ showNotification }) => {
               <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <div className="cui-lookup">
-                <input
-                  type="text"
-                  placeholder="Introdu CUI (ex: 12345678 sau RO12345678) și apasă Enter"
-                  value={cuiLookup}
-                  onChange={(e) => setCuiLookup(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && lookupCUI()}
-                  data-testid="cui-lookup-input"
-                />
-                <button className="btn btn-secondary" onClick={lookupCUI} disabled={lookupLoading} data-testid="cui-lookup-btn">
-                  {lookupLoading ? <RefreshCw size={16} className="spin" /> : <Search size={16} />}
-                  {lookupLoading ? "Se caută..." : "Caută ANAF"}
-                </button>
-              </div>
-              {lookupLoading && (
-                <div style={{padding:'8px 12px', background:'#eff6ff', borderRadius:'6px', fontSize:'0.8rem', color:'#1d4ed8', marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px'}}>
-                  <RefreshCw size={13} className="spin" /> Se interoghează baza ANAF... (poate dura 5-10 secunde)
+              {/* CUI + ANAF pe același rând */}
+              <div style={{marginBottom:'14px'}}>
+                <label style={{display:'block', fontSize:'0.82rem', fontWeight:'600', marginBottom:'5px', color:'#374151'}}>
+                  Cod Fiscal (CUI) — introdu și apasă „Caută ANAF" pentru completare automată
+                </label>
+                <div style={{display:'flex', gap:'8px', alignItems:'stretch'}}>
+                  <input
+                    type="text"
+                    value={editingCompany?.cui || ""}
+                    onChange={(e) => { setEditingCompany({ ...editingCompany, cui: e.target.value }); setCuiLookup(e.target.value); }}
+                    onKeyDown={(e) => e.key === "Enter" && lookupCUI()}
+                    placeholder="ex: 1070683 sau RO1070683"
+                    style={{flex:1, padding:'9px 12px', border:'2px solid #6366f1', borderRadius:'8px', fontSize:'0.95rem', fontWeight:'500'}}
+                    data-testid="company-cui-input"
+                    autoFocus
+                  />
+                  <button
+                    onClick={lookupCUI}
+                    disabled={lookupLoading}
+                    style={{padding:'9px 18px', background: lookupLoading ? '#9ca3af' : '#6366f1', color:'#fff', border:'none', borderRadius:'8px', cursor: lookupLoading ? 'not-allowed' : 'pointer', fontWeight:'600', fontSize:'0.875rem', display:'flex', alignItems:'center', gap:'7px', whiteSpace:'nowrap'}}
+                    data-testid="cui-lookup-btn"
+                  >
+                    {lookupLoading ? <RefreshCw size={15} className="spin" /> : <Search size={15} />}
+                    {lookupLoading ? "Se caută..." : "Caută ANAF"}
+                  </button>
                 </div>
-              )}
+                {lookupLoading && (
+                  <div style={{marginTop:'6px', padding:'7px 11px', background:'#eff6ff', borderRadius:'6px', fontSize:'0.8rem', color:'#1d4ed8', display:'flex', alignItems:'center', gap:'6px'}}>
+                    <RefreshCw size={12} className="spin" /> Se interoghează ANAF... poate dura 5-10 secunde
+                  </div>
+                )}
+                {!lookupLoading && !editingCompany?.name && (
+                  <div style={{marginTop:'5px', fontSize:'0.75rem', color:'#9ca3af'}}>
+                    💡 Completarea automată preia: Denumire, Județ, Adresă, Nr.Reg.Com., Telefon, Cod CAEN
+                  </div>
+                )}
+              </div>
+
               <div className="form-grid">
-                <div className="form-group">
+                <div className="form-group" style={{gridColumn:'span 2'}}>
                   <label>Nume Companie *</label>
                   <input
                     type="text"
                     value={editingCompany?.name || ""}
                     onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
+                    placeholder="Se completează automat după Caută ANAF"
                     data-testid="company-name-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>CUI</label>
-                  <input
-                    type="text"
-                    value={editingCompany?.cui || ""}
-                    onChange={(e) => setEditingCompany({ ...editingCompany, cui: e.target.value })}
-                    placeholder="ex: RO12345678"
-                    data-testid="company-cui-input"
                   />
                 </div>
                 <div className="form-group">
