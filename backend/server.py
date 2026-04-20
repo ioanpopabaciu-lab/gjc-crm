@@ -2537,116 +2537,101 @@ async def record_stage_transition(case_id: str, old_stage: int, old_stage_name: 
 
 # ===================== ANAF CUI LOOKUP =====================
 
+def _extract_county_city(adresa: str):
+    """Extrage județul și localitatea din adresa ANAF"""
+    county = ""
+    city = ""
+    if not adresa:
+        return county, city
+    parts = [p.strip() for p in adresa.split(",")]
+    for part in parts:
+        up = part.upper()
+        if up.startswith("JUD.") or up.startswith("JUDET ") or up.startswith("JUDEȚUL "):
+            county = part.replace("JUD.", "").replace("JUDET ", "").replace("Județul ", "").strip()
+        elif up.startswith("MUN.") or up.startswith("MUNICIPIUL "):
+            city = part.replace("MUN.", "").replace("MUNICIPIUL ", "").strip()
+        elif up.startswith("OR.") or up.startswith("ORAS "):
+            city = part.replace("OR.", "").replace("ORAS ", "").strip()
+        elif up.startswith("COM.") or up.startswith("COMUNA "):
+            city = part.replace("COM.", "").replace("COMUNA ", "").strip()
+    # Fallback city
+    if not city and county:
+        city = county
+    elif not city and len(parts) > 1:
+        city = parts[1]
+    return county, city
+
+
 @api_router.get("/anaf/{cui}")
 async def lookup_anaf(cui: str):
-    """Lookup company by CUI from ANAF API"""
+    """Lookup company by CUI from ANAF API — tries multiple endpoints"""
     import requests
-    import asyncio
     from concurrent.futures import ThreadPoolExecutor
-    
-    def sync_anaf_lookup(clean_cui: str, today: str):
-        """Synchronous ANAF lookup using requests library"""
+
+    def do_lookup(clean_cui: str, today: str):
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "ro-RO,ro;q=0.9,en;q=0.8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "ro-RO,ro;q=0.9",
             "Origin": "https://www.anaf.ro",
             "Referer": "https://www.anaf.ro/",
         }
         payload = [{"cui": int(clean_cui), "data": today}]
-
-        # Try sync endpoint first
         endpoints = [
             "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva",
             "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v7/ws/tva",
+            "https://webservicesp.anaf.ro/api/v8/ws/tva",
         ]
-        response = None
-        last_error = ""
+        last_err = ""
         for url in endpoints:
             try:
-                r = requests.post(url, json=payload, headers=headers, timeout=20)
+                r = requests.post(url, json=payload, headers=headers, timeout=25)
                 if r.status_code == 200:
-                    response = r
-                    break
-                last_error = f"HTTP {r.status_code}"
+                    data = r.json()
+                    found = data.get("found", [])
+                    if found:
+                        dg = found[0].get("date_generale", {})
+                        adresa = dg.get("adresa", "") or ""
+                        county, city = _extract_county_city(adresa)
+                        caen = dg.get("cod_CAEN", "")
+                        tva_obj = found[0].get("inregistrare_scop_Tva", {}) or {}
+                        return {
+                            "success": True,
+                            "data": {
+                                "name": dg.get("denumire", ""),
+                                "cui": f"RO{clean_cui}",
+                                "address": adresa,
+                                "county": county,
+                                "city": city,
+                                "phone": dg.get("telefon", ""),
+                                "reg_commerce": dg.get("nrRegCom", ""),
+                                "caen_code": caen,
+                                "status": "activ" if "INREGISTRAT" in dg.get("stare_inregistrare","").upper() else "inactiv",
+                                "is_tva_payer": bool(tva_obj.get("scpTVA", False)),
+                            }
+                        }
+                    notfound = data.get("notfound", [])
+                    if notfound:
+                        return {"success": False, "error": "CUI negăsit în baza ANAF"}
+                    return {"success": False, "error": "Răspuns neașteptat ANAF"}
+                last_err = f"HTTP {r.status_code}"
             except Exception as e:
-                last_error = str(e)
-                continue
+                last_err = str(e)
+        return {"success": False, "error": f"ANAF indisponibil ({last_err[:80]})"}
 
-        if response is None:
-            return {"success": False, "error": f"ANAF indisponibil momentan ({last_error}). Completează manual datele."}
-
-        result_data = response.json()
-        
-        # Check for found companies
-        found_list = result_data.get("found", [])
-        if found_list and len(found_list) > 0:
-            company_data = found_list[0]
-            
-            # Get general data
-            date_generale = company_data.get("date_generale", {})
-            
-            # Extract address and city
-            adresa = date_generale.get("adresa", "") or ""
-            city = ""
-            if adresa:
-                parts = [p.strip() for p in adresa.split(",")]
-                for part in parts:
-                    if "JUD." in part.upper():
-                        city = part.replace("JUD.", "").replace("jud.", "").strip()
-                        break
-                if not city and len(parts) > 1:
-                    city = parts[1].strip()
-            
-            # Get TVA status
-            inregistrare_tva = company_data.get("inregistrare_scop_Tva", {})
-            is_tva_payer = inregistrare_tva.get("scpTVA", False) if inregistrare_tva else False
-            
-            return {
-                "success": True,
-                "data": {
-                    "name": date_generale.get("denumire", ""),
-                    "cui": f"RO{clean_cui}",
-                    "address": adresa,
-                    "city": city or "România",
-                    "phone": date_generale.get("telefon", ""),
-                    "nrRegCom": date_generale.get("nrRegCom", ""),
-                    "status_tva": "Plătitor TVA" if is_tva_payer else "Neplătitor TVA",
-                    "status": "activ" if "INREGISTRAT" in date_generale.get("stare_inregistrare", "").upper() else "inactiv",
-                    "cod_CAEN": date_generale.get("cod_CAEN", ""),
-                    "data_inregistrare": date_generale.get("data_inregistrare", "")
-                }
-            }
-        
-        # Check for not found
-        notfound_list = result_data.get("notfound", [])
-        if notfound_list:
-            return {"success": False, "error": "CUI nu a fost găsit în baza de date ANAF"}
-        
-        return {"success": False, "error": "Răspuns neașteptat de la ANAF"}
-    
     try:
-        # Clean CUI - remove RO prefix and spaces
-        clean_cui = cui.replace("RO", "").replace("ro", "").strip()
-        
+        clean_cui = cui.upper().replace("RO", "").replace(" ", "").strip()
         if not clean_cui.isdigit():
-            return {"success": False, "error": "CUI invalid - trebuie să conțină doar cifre"}
-        
+            return {"success": False, "error": "CUI invalid — doar cifre"}
         today = datetime.now().strftime("%Y-%m-%d")
-        
-        # Run synchronous request in thread pool
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor() as executor:
-            result = await loop.run_in_executor(executor, sync_anaf_lookup, clean_cui, today)
-        
+        with ThreadPoolExecutor() as exc:
+            result = await loop.run_in_executor(exc, do_lookup, clean_cui, today)
         return result
-            
-    except ValueError as e:
-        return {"success": False, "error": "CUI invalid - trebuie să conțină doar cifre"}
     except Exception as e:
-        logger.error(f"ANAF lookup error: {type(e).__name__}: {e}")
-        return {"success": False, "error": f"Eroare la comunicarea cu ANAF: {type(e).__name__}"}
+        logger.error(f"ANAF lookup error: {e}")
+        return {"success": False, "error": "Eroare internă ANAF lookup"}
 
 # ==================== OPERATORS ====================
 @api_router.get("/operators")

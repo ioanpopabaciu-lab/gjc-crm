@@ -137,94 +137,92 @@ const CompaniesPage = ({ showNotification }) => {
     return () => clearTimeout(timer);
   }, [fetchCompanies]);
 
+  const applyAnafData = (d, cleanCui, prev) => {
+    const caenEntry = d.caen_code ? CAEN_CODES.find(c => c.code === d.caen_code) : null;
+    setEditingCompany({
+      ...prev,
+      name:             d.name         || prev?.name        || "",
+      cui:              d.cui          || `RO${cleanCui}`,
+      county:           d.county       || prev?.county      || "",
+      city:             d.city         || d.county          || prev?.city || "",
+      address:          d.address      || prev?.address     || "",
+      reg_commerce:     d.reg_commerce || prev?.reg_commerce|| "",
+      phone:            d.phone        || prev?.phone       || "",
+      status:           d.status       || prev?.status      || "activ",
+      caen_code:        d.caen_code    || prev?.caen_code   || "",
+      caen_name:        caenEntry?.name  || prev?.caen_name || "",
+      industry:         caenEntry?.section || prev?.industry || "",
+      industry_category:caenEntry?.section || prev?.industry_category || "",
+    });
+    showNotification(`✓ Date preluate: ${d.name}`);
+  };
+
   const lookupCUI = async () => {
     const rawCui = cuiLookup || editingCompany?.cui || "";
-    if (!rawCui) return showNotification("Introdu CUI-ul în câmpul de mai sus", "error");
-    const cleanCui = rawCui.replace(/RO/gi, "").replace(/\s/g, "").trim();
+    if (!rawCui) return showNotification("Introdu CUI-ul mai sus", "error");
+    const cleanCui = rawCui.toUpperCase().replace(/RO/g, "").replace(/\s/g, "").trim();
     if (!cleanCui || !/^\d+$/.test(cleanCui)) return showNotification("CUI invalid — doar cifre", "error");
 
     setLookupLoading(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const anafUrl = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva";
-      const body = JSON.stringify([{ cui: parseInt(cleanCui, 10), data: today }]);
+      // ── Pasul 1: încearcă backend-ul propriu ──────────────────────────
+      try {
+        const resp = await axios.get(`${API}/anaf/${cleanCui}`, { timeout: 28000 });
+        if (resp.data?.success) {
+          applyAnafData(resp.data.data, cleanCui, editingCompany);
+          return;
+        }
+        // Dacă backend spune "negăsit" (nu eroare de rețea), ne oprim
+        if (resp.data?.error?.includes("negăsit")) {
+          showNotification("CUI negăsit în ANAF — completați manual datele.", "error");
+          return;
+        }
+        // altfel continuăm cu fallback browser
+      } catch (backendErr) {
+        // backend timeout sau eroare rețea → continuăm cu fallback
+      }
 
-      // Încearcă mai multe proxy-uri CORS în ordine
+      // ── Pasul 2: fallback direct din browser prin proxy CORS ───────────
+      const anafUrl = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva";
+      const body = JSON.stringify([{ cui: parseInt(cleanCui, 10), data: new Date().toISOString().slice(0,10) }]);
+
       const proxies = [
         `https://corsproxy.io/?url=${encodeURIComponent(anafUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(anafUrl)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(anafUrl)}`,
-        anafUrl, // direct (ultimul resort)
       ];
-
-      let data = null;
-      let lastErr = null;
 
       for (const proxyUrl of proxies) {
         try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 7000);
-          const resp = await fetch(proxyUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body,
-            signal: controller.signal,
-          });
-          clearTimeout(timer);
-          if (!resp.ok) continue;
-          const json = await resp.json();
-          // Verifică că răspunsul are structura ANAF corectă
-          if (json && (Array.isArray(json.found) || Array.isArray(json.notfound))) {
-            data = json;
-            break;
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 10000);
+          const r = await fetch(proxyUrl, { method:"POST", headers:{"Content-Type":"application/json"}, body, signal: ctrl.signal });
+          clearTimeout(t);
+          if (!r.ok) continue;
+          const json = await r.json();
+          const found = json?.found?.[0];
+          if (found) {
+            const dg = found.date_generale || {};
+            const caen = dg.cod_CAEN || "";
+            // extrage judet din adresa
+            let county = "", city = "";
+            const adresa = dg.adresa || "";
+            (adresa.split(",")).forEach(p => {
+              p = p.trim();
+              if (/^JUD\./i.test(p)) county = p.replace(/^JUD\./i,"").trim();
+              else if (/^MUN\./i.test(p)) city = p.replace(/^MUN\./i,"").trim();
+            });
+            if (!city) city = county;
+            applyAnafData({ name: dg.denumire, cui:`RO${cleanCui}`, address: adresa, county, city, phone: dg.telefon, reg_commerce: dg.nrRegCom, caen_code: caen, status: dg.stare_inregistrare?.toUpperCase().includes("INREGISTRAT") ? "activ" : "inactiv" }, cleanCui, editingCompany);
+            return;
           }
-        } catch (e) {
-          lastErr = e;
-        }
+          if (json?.notfound?.length) {
+            showNotification("CUI negăsit în ANAF — completați manual.", "error");
+            return;
+          }
+        } catch {}
       }
 
-      if (!data) {
-        throw lastErr || new Error("Toate proxy-urile au eșuat");
-      }
-
-      const found = data?.found?.[0];
-      if (found) {
-        const dg = found.date_generale || {};
-        // Extrage județul din adresă
-        let county = "";
-        const adresa = dg.adresa || "";
-        if (adresa) {
-          const parts = adresa.split(",").map(p => p.trim());
-          for (const p of parts) {
-            if (p.toUpperCase().startsWith("JUD.")) { county = p.replace(/JUD\./i, "").trim(); break; }
-            if (p.toUpperCase().startsWith("JUDET ")) { county = p.replace(/JUDET /i, "").trim(); break; }
-          }
-          if (!county && parts.length > 1) county = parts[0].includes("SECTOR") ? "Ilfov" : parts[1];
-        }
-        const caenEntry = dg.cod_CAEN ? CAEN_CODES.find(c => c.code === dg.cod_CAEN) : null;
-        setEditingCompany(prev => ({
-          ...prev,
-          name: dg.denumire || prev?.name,
-          cui: `RO${cleanCui}`,
-          county: county || prev?.county,
-          city: dg.localitate || county || prev?.city,
-          address: adresa || prev?.address,
-          reg_commerce: dg.nrRegCom || prev?.reg_commerce,
-          phone: dg.telefon || prev?.phone,
-          status: (dg.stare_inregistrare || "").toUpperCase().includes("INREGISTRAT") ? "activ" : (prev?.status || "activ"),
-          caen_code: dg.cod_CAEN || prev?.caen_code,
-          caen_name: caenEntry?.name || prev?.caen_name,
-          industry: caenEntry?.section || prev?.industry,
-          industry_category: caenEntry?.section || prev?.industry_category,
-        }));
-        showNotification(`✓ Date preluate din ANAF: ${dg.denumire}`);
-      } else if (data?.notfound?.length) {
-        showNotification("CUI negăsit în baza ANAF — completați manual datele.", "error");
-      } else {
-        showNotification("Răspuns neașteptat de la ANAF — completați manual.", "error");
-      }
-    } catch (err) {
-      showNotification("ANAF indisponibil momentan. Completați manual datele companiei.", "error");
+      showNotification("ANAF indisponibil momentan. Completați manual câmpurile.", "error");
     } finally {
       setLookupLoading(false);
     }
