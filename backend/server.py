@@ -477,7 +477,7 @@ class Task(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     description: Optional[str] = None
-    entity_type: Optional[str] = None  # candidate, company, case, general
+    entity_type: Optional[str] = None  # candidate, company, case, general, lead
     entity_id: Optional[str] = None
     entity_name: Optional[str] = None
     due_date: Optional[str] = None
@@ -490,6 +490,17 @@ class Task(BaseModel):
     notify_3h: bool = True
     notify_sent_24h: bool = False
     notify_sent_3h: bool = False
+    # Tip acțiune
+    action_type: Optional[str] = "general"  # general, sunat, email, whatsapp, intalnire
+    # Persoana de contactat
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    # Lead info
+    lead_company: Optional[str] = None
+    lead_contact_person: Optional[str] = None
+    # Coleg colaborator
+    collaborator: Optional[str] = None
     # Întâlnire
     meeting_scheduled: bool = False
     meeting_with: Optional[str] = None
@@ -512,6 +523,17 @@ class TaskCreate(BaseModel):
     assigned_email: Optional[str] = None
     notify_24h: bool = True
     notify_3h: bool = True
+    # Tip acțiune
+    action_type: Optional[str] = "general"
+    # Persoana de contactat
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    # Lead info
+    lead_company: Optional[str] = None
+    lead_contact_person: Optional[str] = None
+    # Coleg colaborator
+    collaborator: Optional[str] = None
     # Întâlnire
     meeting_scheduled: bool = False
     meeting_with: Optional[str] = None
