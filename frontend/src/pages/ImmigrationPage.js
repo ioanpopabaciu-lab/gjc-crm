@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { FileText, Plus, ChevronRight, Eye, Trash2, X, AlertTriangle, Paperclip, Upload, Download, Globe, Building2, Briefcase, Mail, ChevronDown, Search, Filter, Calendar, Award, Clock } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { COR_CODES } from '../data/corCodes';
@@ -8,6 +9,8 @@ import { COR_CODES } from '../data/corCodes';
 const ImmigrationPage = ({ showNotification }) => {
   // Make COR codes available globally for datalist
   window._corCodes = COR_CODES;
+
+  const [searchParams] = useSearchParams();
 
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,10 +21,11 @@ const ImmigrationPage = ({ showNotification }) => {
   const [companies, setCompanies] = useState([]);
   const [selectedCase, setSelectedCase] = useState(null);
   const [activeTab, setActiveTab] = useState("documents");
-  // Filtre
+  // Filtre — inițializate din URL dacă venind din Clienți B2B
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState("");
-  const [filterCompany, setFilterCompany] = useState("");
+  const [filterCompany, setFilterCompany] = useState(() => searchParams.get("company_id") || "");
+  const [filterCompanyName, setFilterCompanyName] = useState(() => searchParams.get("company_name") || "");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");

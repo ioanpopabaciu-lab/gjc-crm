@@ -302,6 +302,21 @@ const CompaniesPage = ({ showNotification }) => {
     navigate(`/candidates?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}`);
   };
 
+  // Navigare la candidații plasați ai companiei
+  const goToPlaced = (company) => {
+    navigate(`/candidates?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}&status=plasat`);
+  };
+
+  // Navigare la dosarele de imigrare ale companiei
+  const goToCases = (company) => {
+    navigate(`/immigration?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}`);
+  };
+
+  // Adaugă candidat nou pre-legat la companie
+  const addCandidateForCompany = (company) => {
+    navigate(`/candidates?company_id=${encodeURIComponent(company.id)}&company_name=${encodeURIComponent(company.name)}&add=1`);
+  };
+
   // Deschide modal programări pentru companie
   const openProgModal = async (company) => {
     setProgModal({ open: true, company, candidates: [], loading: true });
@@ -441,13 +456,13 @@ const CompaniesPage = ({ showNotification }) => {
                 <th>Companie</th>
                 <th>CUI</th>
                 <th>Județ</th>
-                <th>Nr. Reg. Com.</th>
                 <th>Contact</th>
-                <th title="Click pentru a vedea candidații companiei" style={{cursor:'pointer'}}>Candidați ↗</th>
-                <th title="Candidați cu status Plasat">Plasați</th>
-                <th title="Programări IGI viitoare — click pentru detalii" style={{cursor:'pointer', color:'#7c3aed'}}>Programări ↗</th>
-                <th title="Click pentru a vedea avizele companiei" style={{cursor:'pointer'}}>Avize ↗</th>
-                <th title="Dosare imigrare aprobate">Dosare</th>
+                <th title="Candidați alocați — click pentru a vedea sau adăuga" style={{cursor:'pointer', color:'#3b82f6'}}>👤 Candidați</th>
+                <th title="Candidați cu status Plasat — click pentru a vedea" style={{cursor:'pointer', color:'#10b981'}}>✓ Plasați</th>
+                <th title="Programări IGI viitoare — click pentru detalii" style={{cursor:'pointer', color:'#7c3aed'}}>📅 Programări</th>
+                <th title="Avize IGI — click pentru detalii" style={{cursor:'pointer', color:'#f59e0b'}}>📋 Avize</th>
+                <th title="Dosare imigrare — click pentru a vedea în Imigrare" style={{cursor:'pointer', color:'#6b7280'}}>📁 Dosare</th>
+                <th title="Posturi vacante — click pentru a gestiona" style={{cursor:'pointer', color:'#6366f1'}}>💼 Posturi</th>
                 <th>Status</th>
                 <th>Acțiuni</th>
               </tr>
@@ -485,63 +500,83 @@ const CompaniesPage = ({ showNotification }) => {
                       {company.phone && <small><Phone size={11} /> {company.phone}</small>}
                     </div>
                   </td>
+
+                  {/* Candidați — click → pagina Candidați filtrată */}
                   <td>
-                    {company.candidates_count > 0 ? (
-                      <span
-                        className="stat-badge blue clickable-badge"
-                        onClick={() => goToCandidates(company)}
-                        title={`Vezi cei ${company.candidates_count} candidați`}
-                        style={{cursor:'pointer'}}
-                      >
-                        <Users size={13}/> {company.candidates_count}
-                      </span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                    <span
+                      onClick={() => goToCandidates(company)}
+                      title="Click → vezi/adaugă candidații acestei companii"
+                      style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background:'#dbeafe', color:'#1d4ed8', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
+                    >
+                      <Users size={12}/> {company.candidates_count || 0}
+                    </span>
                   </td>
+
+                  {/* Plasați — click → candidați cu status plasat */}
                   <td>
-                    {company.placed_count > 0 ? (
-                      <span className="placed-badge">✓ {company.placed_count}</span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                    <span
+                      onClick={() => goToPlaced(company)}
+                      title="Click → vezi candidații plasați la această companie"
+                      style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background: (company.placed_count||0) > 0 ? '#d1fae5' : '#f3f4f6', color: (company.placed_count||0) > 0 ? '#065f46' : '#9ca3af', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
+                    >
+                      ✓ {company.placed_count || 0}
+                    </span>
                   </td>
+
+                  {/* Programări — click → modal detalii */}
                   <td>
-                    {company.programari_count > 0 ? (
-                      <span
-                        style={{ background:'#ede9fe', color:'#7c3aed', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4 }}
-                        onClick={() => openProgModal(company)}
-                        title={`${company.programari_count} programări IGI viitoare`}
-                      >
-                        📅 {company.programari_count}
-                      </span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                    <span
+                      onClick={() => openProgModal(company)}
+                      title="Click → programări IGI viitoare"
+                      style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background: (company.programari_count||0) > 0 ? '#ede9fe' : '#f3f4f6', color: (company.programari_count||0) > 0 ? '#7c3aed' : '#9ca3af', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
+                    >
+                      📅 {company.programari_count || 0}
+                    </span>
                   </td>
+
+                  {/* Avize — click → modal avize */}
                   <td>
-                    {company.avize_count > 0 ? (
-                      <span
-                        className="aviz-count-badge clickable-badge"
-                        onClick={() => openAvizeModal(company)}
-                        title={`Vezi cele ${company.avize_count} avize`}
-                        style={{cursor:'pointer'}}
-                      >
-                        <Award size={13}/> {company.avize_count}
-                      </span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                    <span
+                      onClick={() => openAvizeModal(company)}
+                      title="Click → avize IGI ale companiei"
+                      style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background: (company.avize_count||0) > 0 ? '#fef3c7' : '#f3f4f6', color: (company.avize_count||0) > 0 ? '#92400e' : '#9ca3af', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
+                    >
+                      <Award size={12}/> {company.avize_count || 0}
+                    </span>
                   </td>
+
+                  {/* Dosare imigrare — click → pagina Imigrare filtrată */}
                   <td>
-                    {(company.active_cases > 0 || company.approved_cases > 0) ? (
-                      <span className="stat-badge gray">
-                        <FileText size={13}/> {(company.active_cases || 0) + (company.approved_cases || 0)}
-                      </span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>0</span>}
+                    <span
+                      onClick={() => goToCases(company)}
+                      title="Click → dosare imigrare în secțiunea Imigrare"
+                      style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background: ((company.active_cases||0)+(company.approved_cases||0)) > 0 ? '#f3f4f6' : '#f9fafb', color: ((company.active_cases||0)+(company.approved_cases||0)) > 0 ? '#374151' : '#9ca3af', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
+                    >
+                      <FileText size={12}/> {(company.active_cases||0)+(company.approved_cases||0)}
+                    </span>
                   </td>
+
+                  {/* Posturi Vacante — click → modal posturi */}
+                  <td>
+                    <span
+                      onClick={() => openJobsModal(company)}
+                      title="Click → gestionează posturile vacante"
+                      style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background:'#eef2ff', color:'#4f46e5', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
+                    >
+                      <Briefcase size={12}/> {company.jobs_count != null ? company.jobs_count : 0}
+                    </span>
+                  </td>
+
                   <td>
                     <span className={`status-badge ${company.status}`}>{company.status}</span>
                   </td>
                   <td className="actions-cell">
                     <button
-                      title="Posturi Vacante"
-                      onClick={() => openJobsModal(company)}
-                      style={{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'4px 9px', background:'#eef2ff', color:'#4f46e5', border:'1px solid #c7d2fe', borderRadius:'7px', cursor:'pointer', fontSize:'0.75rem', fontWeight:600 }}
+                      title="Adaugă Candidat pentru această companie"
+                      onClick={() => addCandidateForCompany(company)}
+                      style={{ display:'inline-flex', alignItems:'center', gap:'3px', padding:'4px 8px', background:'#ecfdf5', color:'#059669', border:'1px solid #a7f3d0', borderRadius:'7px', cursor:'pointer', fontSize:'0.72rem', fontWeight:700 }}
                     >
-                      <Briefcase size={13}/> {company.jobs_count != null ? company.jobs_count : '+'}
+                      <Plus size={12}/> Candidat
                     </button>
                     <button className="icon-btn" onClick={() => { setEditingCompany(company); setShowModal(true); }} data-testid={`edit-company-${company.id}`}>
                       <Edit size={14} />

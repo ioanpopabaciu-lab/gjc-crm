@@ -20,7 +20,7 @@ const CandidatesPage = ({ showNotification }) => {
   const [filterNationality, setFilterNationality] = useState("");
   const [filterCompany, setFilterCompany] = useState(() => searchParams.get("company_id") || "");
   const [filterCompanyName, setFilterCompanyName] = useState(() => searchParams.get("company_name") || "");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get("status") || "");
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -69,6 +69,11 @@ const CandidatesPage = ({ showNotification }) => {
   useEffect(() => {
     fetchCompanies();
     fetchPartners();
+    // Dacă venind din Clienți B2B cu add=1, deschide automat formularul
+    if (searchParams.get("add") === "1") {
+      setShowModal(true);
+      setEditingCandidate(null);
+    }
   }, []);
 
   const hasActiveFilters = filterNationality || filterCompany || filterStatus;
