@@ -132,13 +132,17 @@ class Company(BaseModel):
     cui: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    address: Optional[str] = None
     reg_commerce: Optional[str] = None
     industry: Optional[str] = None
     industry_category: Optional[str] = None  # Construcții, HoReCa, Agricultură, etc.
+    caen_code: Optional[str] = None
+    caen_name: Optional[str] = None
     positions_needed: Optional[int] = None  # Nr. posturi cerute
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    website: Optional[str] = None
     status: str = "activ"
     notes: Optional[str] = None
     # Stats (calculate la cerere)
@@ -148,20 +152,26 @@ class Company(BaseModel):
     active_cases: Optional[int] = None
     approved_cases: Optional[int] = None
     programari_count: Optional[int] = None
+    jobs_count: Optional[int] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     name: str
     cui: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    address: Optional[str] = None
     reg_commerce: Optional[str] = None
     industry: Optional[str] = None
     industry_category: Optional[str] = None
+    caen_code: Optional[str] = None
+    caen_name: Optional[str] = None
     positions_needed: Optional[int] = None
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    website: Optional[str] = None
     status: str = "activ"
     notes: Optional[str] = None
 

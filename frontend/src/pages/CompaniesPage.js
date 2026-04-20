@@ -147,39 +147,67 @@ const CompaniesPage = ({ showNotification }) => {
     try {
       const today = new Date().toISOString().split("T")[0];
       const anafUrl = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva";
+      const body = JSON.stringify([{ cui: parseInt(cleanCui, 10), data: today }]);
 
-      // Apelăm ANAF direct din browser (IP românesc) prin proxy CORS
-      const resp = await fetch(
+      // Încearcă mai multe proxy-uri CORS în ordine
+      const proxies = [
+        `https://corsproxy.io/?url=${encodeURIComponent(anafUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(anafUrl)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify([{ cui: parseInt(cleanCui, 10), data: today }]),
-        }
-      );
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(anafUrl)}`,
+        anafUrl, // direct (ultimul resort)
+      ];
 
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
+      let data = null;
+      let lastErr = null;
+
+      for (const proxyUrl of proxies) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 7000);
+          const resp = await fetch(proxyUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          if (!resp.ok) continue;
+          const json = await resp.json();
+          // Verifică că răspunsul are structura ANAF corectă
+          if (json && (Array.isArray(json.found) || Array.isArray(json.notfound))) {
+            data = json;
+            break;
+          }
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) {
+        throw lastErr || new Error("Toate proxy-urile au eșuat");
+      }
 
       const found = data?.found?.[0];
       if (found) {
         const dg = found.date_generale || {};
         // Extrage județul din adresă
-        let city = "";
+        let county = "";
         const adresa = dg.adresa || "";
         if (adresa) {
           const parts = adresa.split(",").map(p => p.trim());
           for (const p of parts) {
-            if (p.toUpperCase().includes("JUD.")) { city = p.replace(/JUD\./i, "").trim(); break; }
+            if (p.toUpperCase().startsWith("JUD.")) { county = p.replace(/JUD\./i, "").trim(); break; }
+            if (p.toUpperCase().startsWith("JUDET ")) { county = p.replace(/JUDET /i, "").trim(); break; }
           }
-          if (!city && parts.length > 1) city = parts[1];
+          if (!county && parts.length > 1) county = parts[0].includes("SECTOR") ? "Ilfov" : parts[1];
         }
         const caenEntry = dg.cod_CAEN ? CAEN_CODES.find(c => c.code === dg.cod_CAEN) : null;
         setEditingCompany(prev => ({
           ...prev,
           name: dg.denumire || prev?.name,
           cui: `RO${cleanCui}`,
-          city: city || dg.localitate || prev?.city,
+          county: county || prev?.county,
+          city: dg.localitate || county || prev?.city,
           address: adresa || prev?.address,
           reg_commerce: dg.nrRegCom || prev?.reg_commerce,
           phone: dg.telefon || prev?.phone,
@@ -187,15 +215,16 @@ const CompaniesPage = ({ showNotification }) => {
           caen_code: dg.cod_CAEN || prev?.caen_code,
           caen_name: caenEntry?.name || prev?.caen_name,
           industry: caenEntry?.section || prev?.industry,
+          industry_category: caenEntry?.section || prev?.industry_category,
         }));
-        showNotification(`✓ Date preluate: ${dg.denumire}`);
+        showNotification(`✓ Date preluate din ANAF: ${dg.denumire}`);
       } else if (data?.notfound?.length) {
-        showNotification("CUI negăsit în baza ANAF", "error");
+        showNotification("CUI negăsit în baza ANAF — completați manual datele.", "error");
       } else {
-        showNotification("Răspuns neașteptat de la ANAF", "error");
+        showNotification("Răspuns neașteptat de la ANAF — completați manual.", "error");
       }
     } catch (err) {
-      showNotification("ANAF indisponibil momentan. Completați manual datele.", "error");
+      showNotification("ANAF indisponibil momentan. Completați manual datele companiei.", "error");
     } finally {
       setLookupLoading(false);
     }
@@ -845,16 +874,22 @@ const CompaniesPage = ({ showNotification }) => {
               <div className="cui-lookup">
                 <input
                   type="text"
-                  placeholder="Introdu CUI pentru lookup ANAF"
+                  placeholder="Introdu CUI (ex: 12345678 sau RO12345678) și apasă Enter"
                   value={cuiLookup}
                   onChange={(e) => setCuiLookup(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && lookupCUI()}
                   data-testid="cui-lookup-input"
                 />
                 <button className="btn btn-secondary" onClick={lookupCUI} disabled={lookupLoading} data-testid="cui-lookup-btn">
                   {lookupLoading ? <RefreshCw size={16} className="spin" /> : <Search size={16} />}
-                  Caută ANAF
+                  {lookupLoading ? "Se caută..." : "Caută ANAF"}
                 </button>
               </div>
+              {lookupLoading && (
+                <div style={{padding:'8px 12px', background:'#eff6ff', borderRadius:'6px', fontSize:'0.8rem', color:'#1d4ed8', marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px'}}>
+                  <RefreshCw size={13} className="spin" /> Se interoghează baza ANAF... (poate dura 5-10 secunde)
+                </div>
+              )}
               <div className="form-grid">
                 <div className="form-group">
                   <label>Nume Companie *</label>
@@ -876,11 +911,39 @@ const CompaniesPage = ({ showNotification }) => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Oraș</label>
+                  <label>Județ</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.county || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, county: e.target.value })}
+                    placeholder="ex: Cluj"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Localitate</label>
                   <input
                     type="text"
                     value={editingCompany?.city || ""}
                     onChange={(e) => setEditingCompany({ ...editingCompany, city: e.target.value })}
+                    placeholder="ex: Cluj-Napoca"
+                  />
+                </div>
+                <div className="form-group" style={{gridColumn:'span 2'}}>
+                  <label>Adresă completă</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.address || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, address: e.target.value })}
+                    placeholder="Completat automat din ANAF"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nr. Reg. Comerțului</label>
+                  <input
+                    type="text"
+                    value={editingCompany?.reg_commerce || ""}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, reg_commerce: e.target.value })}
+                    placeholder="ex: J12/123/2020"
                   />
                 </div>
                 <div className="form-group" style={{gridColumn:'span 2'}}>
