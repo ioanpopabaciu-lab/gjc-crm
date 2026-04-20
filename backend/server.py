@@ -296,6 +296,7 @@ class Operator(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     phone: str
+    email: Optional[str] = None
     role: Optional[str] = None
     active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -501,6 +502,9 @@ class Task(BaseModel):
     lead_contact_person: Optional[str] = None
     # Coleg colaborator
     collaborator: Optional[str] = None
+    collaborator_email: Optional[str] = None
+    # Creat de
+    created_by_email: Optional[str] = None
     # Întâlnire
     meeting_scheduled: bool = False
     meeting_with: Optional[str] = None
@@ -534,6 +538,9 @@ class TaskCreate(BaseModel):
     lead_contact_person: Optional[str] = None
     # Coleg colaborator
     collaborator: Optional[str] = None
+    collaborator_email: Optional[str] = None
+    # Creat de
+    created_by_email: Optional[str] = None
     # Întâlnire
     meeting_scheduled: bool = False
     meeting_with: Optional[str] = None
@@ -2938,11 +2945,84 @@ async def get_tasks(status: Optional[str] = None, assigned_to: Optional[str] = N
     items = await db.tasks.find(query, {"_id": 0}).sort("due_date", 1).to_list(1000)
     return [serialize_doc(t) for t in items]
 
+async def send_task_notification(task_doc: dict):
+    """Trimite email de notificare imediat la crearea unei sarcini"""
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+    if not smtp_user or not smtp_pass:
+        return  # SMTP neconfigurat, ignorăm silențios
+
+    # Construim lista de destinatari (fără duplicate)
+    recipients = set()
+    if task_doc.get("created_by_email"):
+        recipients.add(task_doc["created_by_email"])
+    if task_doc.get("collaborator_email"):
+        recipients.add(task_doc["collaborator_email"])
+    if not recipients:
+        return  # Nu avem destinatari
+
+    action_labels = {
+        "general": "General", "sunat": "De sunat",
+        "email": "De trimis mail", "whatsapp": "WhatsApp", "intalnire": "Întâlnire"
+    }
+    priority_labels = {"urgent": "Urgent", "high": "Ridicat", "normal": "Normal", "low": "Scăzut"}
+
+    action = action_labels.get(task_doc.get("action_type", "general"), "General")
+    priority = priority_labels.get(task_doc.get("priority", "normal"), "Normal")
+
+    html = f"""
+    <html><body style="font-family:Arial,sans-serif;max-width:580px;margin:auto;padding:24px">
+    <div style="background:#8b5cf6;color:#fff;padding:18px 24px;border-radius:10px 10px 0 0">
+      <h2 style="margin:0;font-size:1.2rem">📋 Sarcină nouă adăugată în GJC CRM</h2>
+    </div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:20px 24px;border-radius:0 0 10px 10px">
+      <h3 style="margin:0 0 16px;color:#1f2937;font-size:1.05rem">{task_doc.get('title','')}</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:0.875rem">
+        <tr><td style="padding:6px 0;color:#6b7280;width:140px">Tip acțiune</td>
+            <td style="padding:6px 0;font-weight:600">{action}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280">Prioritate</td>
+            <td style="padding:6px 0;font-weight:600">{priority}</td></tr>
+        {'<tr><td style="padding:6px 0;color:#6b7280">Termen</td><td style="padding:6px 0;font-weight:600">' + task_doc.get('due_date','') + (' ' + task_doc.get('due_time','') if task_doc.get('due_time') else '') + '</td></tr>' if task_doc.get('due_date') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Atribuit</td><td style="padding:6px 0">' + task_doc.get('assigned_to','') + '</td></tr>' if task_doc.get('assigned_to') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Colaborator</td><td style="padding:6px 0">' + task_doc.get('collaborator','') + '</td></tr>' if task_doc.get('collaborator') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Persoana de contactat</td><td style="padding:6px 0">' + task_doc.get('contact_name','') + '</td></tr>' if task_doc.get('contact_name') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Telefon</td><td style="padding:6px 0">' + task_doc.get('contact_phone','') + '</td></tr>' if task_doc.get('contact_phone') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Email contact</td><td style="padding:6px 0">' + task_doc.get('contact_email','') + '</td></tr>' if task_doc.get('contact_email') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Companie Lead</td><td style="padding:6px 0;font-weight:600">' + task_doc.get('lead_company','') + '</td></tr>' if task_doc.get('lead_company') else ''}
+        {'<tr><td style="padding:6px 0;color:#6b7280">Descriere</td><td style="padding:6px 0">' + task_doc.get('description','') + '</td></tr>' if task_doc.get('description') else ''}
+      </table>
+    </div>
+    <p style="font-size:0.75rem;color:#9ca3af;margin-top:16px;text-align:center">GJC CRM — notificare automată</p>
+    </body></html>
+    """
+
+    def _send():
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"📋 Sarcină nouă: {task_doc.get('title','')}"
+        msg["From"] = smtp_user
+        msg["To"] = ", ".join(recipients)
+        msg.attach(MIMEText(html, "html", "utf-8"))
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.ehlo(); server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, list(recipients), msg.as_string())
+
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _send)
+    except Exception as e:
+        logger.warning(f"Eroare notificare task: {e}")
+
+
 @api_router.post("/tasks")
 async def create_task(task: TaskCreate):
     doc = Task(**task.model_dump()).model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     await db.tasks.insert_one(doc)
+    # Trimite notificare email async
+    asyncio.create_task(send_task_notification(doc))
     return serialize_doc(doc)
 
 @api_router.put("/tasks/{task_id}")

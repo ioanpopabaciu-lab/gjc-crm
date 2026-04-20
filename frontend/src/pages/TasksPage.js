@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Plus, X, Edit2, Trash2, CheckSquare, Square, AlertCircle, Clock, Phone, Mail, MessageCircle, Calendar, Users } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, CheckSquare, Square, AlertCircle, Clock } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useAuth } from '../hooks/useAuth';
 
 const PRIORITIES = [
   { value: "urgent", label: "Urgent",  color: "#ef4444" },
@@ -18,39 +19,42 @@ const STATUSES = [
 ];
 
 const ACTION_TYPES = [
-  { value: "general",   label: "General",       icon: "📋", color: "#6b7280", bg: "#f3f4f6" },
-  { value: "sunat",     label: "De sunat",      icon: "📞", color: "#10b981", bg: "#d1fae5" },
-  { value: "email",     label: "De trimis mail", icon: "✉️", color: "#3b82f6", bg: "#dbeafe" },
-  { value: "whatsapp",  label: "WhatsApp",      icon: "💬", color: "#16a34a", bg: "#dcfce7" },
-  { value: "intalnire", label: "Întâlnire",     icon: "🤝", color: "#8b5cf6", bg: "#ede9fe" },
+  { value: "general",   label: "General",        icon: "📋", color: "#6b7280", bg: "#f3f4f6" },
+  { value: "sunat",     label: "De sunat",        icon: "📞", color: "#10b981", bg: "#d1fae5" },
+  { value: "email",     label: "De trimis mail",  icon: "✉️", color: "#3b82f6", bg: "#dbeafe" },
+  { value: "whatsapp",  label: "WhatsApp",        icon: "💬", color: "#16a34a", bg: "#dcfce7" },
+  { value: "intalnire", label: "Întâlnire",       icon: "🤝", color: "#8b5cf6", bg: "#ede9fe" },
 ];
 
 const ENTITY_TYPES = ["general", "lead", "candidate", "company", "case", "contract", "payment"];
 
-const emptyForm = {
+const buildEmptyForm = (userEmail = "") => ({
   title: "", description: "",
   action_type: "general",
   entity_type: "general", entity_id: "", entity_name: "",
   due_date: "", due_time: "09:00", priority: "normal", status: "pending",
   assigned_to: "", assigned_email: "",
-  collaborator: "",
+  collaborator: "", collaborator_email: "",
+  created_by_email: userEmail,
   notify_24h: true, notify_3h: true,
   contact_name: "", contact_phone: "", contact_email: "",
   lead_company: "", lead_contact_person: "",
   meeting_scheduled: false, meeting_with: "", meeting_contact: "",
   meeting_datetime: "", meeting_materials: "",
-};
+});
 
 const inp = { width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: "8px", boxSizing: "border-box", fontSize: "0.875rem" };
 const lbl = { display: "block", fontSize: "0.82rem", fontWeight: "600", marginBottom: "4px", color: "#374151" };
 const sec = { fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#9ca3af", letterSpacing: "0.05em", margin: "14px 0 8px", borderBottom: "1px solid #f3f4f6", paddingBottom: "4px" };
+const inpReadonly = { ...inp, background: "#f9fafb", color: "#6b7280" };
 
 const TasksPage = ({ showNotification }) => {
+  const { user } = useAuth();
   const [tasks, setTasks]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing]     = useState(null);
-  const [form, setForm]           = useState(emptyForm);
+  const [form, setForm]           = useState(buildEmptyForm());
   const [filterStatus, setFilterStatus]     = useState("");
   const [filterPriority, setFilterPriority] = useState("");
   const [filterAction, setFilterAction]     = useState("");
@@ -73,8 +77,23 @@ const TasksPage = ({ showNotification }) => {
     axios.get(`${API}/operators`).then(r => setOperators(r.data)).catch(() => {});
   }, [fetchTasks]);
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setShowModal(true); };
-  const openEdit = (item) => { setEditing(item); setForm({ ...emptyForm, ...item }); setShowModal(true); };
+  // Găsește email-ul unui operator după nume
+  const getOperatorEmail = (name) => {
+    if (!name) return "";
+    const op = operators.find(o => o.name === name);
+    return op?.email || "";
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(buildEmptyForm(user?.email || ""));
+    setShowModal(true);
+  };
+  const openEdit = (item) => {
+    setEditing(item);
+    setForm({ ...buildEmptyForm(user?.email || ""), ...item });
+    setShowModal(true);
+  };
 
   const toggleDone = async (task) => {
     const newStatus = task.status === "done" ? "pending" : "done";
@@ -92,7 +111,7 @@ const TasksPage = ({ showNotification }) => {
         showNotification("Sarcină actualizată!");
       } else {
         await axios.post(`${API}/tasks`, form);
-        showNotification("Sarcină creată!");
+        showNotification("Sarcină creată! Email trimis automat.");
       }
       setShowModal(false);
       fetchTasks();
@@ -119,6 +138,12 @@ const TasksPage = ({ showNotification }) => {
   const needsLead     = form.entity_type === "lead";
   const needsMeeting  = form.action_type === "intalnire" || form.meeting_scheduled;
 
+  // Toți operatorii + Ioan Baciu (admin)
+  const allTeam = [
+    { name: "Ioan Baciu", email: "ioanpopabaciu@gmail.com" },
+    ...operators.filter(op => op.active !== false),
+  ];
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -126,10 +151,10 @@ const TasksPage = ({ showNotification }) => {
       {/* Stats */}
       <div style={{ display: "flex", gap: "14px", marginBottom: "20px", flexWrap: "wrap" }}>
         {[
-          { label: "De Făcut",  value: pending,       color: "#6b7280" },
-          { label: "Depășite",  value: overdue,       color: "#ef4444" },
-          { label: "Finalizate",value: done,           color: "#10b981" },
-          { label: "Total",     value: tasks.length,  color: "#3b82f6" },
+          { label: "De Făcut",   value: pending,      color: "#6b7280" },
+          { label: "Depășite",   value: overdue,      color: "#ef4444" },
+          { label: "Finalizate", value: done,          color: "#10b981" },
+          { label: "Total",      value: tasks.length, color: "#3b82f6" },
         ].map(s => (
           <div key={s.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "14px 22px", minWidth: "130px" }}>
             <div style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>{s.label}</div>
@@ -174,7 +199,6 @@ const TasksPage = ({ showNotification }) => {
               </button>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  {/* Tip acțiune badge */}
                   <span style={{ fontSize: "0.8rem", background: actionType?.bg, color: actionType?.color, borderRadius: "8px", padding: "2px 8px", fontWeight: 600 }}>
                     {actionType?.icon} {actionType?.label}
                   </span>
@@ -196,7 +220,7 @@ const TasksPage = ({ showNotification }) => {
                 {/* Lead info */}
                 {(task.lead_company || task.lead_contact_person) && (
                   <div style={{ display: "flex", gap: "10px", marginTop: "4px", flexWrap: "wrap" }}>
-                    {task.lead_company       && <span style={{ fontSize: "0.78rem", background: "#fef3c7", color: "#92400e", borderRadius: "6px", padding: "1px 8px", fontWeight: 600 }}>🏢 {task.lead_company}</span>}
+                    {task.lead_company        && <span style={{ fontSize: "0.78rem", background: "#fef3c7", color: "#92400e", borderRadius: "6px", padding: "1px 8px", fontWeight: 600 }}>🏢 {task.lead_company}</span>}
                     {task.lead_contact_person && <span style={{ fontSize: "0.78rem", color: "#374151" }}>👤 {task.lead_contact_person}</span>}
                   </div>
                 )}
@@ -226,7 +250,7 @@ const TasksPage = ({ showNotification }) => {
       {/* Modal */}
       {showModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
-          <div style={{ background: "#fff", borderRadius: "12px", padding: "24px 28px", width: "100%", maxWidth: "600px", maxHeight: "92vh", overflowY: "auto" }}>
+          <div style={{ background: "#fff", borderRadius: "12px", padding: "24px 28px", width: "100%", maxWidth: "620px", maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "700" }}>{editing ? "Editează Sarcină" : "Sarcină Nouă"}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={20} /></button>
@@ -278,7 +302,7 @@ const TasksPage = ({ showNotification }) => {
               </div>
             </div>
 
-            {/* 3. Persoana de contactat — apare la sunat/email/whatsapp */}
+            {/* 3. Persoana de contactat */}
             {needsContact && (
               <>
                 <div style={sec}>
@@ -290,9 +314,7 @@ const TasksPage = ({ showNotification }) => {
                     <input type="text" value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="ex: Ion Popescu" style={inp} />
                   </div>
                   <div>
-                    <label style={lbl}>
-                      {form.action_type === "email" ? "Adresă Email" : "Telefon / WhatsApp"}
-                    </label>
+                    <label style={lbl}>{form.action_type === "email" ? "Adresă Email" : "Telefon / WhatsApp"}</label>
                     <input
                       type={form.action_type === "email" ? "email" : "tel"}
                       value={form.action_type === "email" ? form.contact_email : form.contact_phone}
@@ -314,7 +336,7 @@ const TasksPage = ({ showNotification }) => {
               </>
             )}
 
-            {/* 4. Lead info — apare când entity_type = lead */}
+            {/* 4. Lead info */}
             <div style={sec}>Legătură cu</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <div>
@@ -391,46 +413,111 @@ const TasksPage = ({ showNotification }) => {
 
             {/* 6. Echipă */}
             <div style={sec}>👥 Echipă</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              <div>
-                <label style={lbl}>Atribuit</label>
-                <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} style={inp}>
-                  <option value="">— Selectează —</option>
-                  <option value="Ioan Baciu">Ioan Baciu</option>
-                  {operators.filter(op => op.active !== false).map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
-                </select>
+            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "14px", display: "grid", gap: "12px" }}>
+
+              {/* Rândul 1: Atribuit + email auto */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={lbl}>Atribuit</label>
+                  <select
+                    value={form.assigned_to}
+                    onChange={e => {
+                      const name = e.target.value;
+                      const email = name === "Ioan Baciu" ? "ioanpopabaciu@gmail.com" : getOperatorEmail(name);
+                      setForm(f => ({ ...f, assigned_to: name, assigned_email: email }));
+                    }}
+                    style={inp}
+                  >
+                    <option value="">— Selectează —</option>
+                    {allTeam.map(op => <option key={op.name} value={op.name}>{op.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>📧 Email persoană atribuită</label>
+                  <input
+                    type="email"
+                    value={form.assigned_email}
+                    onChange={e => setForm(f => ({ ...f, assigned_email: e.target.value }))}
+                    placeholder="auto-completat din listă"
+                    style={inp}
+                  />
+                  {form.assigned_email && (
+                    <div style={{ fontSize: "0.72rem", color: "#10b981", marginTop: "2px" }}>✓ {form.assigned_email}</div>
+                  )}
+                </div>
               </div>
-              <div>
-                <label style={lbl}>Email persoană atribuită</label>
-                <input type="email" value={form.assigned_email} onChange={e => setForm(f => ({ ...f, assigned_email: e.target.value }))} placeholder="ex: coleg@firma.ro" style={inp} />
+
+              {/* Separator */}
+              <div style={{ borderTop: "1px dashed #e5e7eb", paddingTop: "10px" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: "700", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "8px" }}>
+                  🤝 Coleg colaborator
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <div>
+                    <label style={lbl}>Selectează coleg</label>
+                    <select
+                      value={form.collaborator}
+                      onChange={e => {
+                        const name = e.target.value;
+                        const email = name === "Ioan Baciu" ? "ioanpopabaciu@gmail.com" : getOperatorEmail(name);
+                        setForm(f => ({ ...f, collaborator: name, collaborator_email: email }));
+                      }}
+                      style={inp}
+                    >
+                      <option value="">— Fără colaborator —</option>
+                      {allTeam.map(op => <option key={op.name} value={op.name}>{op.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>📧 Email colaborator</label>
+                    <input
+                      type="email"
+                      value={form.collaborator_email}
+                      onChange={e => setForm(f => ({ ...f, collaborator_email: e.target.value }))}
+                      placeholder="auto-completat din listă"
+                      style={inp}
+                    />
+                    {form.collaborator_email && (
+                      <div style={{ fontSize: "0.72rem", color: "#10b981", marginTop: "2px" }}>✓ {form.collaborator_email}</div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div style={{ gridColumn: "span 2" }}>
-                <label style={lbl}>🤝 Coleg colaborator</label>
-                <select value={form.collaborator} onChange={e => setForm(f => ({ ...f, collaborator: e.target.value }))} style={inp}>
-                  <option value="">— Fără colaborator —</option>
-                  <option value="Ioan Baciu">Ioan Baciu</option>
-                  {operators.filter(op => op.active !== false).map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
-                </select>
+
+              {/* Email creat de (cine trimite notificarea) */}
+              <div style={{ borderTop: "1px dashed #e5e7eb", paddingTop: "10px" }}>
+                <label style={lbl}>📬 Email-ul meu (notificare la creare)</label>
+                <input
+                  type="email"
+                  value={form.created_by_email}
+                  onChange={e => setForm(f => ({ ...f, created_by_email: e.target.value }))}
+                  placeholder="adresa ta de email"
+                  style={inp}
+                />
+                <div style={{ fontSize: "0.72rem", color: "#6b7280", marginTop: "3px" }}>
+                  ℹ️ La salvare, vei primi un email de confirmare cu detaliile sarcinii
+                  {form.collaborator_email && `. Colaboratorul (${form.collaborator}) va fi notificat și el.`}
+                </div>
               </div>
             </div>
 
             {/* 7. Notificări */}
-            <div style={sec}>🔔 Notificări Email</div>
+            <div style={sec}>🔔 Notificări Email (remindere automate)</div>
             <div style={{ display: "flex", gap: "20px", padding: "10px 14px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.875rem", cursor: "pointer" }}>
                 <input type="checkbox" checked={form.notify_24h} onChange={e => setForm(f => ({ ...f, notify_24h: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#8b5cf6" }} />
-                Email 24h înainte
+                Email 24h înainte de termen
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.875rem", cursor: "pointer" }}>
                 <input type="checkbox" checked={form.notify_3h} onChange={e => setForm(f => ({ ...f, notify_3h: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#8b5cf6" }} />
-                Email 3h înainte
+                Email 3h înainte de termen
               </label>
             </div>
 
             <div style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
               <button onClick={() => setShowModal(false)} style={{ padding: "9px 22px", border: "1px solid #e5e7eb", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>Anulează</button>
               <button onClick={handleSave} style={{ padding: "9px 22px", background: "#8b5cf6", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>
-                {editing ? "Salvează" : "Adaugă"}
+                {editing ? "Salvează" : "Adaugă Sarcina"}
               </button>
             </div>
           </div>

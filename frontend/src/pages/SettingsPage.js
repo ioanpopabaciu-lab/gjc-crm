@@ -149,6 +149,7 @@ const SettingsPage = ({ showNotification }) => {
                 <tr>
                   <th>Operator</th>
                   <th>Telefon WhatsApp</th>
+                  <th>Email</th>
                   <th>Rol</th>
                   <th>Status</th>
                   <th style={{textAlign:'center'}}>WhatsApp</th>
@@ -158,7 +159,7 @@ const SettingsPage = ({ showNotification }) => {
               <tbody>
                 {operators.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{textAlign:'center', padding:'40px', color:'var(--text-muted)'}}>
+                    <td colSpan={7} style={{textAlign:'center', padding:'40px', color:'var(--text-muted)'}}>
                       Nu există operatori. Adaugă primul operator!
                     </td>
                   </tr>
@@ -171,6 +172,7 @@ const SettingsPage = ({ showNotification }) => {
                         {op.phone}
                       </span>
                     </td>
+                    <td style={{fontSize:'0.85rem', color:'#3b82f6'}}>{op.email || <span style={{color:'#d1d5db'}}>—</span>}</td>
                     <td style={{color:'var(--text-muted)'}}>{op.role || "-"}</td>
                     <td>
                       <span className={`status-badge ${op.active ? 'activ' : 'inactiv'}`}>
@@ -315,6 +317,10 @@ const SettingsPage = ({ showNotification }) => {
                 <div className="form-group">
                   <label>Telefon WhatsApp * (cu prefix)</label>
                   <input type="text" value={editingOp?.phone || ""} onChange={e => setEditingOp({...editingOp, phone: e.target.value})} placeholder="+40722000000" />
+                </div>
+                <div className="form-group" style={{gridColumn:'span 2'}}>
+                  <label>📧 Email (pentru notificări sarcini)</label>
+                  <input type="email" value={editingOp?.email || ""} onChange={e => setEditingOp({...editingOp, email: e.target.value})} placeholder="ex: coleg@gjc.ro" />
                 </div>
                 <div className="form-group">
                   <label>Rol</label>
