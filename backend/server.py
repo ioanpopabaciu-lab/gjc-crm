@@ -860,6 +860,14 @@ async def delete_user(user_id: str, admin = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
     return {"ok": True}
 
+@api_router.get("/auth/list-users-debug")
+async def list_users_debug(secret: str):
+    """Endpoint temporar de debug — listează emailurile înregistrate"""
+    if secret != os.environ.get("ADMIN_SECRET", "gjc-setup-2025"):
+        raise HTTPException(status_code=403, detail="Secret incorect")
+    users = await db.users.find({}, {"_id": 0, "email": 1, "role": 1, "created_at": 1}).to_list(100)
+    return users
+
 @api_router.get("/auth/setup-admin")
 async def setup_first_admin(email: str, secret: str):
     """
