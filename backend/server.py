@@ -61,6 +61,12 @@ class UserCreate(BaseModel):
     password: str
     role: str = "operator"
 
+class UserUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    email: Optional[str] = None
+    role: Optional[str] = None
+    new_password: Optional[str] = None
+
 class UserLogin(BaseModel):
     email: str
     password: str
@@ -790,6 +796,55 @@ async def get_all_users(user = Depends(require_admin)):
     """Get all users (admin only)"""
     users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
     return users
+
+@api_router.post("/auth/users")
+async def create_user_admin(user_data: UserCreate, admin = Depends(require_admin)):
+    """Create a new user (admin only)"""
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email-ul este deja înregistrat")
+    user_id = str(uuid.uuid4())
+    hashed_password = get_password_hash(user_data.password)
+    created_at = datetime.now(timezone.utc).isoformat()
+    user_doc = {
+        "id": user_id,
+        "email": user_data.email,
+        "password_hash": hashed_password,
+        "role": user_data.role,
+        "created_at": created_at
+    }
+    await db.users.insert_one(user_doc)
+    return {"id": user_id, "email": user_data.email, "role": user_data.role, "created_at": created_at}
+
+@api_router.put("/auth/users/{user_id}")
+async def update_user(user_id: str, data: UserUpdate, current_user = Depends(require_auth)):
+    """Update user email/role/password — admin poate modifica pe oricine, utilizatorul poate modifica doar contul propriu"""
+    if current_user['role'] != 'admin' and current_user['id'] != user_id:
+        raise HTTPException(status_code=403, detail="Acces interzis")
+    update = {}
+    if data.email:
+        existing = await db.users.find_one({"email": data.email, "id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email-ul este deja folosit de alt cont")
+        update["email"] = data.email
+    if data.role and current_user['role'] == 'admin':
+        update["role"] = data.role
+    if data.new_password:
+        update["password_hash"] = get_password_hash(data.new_password)
+    if not update:
+        raise HTTPException(status_code=400, detail="Nimic de actualizat")
+    await db.users.update_one({"id": user_id}, {"$set": update})
+    return {"ok": True}
+
+@api_router.delete("/auth/users/{user_id}")
+async def delete_user(user_id: str, admin = Depends(require_admin)):
+    """Delete a user (admin only)"""
+    if admin['id'] == user_id:
+        raise HTTPException(status_code=400, detail="Nu îți poți șterge propriul cont")
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
+    return {"ok": True}
 
 # ===================== FILE UPLOAD =====================
 
