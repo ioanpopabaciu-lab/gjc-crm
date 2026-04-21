@@ -21,6 +21,7 @@ const CandidatesPage = ({ showNotification }) => {
   const [filterCompany, setFilterCompany] = useState(() => searchParams.get("company_id") || "");
   const [filterCompanyName, setFilterCompanyName] = useState(() => searchParams.get("company_name") || "");
   const [filterStatus, setFilterStatus] = useState(() => searchParams.get("status") || "");
+  const [filterSursa, setFilterSursa] = useState(() => searchParams.get("sursa") || "");
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -35,6 +36,7 @@ const CandidatesPage = ({ showNotification }) => {
       if (filterNationality) params.push(`nationality=${encodeURIComponent(filterNationality)}`);
       if (filterCompany) params.push(`company_id=${encodeURIComponent(filterCompany)}`);
       if (filterStatus) params.push(`status=${encodeURIComponent(filterStatus)}`);
+      if (filterSursa) params.push(`sursa=${encodeURIComponent(filterSursa)}`);
       const queryString = params.length > 0 ? `?${params.join("&")}` : "";
       const response = await axios.get(`${API}/candidates${queryString}`, { timeout: 20000 });
       setCandidates(response.data);
@@ -43,7 +45,7 @@ const CandidatesPage = ({ showNotification }) => {
     } finally {
       setLoading(false);
     }
-  }, [search, filterNationality, filterCompany, filterStatus, showNotification]);
+  }, [search, filterNationality, filterCompany, filterStatus, filterSursa, showNotification]);
 
   const fetchCompanies = async () => {
     try {
@@ -76,10 +78,10 @@ const CandidatesPage = ({ showNotification }) => {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hasActiveFilters = filterNationality || filterCompany || filterStatus;
+  const hasActiveFilters = filterNationality || filterCompany || filterStatus || filterSursa;
 
   const clearFilters = () => {
-    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus(""); setFilterCompanyName("");
+    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus(""); setFilterCompanyName(""); setFilterSursa("");
   };
 
   const exportCSV = () => {
@@ -244,6 +246,14 @@ const CandidatesPage = ({ showNotification }) => {
               <option value="inactiv">Inactiv</option>
             </select>
           </div>
+          <div className="filter-group">
+            <label>Sursă</label>
+            <select value={filterSursa} onChange={e => setFilterSursa(e.target.value)}>
+              <option value="">Toți candidații</option>
+              <option value="international">🌍 Internațional</option>
+              <option value="romania">🇷🇴 România</option>
+            </select>
+          </div>
         </div>
       )}
 
@@ -274,6 +284,9 @@ const CandidatesPage = ({ showNotification }) => {
                     <td className="candidate-name-cell">
                       <User size={16} />
                       {candidate.first_name} {candidate.last_name}
+                      {candidate.sursa === 'romania' && (
+                        <span style={{marginLeft:6, fontSize:'0.7rem', background:'#dcfce7', color:'#166534', padding:'1px 6px', borderRadius:4, fontWeight:600}}>🇷🇴 RO</span>
+                      )}
                     </td>
                     <td>
                       <span className="nationality-badge">{candidate.nationality || "-"}</span>
@@ -460,6 +473,17 @@ const CandidatesPage = ({ showNotification }) => {
                     {companies.map(comp => (
                       <option key={comp.id} value={comp.id}>{comp.name}</option>
                     ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Sursă Candidat</label>
+                  <select
+                    value={editingCandidate?.sursa || ""}
+                    onChange={(e) => setEditingCandidate({ ...editingCandidate, sursa: e.target.value })}
+                  >
+                    <option value="">Selectează...</option>
+                    <option value="international">🌍 Internațional (recrutare din țară)</option>
+                    <option value="romania">🇷🇴 România (deja în țară)</option>
                   </select>
                 </div>
                 <div className="form-group">

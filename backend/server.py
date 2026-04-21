@@ -233,6 +233,7 @@ class Candidate(BaseModel):
     service_type: Optional[str] = None  # "recrutare" | "imigrare_directa"
     source_partner_id: Optional[str] = None
     source_partner_name: Optional[str] = None
+    sursa: Optional[str] = None  # "international" | "romania"
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -254,6 +255,7 @@ class CandidateCreate(BaseModel):
     service_type: Optional[str] = None
     source_partner_id: Optional[str] = None
     source_partner_name: Optional[str] = None
+    sursa: Optional[str] = None  # "international" | "romania"
     notes: Optional[str] = None
 
 class ImmigrationDocument(BaseModel):
@@ -294,6 +296,7 @@ class ImmigrationCase(BaseModel):
     submitted_date: Optional[str] = None
     deadline: Optional[str] = None
     assigned_to: str = "Ioan Baciu"
+    tip_procedura: Optional[str] = None  # "angajare_initiala" | "schimbare_angajator" | "prelungire_permis"
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -310,6 +313,7 @@ class ImmigrationCaseCreate(BaseModel):
     submitted_date: Optional[str] = None
     deadline: Optional[str] = None
     assigned_to: str = "Ioan Baciu"
+    tip_procedura: Optional[str] = None  # "angajare_initiala" | "schimbare_angajator" | "prelungire_permis"
     notes: Optional[str] = None
 
 class PipelineOpportunity(BaseModel):
@@ -1552,7 +1556,8 @@ async def get_candidates(
     status: Optional[str] = None,
     nationality: Optional[str] = None,
     company_id: Optional[str] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    sursa: Optional[str] = None
 ):
     query = {}
     if status:
@@ -1561,6 +1566,8 @@ async def get_candidates(
         query["nationality"] = nationality
     if company_id:
         query["company_id"] = company_id
+    if sursa:
+        query["sursa"] = sursa
     if search:
         query["$or"] = [
             {"first_name": {"$regex": search, "$options": "i"}},
@@ -1767,6 +1774,7 @@ async def get_immigration_cases(
     stage: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    tip_procedura: Optional[str] = None,
 ):
     query = {}
     if status:
@@ -1775,6 +1783,8 @@ async def get_immigration_cases(
         query["candidate_id"] = candidate_id
     if company_id:
         query["company_id"] = company_id
+    if tip_procedura:
+        query["tip_procedura"] = tip_procedura
     if stage:
         try:
             query["current_stage"] = int(stage)

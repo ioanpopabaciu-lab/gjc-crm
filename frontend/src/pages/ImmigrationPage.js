@@ -29,6 +29,7 @@ const ImmigrationPage = ({ showNotification }) => {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterTipProcedura, setFilterTipProcedura] = useState("");
   const [showFilters, setShowFilters] = useState(true);
   const [operators, setOperators] = useState([]);
   // Email modal
@@ -51,6 +52,7 @@ const ImmigrationPage = ({ showNotification }) => {
       if (filterStatus) params.append("status", filterStatus);
       if (filterDateFrom) params.append("date_from", filterDateFrom);
       if (filterDateTo) params.append("date_to", filterDateTo);
+      if (filterTipProcedura) params.append("tip_procedura", filterTipProcedura);
       const [casesRes, stagesRes, candidatesRes, companiesRes, operatorsRes] = await Promise.all([
         axios.get(`${API}/immigration?${params.toString()}`),
         axios.get(`${API}/immigration/stages`),
@@ -68,7 +70,7 @@ const ImmigrationPage = ({ showNotification }) => {
     } finally {
       setLoading(false);
     }
-  }, [search, filterStage, filterCompany, filterStatus, filterDateFrom, filterDateTo, showNotification]);
+  }, [search, filterStage, filterCompany, filterStatus, filterDateFrom, filterDateTo, filterTipProcedura, showNotification]);
 
   const exportCSV = () => {
     const headers = ["Candidat", "Companie", "Tip", "Etapa", "Status", "Nr IGI", "Nr Aviz", "Data Aviz", "Programare", "Data Depunere"];
@@ -160,9 +162,9 @@ const ImmigrationPage = ({ showNotification }) => {
 
   const clearFilters = () => {
     setSearch(""); setFilterStage(""); setFilterCompany("");
-    setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo("");
+    setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterTipProcedura("");
   };
-  const hasActiveFilters = search || filterStage || filterCompany || filterStatus || filterDateFrom || filterDateTo;
+  const hasActiveFilters = search || filterStage || filterCompany || filterStatus || filterDateFrom || filterDateTo || filterTipProcedura;
 
   useEffect(() => {
     fetchCases();
@@ -436,6 +438,15 @@ const ImmigrationPage = ({ showNotification }) => {
               <label><Calendar size={14}/> Până la</label>
               <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
             </div>
+            <div className="filter-group">
+              <label>Tip Procedură</label>
+              <select value={filterTipProcedura} onChange={e => setFilterTipProcedura(e.target.value)}>
+                <option value="">Toate tipurile</option>
+                <option value="angajare_initiala">🌍 Angajare inițială</option>
+                <option value="schimbare_angajator">🔄 Schimbare angajator</option>
+                <option value="prelungire_permis">📅 Prelungire permis</option>
+              </select>
+            </div>
           </div>
         )}
 
@@ -637,6 +648,17 @@ const ImmigrationPage = ({ showNotification }) => {
                   </span>
                   <span className={`case-status ${caseItem.status}`}>{caseItem.status}</span>
                 </div>
+                {caseItem.tip_procedura && (
+                  <div style={{padding:'2px 10px 6px'}}>
+                    <span style={{
+                      fontSize:'0.72rem', fontWeight:700, padding:'2px 8px', borderRadius:4,
+                      background: caseItem.tip_procedura === 'schimbare_angajator' ? '#fef3c7' : caseItem.tip_procedura === 'prelungire_permis' ? '#ede9fe' : '#dbeafe',
+                      color: caseItem.tip_procedura === 'schimbare_angajator' ? '#92400e' : caseItem.tip_procedura === 'prelungire_permis' ? '#6d28d9' : '#1d4ed8',
+                    }}>
+                      {caseItem.tip_procedura === 'angajare_initiala' ? '🌍 Angajare inițială' : caseItem.tip_procedura === 'schimbare_angajator' ? '🔄 Schimbare angajator' : '📅 Prelungire permis'}
+                    </span>
+                  </div>
+                )}
                 <div className="case-body">
                   <h4>{caseItem.candidate_name}</h4>
                   <p className="company">{caseItem.company_name}</p>
@@ -737,6 +759,18 @@ const ImmigrationPage = ({ showNotification }) => {
                       <option value="Viză de lungă ședere">Viză de lungă ședere</option>
                       <option value="Reînnoire permis">Reînnoire permis</option>
                       <option value="Reunificare familială">Reunificare familială</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Tip Procedură</label>
+                    <select
+                      value={newCase.tip_procedura || ""}
+                      onChange={(e) => setNewCase({ ...newCase, tip_procedura: e.target.value })}
+                    >
+                      <option value="">Selectează...</option>
+                      <option value="angajare_initiala">🌍 Angajare inițială</option>
+                      <option value="schimbare_angajator">🔄 Schimbare angajator (deja în RO)</option>
+                      <option value="prelungire_permis">📅 Prelungire permis</option>
                     </select>
                   </div>
                   <div className="form-group">
