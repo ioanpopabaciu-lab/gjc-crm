@@ -869,35 +869,56 @@ async def list_users_debug(secret: str):
     return users
 
 @api_router.get("/auth/setup-admin")
-async def setup_first_admin(secret: str, email: str = None):
+async def setup_first_admin(secret: str, email: str = None, new_password: str = None):
     """
-    Promovează un utilizator la rol admin.
-    Dacă nu există niciun admin, promovează primul utilizator găsit (sau cel cu emailul dat).
+    Endpoint bootstrap admin — folosit o singură dată la configurare inițială.
+    - Dacă există utilizatori: promovează primul (sau cel cu emailul dat) la admin
+    - Dacă NU există utilizatori: creează un cont admin nou (necesar email + new_password)
     """
     admin_secret = os.environ.get("ADMIN_SECRET", "gjc-setup-2025")
     if secret != admin_secret:
         raise HTTPException(status_code=403, detail="Secret incorect")
 
-    # Listează toți utilizatorii pentru debug
     all_users = await db.users.find({}, {"_id": 0, "email": 1, "role": 1}).to_list(100)
 
+    # Cazul 1: baza de date goală → creăm cont admin nou
     if not all_users:
-        return {"ok": False, "message": "Nu există niciun utilizator în baza de date. Înregistrează-te mai întâi în CRM.", "users": []}
+        if not email or not new_password:
+            return {
+                "ok": False,
+                "message": "Baza de date nu are niciun utilizator. Adaugă parametrii: &email=TU@email.com&new_password=PAROLA_TA",
+                "users_count": 0
+            }
+        user_id = str(uuid.uuid4())
+        hashed = get_password_hash(new_password)
+        await db.users.insert_one({
+            "id": user_id,
+            "email": email,
+            "password_hash": hashed,
+            "role": "admin",
+            "permissions": [],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        return {"ok": True, "message": f"Cont admin creat: {email}. Loghează-te acum în CRM.", "action": "created"}
 
-    # Găsim utilizatorul țintă
+    # Cazul 2: există utilizatori → promovăm la admin
     if email:
         target = next((u for u in all_users if u["email"] == email), None)
         if not target:
-            return {"ok": False, "message": f"Email-ul '{email}' nu a fost găsit.", "users_found": [u["email"] for u in all_users]}
+            return {
+                "ok": False,
+                "message": f"Email-ul '{email}' nu a fost găsit.",
+                "emails_in_db": [u["email"] for u in all_users]
+            }
     else:
-        # Primul utilizator din baza de date
         target = all_users[0]
 
     await db.users.update_one({"email": target["email"]}, {"$set": {"role": "admin", "permissions": []}})
     return {
         "ok": True,
-        "message": f"Contul '{target['email']}' a fost promovat la ADMIN. Deconectează-te și reconectează-te în CRM.",
-        "all_users": [u["email"] for u in all_users]
+        "message": f"Contul '{target['email']}' → ADMIN. Deconectează-te și reconectează-te.",
+        "all_emails_in_db": [u["email"] for u in all_users],
+        "action": "promoted"
     }
 
 # ===================== FILE UPLOAD =====================
