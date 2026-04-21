@@ -38,7 +38,7 @@ export default function ClientDashboardPage({ showNotification }) {
       }
     };
     load();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>

@@ -62,7 +62,7 @@ export default function ClientDocumentsPage({ showNotification }) {
     }
   };
 
-  useEffect(() => { fetchDocs(); }, []);
+  useEffect(() => { fetchDocs(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpload = async () => {
     if (!selectedFile) { showNotification('Selectați un fișier', 'error'); return; }

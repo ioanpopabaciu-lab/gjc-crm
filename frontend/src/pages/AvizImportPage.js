@@ -83,7 +83,7 @@ export default function AvizImportPage({ showNotification }) {
     e.preventDefault();
     setDragging(false);
     processFiles(e.dataTransfer.files);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Import din Email ──────────────────────────────────────────
   const importFromEmail = async () => {

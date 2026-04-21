@@ -74,7 +74,7 @@ const CandidatesPage = ({ showNotification }) => {
       setShowModal(true);
       setEditingCandidate(null);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasActiveFilters = filterNationality || filterCompany || filterStatus;
 

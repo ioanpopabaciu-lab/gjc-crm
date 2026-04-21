@@ -11,7 +11,7 @@ export default function ClientJobsPage({ showNotification }) {
       .then(r => setJobs(r.data || []))
       .catch(() => showNotification('Eroare la încărcare', 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>⏳ Se încarcă...</div>;
 

@@ -86,7 +86,7 @@ export default function ClientCandidatesPage({ showNotification }) {
       .then(r => setCandidates(r.data || []))
       .catch(() => showNotification('Eroare la încărcare', 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = candidates.filter(c => {
     const name = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
