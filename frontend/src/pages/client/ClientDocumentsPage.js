@@ -5,15 +5,26 @@ import { useAuth } from '../../hooks/useAuth';
 import { Upload, Download, Trash2, FileText, Plus, X } from 'lucide-react';
 
 const CATEGORIES = [
-  { value: 'contract',      label: '📑 Contract' },
-  { value: 'aviz',          label: '🏛️ Aviz IGI' },
-  { value: 'pasaport',      label: '🪪 Pașaport' },
-  { value: 'viza',          label: '🛂 Viză' },
-  { value: 'permis',        label: '📄 Permis de ședere' },
-  { value: 'medical',       label: '🏥 Adeverință medicală' },
-  { value: 'diploma',       label: '🎓 Diplomă/Calificare' },
-  { value: 'angajament',    label: '✍️ Angajament plată' },
-  { value: 'general',       label: '📎 Alt document' },
+  { value: 'imputernicire',       label: '✍️ Împuternicire pentru agenție' },
+  { value: 'contract_recrutare',  label: '📑 Contract Servicii Recrutare' },
+  { value: 'conventie_mediere',   label: '🤝 Convenție mediere' },
+  { value: 'cui_companie',        label: '🏢 CUI companie' },
+  { value: 'cazier_judiciar',     label: '⚖️ Cazier judiciar companie' },
+  { value: 'certificat_fiscal',   label: '🏛️ Certificat Fiscal ANAF' },
+  { value: 'adeverinta_ajofm',    label: '📋 Adeverință AJOFM' },
+  { value: 'oferta_angajare',     label: '💼 Ofertă de angajare' },
+  { value: 'draft_cim',           label: '📝 Draft CIM' },
+  { value: 'fisa_postului',       label: '📄 Fișa postului' },
+  { value: 'organigrama',         label: '🗂️ Organigramă' },
+  { value: 'proces_verbal',       label: '📋 Proces verbal de selecție' },
+  { value: 'cerere_igi',          label: '🏛️ Cerere semnată către IGI' },
+  { value: 'dovada_publicare',    label: '📢 Dovadă publicare post vacant' },
+  { value: 'contract_comodat',    label: '🏠 Contract de comodat' },
+  { value: 'scrisoare_garantie',  label: '🛡️ Scrisoare de garanție' },
+  { value: 'taxa_aviz',           label: '💰 Copie taxă aviz' },
+  { value: 'taxa_permis',         label: '💰 Copie taxă permis de ședere' },
+  { value: 'taxa_consulara',      label: '💰 Copie taxă consulară' },
+  { value: 'general',             label: '📎 Alte documente' },
 ];
 
 function formatSize(bytes) {
