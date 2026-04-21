@@ -860,6 +860,23 @@ async def delete_user(user_id: str, admin = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
     return {"ok": True}
 
+@api_router.post("/auth/setup-admin")
+async def setup_first_admin(email: str, secret: str):
+    """
+    Promovează un utilizator la rol admin.
+    Funcționează DOAR dacă nu există niciun admin în sistem SAU dacă secretul din env (ADMIN_SECRET) este corect.
+    Apelează o singură dată pentru a-ți activa contul de admin.
+    """
+    admin_secret = os.environ.get("ADMIN_SECRET", "gjc-setup-2025")
+    no_admins = await db.users.count_documents({"role": "admin"}) == 0
+    if not no_admins and secret != admin_secret:
+        raise HTTPException(status_code=403, detail="Secret incorect sau există deja un admin")
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Nu există niciun cont cu email-ul {email}")
+    await db.users.update_one({"email": email}, {"$set": {"role": "admin", "permissions": []}})
+    return {"ok": True, "message": f"Contul {email} a fost promovat la admin. Deconectează-te și reconectează-te."}
+
 # ===================== FILE UPLOAD =====================
 
 @api_router.post("/upload/document/{case_id}/{category}/{doc_id}")
