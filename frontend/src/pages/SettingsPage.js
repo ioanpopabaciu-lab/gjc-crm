@@ -4,6 +4,7 @@ import { Plus, Trash2, Edit, Phone, Save, X, MessageCircle, Users, Link, Refresh
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
+import { PERMISSION_GROUPS, PRESETS, ALL_PERMISSIONS } from '../config/permissions';
 
 const SettingsPage = ({ showNotification }) => {
   const { user: currentUser } = useAuth();
@@ -19,7 +20,7 @@ const SettingsPage = ({ showNotification }) => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null); // null = adăugare nouă, obj = editare
-  const [userForm, setUserForm] = useState({ email: '', password: '', role: 'operator' });
+  const [userForm, setUserForm] = useState({ email: '', password: '', role: 'operator', permissions: [] });
   const [userSaving, setUserSaving] = useState(false);
 
   // SmartBill state
@@ -57,14 +58,29 @@ const SettingsPage = ({ showNotification }) => {
 
   const openAddUser = () => {
     setEditingUser(null);
-    setUserForm({ email: '', password: '', role: 'operator' });
+    setUserForm({ email: '', password: '', role: 'operator', permissions: [] });
     setShowUserModal(true);
   };
 
   const openEditUser = (u) => {
     setEditingUser(u);
-    setUserForm({ email: u.email, password: '', role: u.role });
+    setUserForm({ email: u.email, password: '', role: u.role, permissions: u.permissions || [] });
     setShowUserModal(true);
+  };
+
+  const togglePermission = (perm) => {
+    setUserForm(f => ({
+      ...f,
+      permissions: f.permissions.includes(perm)
+        ? f.permissions.filter(p => p !== perm)
+        : [...f.permissions, perm]
+    }));
+  };
+
+  const applyPreset = (presetKey) => {
+    const preset = PRESETS[presetKey];
+    if (!preset) return;
+    setUserForm(f => ({ ...f, permissions: [...preset.permissions] }));
   };
 
   const handleSaveUser = async () => {
@@ -78,6 +94,7 @@ const SettingsPage = ({ showNotification }) => {
         if (userForm.email !== editingUser.email) payload.email = userForm.email;
         if (userForm.password) payload.new_password = userForm.password;
         if (userForm.role !== editingUser.role) payload.role = userForm.role;
+        payload.permissions = userForm.permissions; // întotdeauna trimitem permisiunile
         await axios.put(`${API}/auth/users/${editingUser.id}`, payload);
         showNotification("Cont actualizat!");
       } else {
@@ -107,7 +124,7 @@ const SettingsPage = ({ showNotification }) => {
 
   const openChangeOwnPassword = () => {
     setEditingUser(currentUser);
-    setUserForm({ email: currentUser.email, password: '', role: currentUser.role });
+    setUserForm({ email: currentUser.email, password: '', role: currentUser.role, permissions: currentUser.permissions || [] });
     setShowUserModal(true);
   };
 
@@ -350,13 +367,14 @@ const SettingsPage = ({ showNotification }) => {
                 <tr>
                   <th style={{padding:'9px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Email</th>
                   <th style={{padding:'9px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Rol</th>
+                  <th style={{padding:'9px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Permisiuni</th>
                   <th style={{padding:'9px 14px', textAlign:'left', borderBottom:'1px solid var(--border-color)'}}>Creat la</th>
                   <th style={{padding:'9px 14px', textAlign:'center', borderBottom:'1px solid var(--border-color)'}}>Acțiuni</th>
                 </tr>
               </thead>
               <tbody>
                 {crmUsers.length === 0 ? (
-                  <tr><td colSpan={4} style={{padding:'30px', textAlign:'center', color:'var(--text-muted)'}}>Nu există utilizatori</td></tr>
+                  <tr><td colSpan={5} style={{padding:'30px', textAlign:'center', color:'var(--text-muted)'}}>Nu există utilizatori</td></tr>
                 ) : crmUsers.map((u, idx) => (
                   <tr key={u.id} style={{borderBottom:'1px solid var(--border-color)', background: idx%2===0?'transparent':'var(--bg-secondary)'}}>
                     <td style={{padding:'9px 14px', fontWeight:600}}>
@@ -365,17 +383,28 @@ const SettingsPage = ({ showNotification }) => {
                     </td>
                     <td style={{padding:'9px 14px'}}>
                       <span style={{padding:'2px 9px', borderRadius:'10px', fontSize:'0.75rem', fontWeight:700,
-                        background: u.role==='admin'?'#dbeafe':'#dcfce7',
-                        color: u.role==='admin'?'#1e40af':'#065f46'}}>
-                        {u.role}
+                        background: u.role==='admin'?'#fee2e2':'#f3f4f6',
+                        color: u.role==='admin'?'#dc2626':'#374151'}}>
+                        {u.role==='admin' ? '🔑 admin' : '👤 operator'}
                       </span>
+                    </td>
+                    <td style={{padding:'9px 14px', fontSize:'0.78rem', color:'#6b7280', maxWidth:'220px'}}>
+                      {u.role === 'admin' ? (
+                        <span style={{color:'#dc2626', fontWeight:600}}>Acces total</span>
+                      ) : (u.permissions || []).length === 0 ? (
+                        <span style={{color:'#f59e0b'}}>⚠️ Nicio permisiune</span>
+                      ) : (
+                        <span title={(u.permissions||[]).join(', ')}>
+                          {(u.permissions||[]).length} permisiuni — {(u.permissions||[]).slice(0,3).map(p => p.replace('_read','').replace('_write','✎')).join(', ')}{(u.permissions||[]).length > 3 ? '...' : ''}
+                        </span>
+                      )}
                     </td>
                     <td style={{padding:'9px 14px', color:'var(--text-muted)', fontSize:'0.8rem'}}>
                       {u.created_at ? new Date(u.created_at).toLocaleDateString('ro-RO') : '—'}
                     </td>
                     <td style={{padding:'9px 14px', textAlign:'center'}}>
                       <div style={{display:'flex', gap:'6px', justifyContent:'center'}}>
-                        <button onClick={() => openEditUser(u)} title="Editează / Schimbă parola"
+                        <button onClick={() => openEditUser(u)} title="Editează / Schimbă parola / Permisiuni"
                           style={{background:'none', border:'1px solid #e5e7eb', borderRadius:'6px', cursor:'pointer', color:'#6366f1', padding:'4px 8px', fontSize:'0.78rem', display:'flex', alignItems:'center', gap:'4px'}}>
                           <Edit size={12}/> Editează
                         </button>
@@ -466,42 +495,110 @@ const SettingsPage = ({ showNotification }) => {
       {/* Modal Utilizator CRM */}
       {showUserModal && (
         <div className="modal-overlay" onClick={() => setShowUserModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth:'420px'}}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth:'580px', width:'95vw'}}>
             <div className="modal-header">
               <h2>{editingUser ? (editingUser.id === currentUser?.id && !isAdmin ? '🔐 Schimbă parola' : '✏️ Editează cont') : '👤 Cont nou'}</h2>
               <button className="close-btn" onClick={() => setShowUserModal(false)}><X size={20}/></button>
             </div>
-            <div className="modal-body">
-              <div style={{display:'flex', flexDirection:'column', gap:'14px'}}>
-                <div>
-                  <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>📧 Email *</label>
-                  <input type="email" value={userForm.email}
-                    onChange={e => setUserForm(f => ({...f, email: e.target.value}))}
-                    placeholder="ex: coleg@gjc.ro"
-                    disabled={editingUser && !isAdmin}
-                    style={{width:'100%', padding:'9px 12px', border:'1px solid var(--border-color)', borderRadius:'8px', fontSize:'0.875rem', boxSizing:'border-box', background: (editingUser && !isAdmin) ? '#f9fafb' : 'white'}} />
+            <div className="modal-body" style={{maxHeight:'75vh', overflowY:'auto'}}>
+              <div style={{display:'flex', flexDirection:'column', gap:'16px'}}>
+
+                {/* Date de bază */}
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px'}}>
+                  <div style={{gridColumn: isAdmin ? '1' : '1 / -1'}}>
+                    <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>📧 Email *</label>
+                    <input type="email" value={userForm.email}
+                      onChange={e => setUserForm(f => ({...f, email: e.target.value}))}
+                      placeholder="ex: coleg@gjc.ro"
+                      disabled={editingUser && !isAdmin}
+                      style={{width:'100%', padding:'8px 11px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box', background: (editingUser && !isAdmin) ? '#f9fafb' : 'white'}} />
+                  </div>
+                  {isAdmin && (
+                    <div>
+                      <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>🛡️ Rol sistem</label>
+                      <select value={userForm.role} onChange={e => setUserForm(f => ({...f, role: e.target.value}))}
+                        style={{width:'100%', padding:'8px 11px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}}>
+                        <option value="operator">operator</option>
+                        <option value="admin">admin (acces total)</option>
+                      </select>
+                    </div>
+                  )}
+                  <div style={{gridColumn:'1 / -1'}}>
+                    <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>
+                      🔑 {editingUser ? 'Parolă nouă (lasă gol dacă nu schimbi)' : 'Parolă *'}
+                    </label>
+                    <input type="password" value={userForm.password}
+                      onChange={e => setUserForm(f => ({...f, password: e.target.value}))}
+                      placeholder={editingUser ? "lasă gol pentru a păstra parola curentă" : "Minim 6 caractere"}
+                      style={{width:'100%', padding:'8px 11px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}} />
+                  </div>
                 </div>
 
-                {isAdmin && (
-                  <div>
-                    <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>🛡️ Rol</label>
-                    <select value={userForm.role} onChange={e => setUserForm(f => ({...f, role: e.target.value}))}
-                      style={{width:'100%', padding:'9px 12px', border:'1px solid var(--border-color)', borderRadius:'8px', fontSize:'0.875rem', boxSizing:'border-box'}}>
-                      <option value="operator">operator — acces standard</option>
-                      <option value="admin">admin — acces complet</option>
-                    </select>
+                {/* Permisiuni — doar pentru admin și doar pentru conturi cu rol operator */}
+                {isAdmin && userForm.role !== 'admin' && (
+                  <div style={{border:'1px solid #e5e7eb', borderRadius:'10px', overflow:'hidden'}}>
+                    <div style={{background:'#f8fafc', padding:'12px 16px', borderBottom:'1px solid #e5e7eb'}}>
+                      <div style={{fontWeight:700, fontSize:'0.9rem', marginBottom:'8px'}}>🔐 Permisiuni acces</div>
+                      {/* Butoane presetare */}
+                      <div style={{display:'flex', gap:'6px', flexWrap:'wrap'}}>
+                        {Object.entries(PRESETS).filter(([k]) => k !== 'admin').map(([key, preset]) => (
+                          <button key={key} onClick={() => applyPreset(key)}
+                            style={{padding:'4px 11px', border:`1px solid ${preset.color}`, borderRadius:'20px', background: preset.bg, color: preset.color, cursor:'pointer', fontSize:'0.78rem', fontWeight:600}}>
+                            {preset.label}
+                          </button>
+                        ))}
+                        <button onClick={() => setUserForm(f => ({...f, permissions: []}))}
+                          style={{padding:'4px 11px', border:'1px solid #e5e7eb', borderRadius:'20px', background:'#f3f4f6', color:'#6b7280', cursor:'pointer', fontSize:'0.78rem', fontWeight:600}}>
+                          ✕ Golește tot
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{padding:'12px 16px'}}>
+                      <table style={{width:'100%', borderCollapse:'collapse', fontSize:'0.83rem'}}>
+                        <thead>
+                          <tr style={{color:'#9ca3af', fontWeight:600}}>
+                            <th style={{textAlign:'left', paddingBottom:'6px'}}>Modul</th>
+                            <th style={{textAlign:'center', paddingBottom:'6px', width:'90px'}}>👁️ Vizualizare</th>
+                            <th style={{textAlign:'center', paddingBottom:'6px', width:'90px'}}>✏️ Editare</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {PERMISSION_GROUPS.map((g, i) => (
+                            <tr key={g.read} style={{borderTop: i > 0 ? '1px solid #f3f4f6' : 'none'}}>
+                              <td style={{padding:'5px 0', fontWeight:500}}>{g.label}</td>
+                              <td style={{textAlign:'center'}}>
+                                <input type="checkbox"
+                                  checked={userForm.permissions.includes(g.read)}
+                                  onChange={() => togglePermission(g.read)}
+                                  style={{width:'16px', height:'16px', cursor:'pointer', accentColor:'#6366f1'}} />
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                {g.write ? (
+                                  <input type="checkbox"
+                                    checked={userForm.permissions.includes(g.write)}
+                                    onChange={() => togglePermission(g.write)}
+                                    disabled={!userForm.permissions.includes(g.read)}
+                                    style={{width:'16px', height:'16px', cursor: userForm.permissions.includes(g.read) ? 'pointer' : 'not-allowed', accentColor:'#6366f1', opacity: userForm.permissions.includes(g.read) ? 1 : 0.3}} />
+                                ) : (
+                                  <span style={{color:'#d1d5db', fontSize:'0.75rem'}}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div style={{marginTop:'8px', fontSize:'0.75rem', color:'#9ca3af'}}>
+                        ℹ️ Editarea se poate bifa doar dacă Vizualizarea este activată. Conturile <strong>admin</strong> au acces complet automat.
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                <div>
-                  <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>
-                    🔑 {editingUser ? 'Parolă nouă (lasă gol dacă nu schimbi)' : 'Parolă *'}
-                  </label>
-                  <input type="password" value={userForm.password}
-                    onChange={e => setUserForm(f => ({...f, password: e.target.value}))}
-                    placeholder={editingUser ? "••••••• (lasă gol pentru a păstra parola curentă)" : "Minim 6 caractere"}
-                    style={{width:'100%', padding:'9px 12px', border:'1px solid var(--border-color)', borderRadius:'8px', fontSize:'0.875rem', boxSizing:'border-box'}} />
-                </div>
+                {userForm.role === 'admin' && isAdmin && (
+                  <div style={{background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'8px', padding:'10px 14px', fontSize:'0.82rem', color:'#991b1b'}}>
+                    🔑 Conturile <strong>admin</strong> au acces complet la toate modulele, fără restricții.
+                  </div>
+                )}
 
                 {!editingUser && (
                   <div style={{background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'8px', padding:'10px 14px', fontSize:'0.8rem', color:'#92400e'}}>

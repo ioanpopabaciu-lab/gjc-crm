@@ -7,6 +7,7 @@ import {
   CheckSquare, UserCheck, FileEdit, FilePlus2, Briefcase
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { MODULE_PERMISSION } from '../config/permissions';
 import axios from 'axios';
 import { API } from '../config';
 
@@ -116,7 +117,7 @@ const GlobalSearch = () => {
 };
 
 const MainLayout = ({ children, notification }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -150,7 +151,7 @@ const MainLayout = ({ children, notification }) => {
         </div>
 
         <nav className="sidebar-nav">
-          {modules.map((module) => (
+          {modules.filter(m => hasPermission(MODULE_PERMISSION[m.id])).map((module) => (
             <button
               key={module.id}
               className={`nav-item ${activeModulePath === module.path ? "active" : ""}`}
@@ -171,7 +172,7 @@ const MainLayout = ({ children, notification }) => {
               </div>
               <div className="user-details">
                 <span className="user-name">{user?.email?.split('@')[0] || 'Utilizator'}</span>
-                <span className="user-role">{user?.role === 'admin' ? 'Administrator' : 'Operator'}</span>
+                <span className="user-role">{user?.role === 'admin' ? '🔑 Administrator' : '👤 Operator'}</span>
               </div>
               <button className="logout-btn" onClick={logout} title="Deconectare" data-testid="logout-btn">
                 <LogOut size={18} />

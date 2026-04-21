@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import './App.css';
 
 import { useAuth } from './hooks/useAuth';
+import { MODULE_PERMISSION } from './config/permissions';
 import MainLayout from './layouts/MainLayout';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -29,6 +30,25 @@ import RecruitmentPage from './pages/RecruitmentPage';
 import TemplatesPage from './pages/TemplatesPage';
 import PassportImportPage from './pages/PassportImportPage';
 import AvizImportPage from './pages/AvizImportPage';
+
+// Component afișat când utilizatorul nu are acces la o pagină
+const AccessDenied = () => (
+  <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:'16px', color:'#6b7280'}}>
+    <div style={{fontSize:'4rem'}}>🔒</div>
+    <h2 style={{margin:0, color:'#374151', fontSize:'1.3rem'}}>Acces restricționat</h2>
+    <p style={{margin:0, fontSize:'0.95rem', textAlign:'center', maxWidth:'380px'}}>
+      Nu ai permisiunea să accesezi această secțiune.<br/>
+      Contactează administratorul pentru a-ți acorda accesul necesar.
+    </p>
+  </div>
+);
+
+// Wrapper care verifică permisiunea înainte de a randa pagina
+const ProtectedPage = ({ moduleId, children }) => {
+  const { hasPermission } = useAuth();
+  const requiredPerm = MODULE_PERMISSION[moduleId];
+  return hasPermission(requiredPerm) ? children : <AccessDenied />;
+};
 
 function App() {
   const { loading: authLoading, login, isAuthenticated } = useAuth();
@@ -61,27 +81,27 @@ function App() {
         <MainLayout notification={notification}>
           <Routes>
             <Route path="/" element={<DashboardPage showNotification={showNotification} />} />
-            <Route path="/companies" element={<CompaniesPage showNotification={showNotification} />} />
-            <Route path="/candidates" element={<CandidatesPage showNotification={showNotification} />} />
-            <Route path="/immigration" element={<ImmigrationPage showNotification={showNotification} />} />
-            <Route path="/partners" element={<PartnersPage showNotification={showNotification} />} />
-            <Route path="/pipeline" element={<PipelinePage showNotification={showNotification} />} />
-            <Route path="/documents" element={<DocumentsPage showNotification={showNotification} />} />
-            <Route path="/reports" element={<ReportsPage showNotification={showNotification} />} />
-            <Route path="/alerts" element={<AlertsPage showNotification={showNotification} />} />
-            <Route path="/settings" element={<SettingsPage showNotification={showNotification} />} />
-            <Route path="/contracts" element={<ContractsPage showNotification={showNotification} />} />
-            <Route path="/payments" element={<PaymentsPage showNotification={showNotification} />} />
-            <Route path="/leads" element={<LeadsPage showNotification={showNotification} />} />
-            <Route path="/recrutare" element={<RecruitmentPage showNotification={showNotification} />} />
-            <Route path="/interviews" element={<Navigate to="/recrutare" replace />} />
-            <Route path="/jobs" element={<Navigate to="/recrutare" replace />} />
-            <Route path="/placements" element={<Navigate to="/recrutare" replace />} />
-            <Route path="/tasks" element={<TasksPage showNotification={showNotification} />} />
-            <Route path="/templates" element={<TemplatesPage showNotification={showNotification} />} />
-            <Route path="/import-pasapoarte" element={<PassportImportPage showNotification={showNotification} />} />
-            <Route path="/import-avize" element={<AvizImportPage showNotification={showNotification} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/companies"      element={<ProtectedPage moduleId="companies">   <CompaniesPage   showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/candidates"     element={<ProtectedPage moduleId="candidates">  <CandidatesPage  showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/immigration"    element={<ProtectedPage moduleId="immigration"> <ImmigrationPage showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/import-avize"   element={<ProtectedPage moduleId="aviz-import"> <AvizImportPage  showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/partners"       element={<ProtectedPage moduleId="partners">    <PartnersPage    showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/pipeline"       element={<ProtectedPage moduleId="pipeline">    <PipelinePage    showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/documents"      element={<ProtectedPage moduleId="documents">   <DocumentsPage   showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/reports"        element={<ProtectedPage moduleId="reports">     <ReportsPage     showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/alerts"         element={<ProtectedPage moduleId="alerts">      <AlertsPage      showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/settings"       element={<ProtectedPage moduleId="settings">    <SettingsPage    showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/contracts"      element={<ProtectedPage moduleId="contracts">   <ContractsPage   showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/payments"       element={<ProtectedPage moduleId="payments">    <PaymentsPage    showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/leads"          element={<ProtectedPage moduleId="leads">       <LeadsPage       showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/recrutare"      element={<ProtectedPage moduleId="recrutare">   <RecruitmentPage showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/tasks"          element={<ProtectedPage moduleId="tasks">       <TasksPage       showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/templates"      element={<ProtectedPage moduleId="templates">   <TemplatesPage   showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/import-pasapoarte" element={<ProtectedPage moduleId="imigrare_read"><PassportImportPage showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/interviews"     element={<Navigate to="/recrutare" replace />} />
+            <Route path="/jobs"           element={<Navigate to="/recrutare" replace />} />
+            <Route path="/placements"     element={<Navigate to="/recrutare" replace />} />
+            <Route path="*"              element={<Navigate to="/" replace />} />
           </Routes>
         </MainLayout>
       )}

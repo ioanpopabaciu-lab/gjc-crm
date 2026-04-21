@@ -46,5 +46,17 @@ export const useAuth = () => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
-  return { user, token, loading, login, logout, isAuthenticated: !!user };
+  /**
+   * Verifică dacă utilizatorul curent are o anumită permisiune.
+   * Admin-ul are întotdeauna acces la tot, indiferent de lista de permisiuni.
+   * @param {string} perm - ex: 'candidati_read', 'imigrare_write'
+   */
+  const hasPermission = (perm) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;       // admin = acces total
+    if (!perm) return true;                        // null = mereu accesibil
+    return (user.permissions || []).includes(perm);
+  };
+
+  return { user, token, loading, login, logout, isAuthenticated: !!user, hasPermission };
 };

@@ -60,12 +60,14 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str = "operator"
+    permissions: List[str] = Field(default_factory=list)
 
 class UserUpdate(BaseModel):
     model_config = ConfigDict(extra="ignore")
     email: Optional[str] = None
     role: Optional[str] = None
     new_password: Optional[str] = None
+    permissions: Optional[List[str]] = None
 
 class UserLogin(BaseModel):
     email: str
@@ -76,6 +78,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     created_at: str
+    permissions: List[str] = Field(default_factory=list)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -738,20 +741,22 @@ async def register_user(user_data: UserCreate):
         "email": user_data.email,
         "password_hash": hashed_password,
         "role": user_data.role,
+        "permissions": user_data.permissions,
         "created_at": created_at
     }
-    
+
     await db.users.insert_one(user_doc)
-    
+
     # Create token
     access_token = create_access_token({"sub": user_id, "email": user_data.email, "role": user_data.role})
-    
+
     return TokenResponse(
         access_token=access_token,
         user=UserResponse(
             id=user_id,
             email=user_data.email,
             role=user_data.role,
+            permissions=user_data.permissions,
             created_at=created_at
         )
     )
@@ -760,23 +765,24 @@ async def register_user(user_data: UserCreate):
 async def login_user(credentials: UserLogin):
     """Login user and return JWT token"""
     user = await db.users.find_one({"email": credentials.email})
-    
+
     if not user or not verify_password(credentials.password, user['password_hash']):
         raise HTTPException(status_code=401, detail="Email sau parolă incorectă")
-    
+
     # Create token
     access_token = create_access_token({
         "sub": user['id'],
         "email": user['email'],
         "role": user['role']
     })
-    
+
     return TokenResponse(
         access_token=access_token,
         user=UserResponse(
             id=user['id'],
             email=user['email'],
             role=user['role'],
+            permissions=user.get('permissions', []),
             created_at=user.get('created_at', '')
         )
     )
@@ -784,11 +790,16 @@ async def login_user(credentials: UserLogin):
 @api_router.get("/auth/me")
 async def get_current_user_info(user = Depends(require_auth)):
     """Get current authenticated user info"""
+    # Re-fetch from DB to get latest permissions
+    fresh = await db.users.find_one({"id": user['id']}, {"_id": 0, "password_hash": 0})
+    if not fresh:
+        raise HTTPException(status_code=404, detail="Utilizator negăsit")
     return UserResponse(
-        id=user['id'],
-        email=user['email'],
-        role=user['role'],
-        created_at=user.get('created_at', '')
+        id=fresh['id'],
+        email=fresh['email'],
+        role=fresh['role'],
+        permissions=fresh.get('permissions', []),
+        created_at=fresh.get('created_at', '')
     )
 
 @api_router.get("/auth/users")
@@ -811,14 +822,15 @@ async def create_user_admin(user_data: UserCreate, admin = Depends(require_admin
         "email": user_data.email,
         "password_hash": hashed_password,
         "role": user_data.role,
+        "permissions": user_data.permissions,
         "created_at": created_at
     }
     await db.users.insert_one(user_doc)
-    return {"id": user_id, "email": user_data.email, "role": user_data.role, "created_at": created_at}
+    return {"id": user_id, "email": user_data.email, "role": user_data.role, "permissions": user_data.permissions, "created_at": created_at}
 
 @api_router.put("/auth/users/{user_id}")
 async def update_user(user_id: str, data: UserUpdate, current_user = Depends(require_auth)):
-    """Update user email/role/password — admin poate modifica pe oricine, utilizatorul poate modifica doar contul propriu"""
+    """Update user email/role/password/permissions — admin poate modifica pe oricine, utilizatorul poate modifica doar contul propriu"""
     if current_user['role'] != 'admin' and current_user['id'] != user_id:
         raise HTTPException(status_code=403, detail="Acces interzis")
     update = {}
@@ -827,10 +839,12 @@ async def update_user(user_id: str, data: UserUpdate, current_user = Depends(req
         if existing:
             raise HTTPException(status_code=400, detail="Email-ul este deja folosit de alt cont")
         update["email"] = data.email
-    if data.role and current_user['role'] == 'admin':
+    if data.role is not None and current_user['role'] == 'admin':
         update["role"] = data.role
     if data.new_password:
         update["password_hash"] = get_password_hash(data.new_password)
+    if data.permissions is not None and current_user['role'] == 'admin':
+        update["permissions"] = data.permissions
     if not update:
         raise HTTPException(status_code=400, detail="Nimic de actualizat")
     await db.users.update_one({"id": user_id}, {"$set": update})
