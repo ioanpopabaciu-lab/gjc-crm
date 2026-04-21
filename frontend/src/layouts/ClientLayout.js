@@ -12,9 +12,26 @@ const clientModules = [
 
 const ClientLayout = ({ children, notification }) => {
   const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(window.innerWidth >= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const location = useLocation();
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setMenuOpen(false);
+      else setMenuOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    if (isMobile) setMenuOpen(false);
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
@@ -32,12 +49,22 @@ const ClientLayout = ({ children, notification }) => {
         </div>
       )}
 
+      {/* Mobile backdrop */}
+      {isMobile && menuOpen && (
+        <div onClick={() => setMenuOpen(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99
+        }} />
+      )}
+
       {/* Sidebar */}
       <aside style={{
-        width: menuOpen ? 240 : 64, transition: 'width 0.2s',
+        width: menuOpen ? 240 : (isMobile ? 0 : 64),
+        transition: 'width 0.25s, left 0.25s',
         background: 'linear-gradient(180deg, #1e3a5f 0%, #0f2744 100%)',
-        display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
-        overflowX: 'hidden'
+        display: 'flex', flexDirection: 'column',
+        position: 'fixed', top: 0, left: isMobile && !menuOpen ? -240 : 0, bottom: 0,
+        zIndex: 100, overflowX: 'hidden',
+        boxShadow: isMobile && menuOpen ? '4px 0 20px rgba(0,0,0,0.3)' : 'none'
       }}>
         {/* Header sidebar */}
         <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -63,7 +90,7 @@ const ClientLayout = ({ children, notification }) => {
           {clientModules.map(m => {
             const isActive = location.pathname === m.path || (m.path !== '/portal' && location.pathname.startsWith(m.path));
             return (
-              <button key={m.id} onClick={() => navigate(m.path)}
+              <button key={m.id} onClick={() => handleNavigate(m.path)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: menuOpen ? '10px 14px' : '10px', borderRadius: 9,
                   background: isActive ? 'rgba(59,130,246,0.3)' : 'transparent',
@@ -103,15 +130,24 @@ const ClientLayout = ({ children, notification }) => {
       </aside>
 
       {/* Main content */}
-      <main style={{ marginLeft: menuOpen ? 240 : 64, transition: 'margin-left 0.2s', flex: 1, padding: '24px', minHeight: '100vh' }}>
+      <main style={{ marginLeft: isMobile ? 0 : (menuOpen ? 240 : 64), transition: 'margin-left 0.25s', flex: 1, padding: isMobile ? '16px' : '24px', minHeight: '100vh' }}>
         {/* Top bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, background: 'white', borderRadius: 12, padding: '14px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1e3a5f' }}>
-            🏢 {user?.company_name || 'Portal Client'}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, background: 'white', borderRadius: 12, padding: '12px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {isMobile && (
+              <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e3a5f', padding: 4 }}>
+                <Menu size={22} />
+              </button>
+            )}
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e3a5f' }}>
+              🏢 {user?.company_name || 'Portal Client'}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#6b7280' }}>
-            <Calendar size={14} />
-            {new Date().toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#6b7280' }}>
+            <Calendar size={13} />
+            {isMobile
+              ? new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
+              : new Date().toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
         {children}

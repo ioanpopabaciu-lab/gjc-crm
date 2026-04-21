@@ -118,9 +118,26 @@ const GlobalSearch = () => {
 
 const MainLayout = ({ children, notification }) => {
   const { user, logout, hasPermission } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setSidebarOpen(false);
+      else setSidebarOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    if (isMobile) setSidebarOpen(false);
+  };
 
   const activeModulePath = location.pathname;
   const activeModule = modules.find(m => {
@@ -138,8 +155,13 @@ const MainLayout = ({ children, notification }) => {
         </div>
       )}
 
+      {/* Mobile backdrop */}
+      {isMobile && sidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : "collapsed"}`} data-testid="sidebar">
+      <aside className={`sidebar ${sidebarOpen ? "open" : "collapsed"} ${isMobile ? "mobile" : ""}`} data-testid="sidebar">
         <div className="sidebar-header">
           <div className="logo">
             <img src="/assets/gjc-logo.png" alt="GJC Logo" className="logo-img" />
@@ -155,7 +177,7 @@ const MainLayout = ({ children, notification }) => {
             <button
               key={module.id}
               className={`nav-item ${activeModulePath === module.path ? "active" : ""}`}
-              onClick={() => navigate(module.path)}
+              onClick={() => handleNavigate(module.path)}
               data-testid={`nav-${module.id}`}
             >
               <module.icon size={20} />
@@ -193,14 +215,21 @@ const MainLayout = ({ children, notification }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="main-content" data-testid="main-content">
+      <main className={`main-content ${isMobile ? "mobile" : ""}`} data-testid="main-content">
         <header className="content-header">
+          {isMobile && (
+            <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
+              <Menu size={22} />
+            </button>
+          )}
           <h1>{activeModule.name}</h1>
           <div className="header-actions">
-            <GlobalSearch />
+            {!isMobile && <GlobalSearch />}
             <span className="date-display">
               <Calendar size={16} />
-              {new Date().toLocaleDateString("ro-RO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+              {isMobile
+                ? new Date().toLocaleDateString("ro-RO", { day: "numeric", month: "short" })
+                : new Date().toLocaleDateString("ro-RO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </span>
           </div>
         </header>

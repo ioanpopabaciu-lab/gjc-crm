@@ -1,0 +1,43 @@
+{
+  "short_name": "GJC CRM",
+  "name": "GJC AI-CRM — Global Jobs Consulting",
+  "description": "CRM pentru managementul candidaților, dosarelor de imigrare și clienților B2B",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1e40af",
+  "background_color": "#f8fafc",
+  "lang": "ro",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/gjc-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/gjc-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Candidați",
+      "url": "/candidates",
+      "description": "Gestionează candidații"
+    },
+    {
+      "name": "Dosare Imigrare",
+      "url": "/immigration",
+      "description": "Dosare imigrare active"
+    },
+    {
+      "name": "Clienți B2B",
+      "url": "/companies",
+      "description": "Companiile partenere"
+    }
+  ]
+}
