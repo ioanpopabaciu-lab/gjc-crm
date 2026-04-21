@@ -869,21 +869,36 @@ async def list_users_debug(secret: str):
     return users
 
 @api_router.get("/auth/setup-admin")
-async def setup_first_admin(email: str, secret: str):
+async def setup_first_admin(secret: str, email: str = None):
     """
     Promovează un utilizator la rol admin.
-    Funcționează DOAR dacă nu există niciun admin în sistem SAU dacă secretul din env (ADMIN_SECRET) este corect.
-    Apelează o singură dată pentru a-ți activa contul de admin.
+    Dacă nu există niciun admin, promovează primul utilizator găsit (sau cel cu emailul dat).
     """
     admin_secret = os.environ.get("ADMIN_SECRET", "gjc-setup-2025")
-    no_admins = await db.users.count_documents({"role": "admin"}) == 0
-    if not no_admins and secret != admin_secret:
-        raise HTTPException(status_code=403, detail="Secret incorect sau există deja un admin")
-    user = await db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail=f"Nu există niciun cont cu email-ul {email}")
-    await db.users.update_one({"email": email}, {"$set": {"role": "admin", "permissions": []}})
-    return {"ok": True, "message": f"Contul {email} a fost promovat la admin. Deconectează-te și reconectează-te."}
+    if secret != admin_secret:
+        raise HTTPException(status_code=403, detail="Secret incorect")
+
+    # Listează toți utilizatorii pentru debug
+    all_users = await db.users.find({}, {"_id": 0, "email": 1, "role": 1}).to_list(100)
+
+    if not all_users:
+        return {"ok": False, "message": "Nu există niciun utilizator în baza de date. Înregistrează-te mai întâi în CRM.", "users": []}
+
+    # Găsim utilizatorul țintă
+    if email:
+        target = next((u for u in all_users if u["email"] == email), None)
+        if not target:
+            return {"ok": False, "message": f"Email-ul '{email}' nu a fost găsit.", "users_found": [u["email"] for u in all_users]}
+    else:
+        # Primul utilizator din baza de date
+        target = all_users[0]
+
+    await db.users.update_one({"email": target["email"]}, {"$set": {"role": "admin", "permissions": []}})
+    return {
+        "ok": True,
+        "message": f"Contul '{target['email']}' a fost promovat la ADMIN. Deconectează-te și reconectează-te în CRM.",
+        "all_users": [u["email"] for u in all_users]
+    }
 
 # ===================== FILE UPLOAD =====================
 
