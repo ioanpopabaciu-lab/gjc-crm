@@ -1158,12 +1158,16 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
         ]).to_list(None)
         prog_map = {r["_id"]: r["total"] for r in prog_stats}
 
-        # Aggregation posturi vacante per companie
+        # Aggregation posturi vacante per companie — suma headcount_needed (locuri totale)
         jobs_stats = await db.jobs.aggregate([
-            {"$match": {"company_id": {"$nin": [None, ""]}}},
-            {"$group": {"_id": "$company_id", "total": {"$sum": 1}}}
+            {"$match": {"company_id": {"$nin": [None, ""]}, "status": {"$ne": "inchis"}}},
+            {"$group": {
+                "_id": "$company_id",
+                "total_locuri": {"$sum": {"$ifNull": ["$headcount_needed", 1]}},
+                "nr_posturi": {"$sum": 1}
+            }}
         ]).to_list(None)
-        jobs_map = {r["_id"]: r["total"] for r in jobs_stats}
+        jobs_map = {r["_id"]: {"locuri": r["total_locuri"], "posturi": r["nr_posturi"]} for r in jobs_stats}
 
         for comp in result:
             cid = comp.get("id")
@@ -1175,7 +1179,9 @@ async def get_companies(status: Optional[str] = None, search: Optional[str] = No
             comp["approved_cases"] = ic.get("approved", 0)
             comp["avize_count"] = ic.get("avize", 0)
             comp["programari_count"] = prog_map.get(cid, 0)
-            comp["jobs_count"] = jobs_map.get(cid, 0)
+            jinfo = jobs_map.get(cid, {})
+            comp["jobs_count"] = jinfo.get("locuri", 0)   # total locuri (headcount sumat)
+            comp["jobs_types"] = jinfo.get("posturi", 0)  # nr tipuri posturi
     return result
 
 @api_router.get("/companies/{company_id}/programari")

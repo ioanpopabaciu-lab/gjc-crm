@@ -98,6 +98,7 @@ const CompaniesPage = ({ showNotification }) => {
   const [jobsModal, setJobsModal] = useState({ open: false, company: null, jobs: [], loading: false });
   const [showJobForm, setShowJobForm] = useState(false);
   const [jobForm, setJobForm] = useState({});
+  const [editingJobId, setEditingJobId] = useState(null); // ID-ul jobului care se editează inline
   // Posturi in modalul companiei
   const [pendingJobs, setPendingJobs] = useState([]);
   const [newJobRow, setNewJobRow] = useState({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false });
@@ -328,10 +329,35 @@ const CompaniesPage = ({ showNotification }) => {
     }
   };
 
+  const refreshJobsModal = async (companyId) => {
+    try {
+      const [jobsResp, candidatesResp] = await Promise.all([
+        axios.get(`${API}/jobs`, { params: { company_id: companyId } }),
+        axios.get(`${API}/candidates`, { params: { company_id: companyId } }),
+      ]);
+      const jobs = jobsResp.data || [];
+      const candidates = candidatesResp.data || [];
+      // Numără candidații per tip de post (job_type al candidatului = title-ul jobului)
+      const countByTitle = {};
+      candidates.forEach(c => {
+        const k = (c.job_type || "").trim().toLowerCase();
+        if (k) countByTitle[k] = (countByTitle[k] || 0) + 1;
+      });
+      const enriched = jobs.map(j => ({
+        ...j,
+        candidates_count: countByTitle[(j.title || "").trim().toLowerCase()] || 0,
+      }));
+      setJobsModal(prev => ({ ...prev, jobs: enriched, loading: false }));
+    } catch {
+      setJobsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // Deschide modal posturi vacante pentru companie
   const openJobsModal = async (company) => {
     setJobsModal({ open: true, company, jobs: [], loading: true });
     setShowJobForm(false);
+    setEditingJobId(null);
     setJobForm({
       company_id: company.id, company_name: company.name,
       title: "", location: company.city || "", cor_code: "", cor_name: "",
@@ -340,18 +366,13 @@ const CompaniesPage = ({ showNotification }) => {
       description: "", requirements: "", contact_person: company.contact_person || "",
       contact_phone: company.phone || "", status: "activ",
     });
-    try {
-      const resp = await axios.get(`${API}/jobs`, { params: { company_id: company.id } });
-      setJobsModal({ open: true, company, jobs: resp.data || [], loading: false });
-    } catch {
-      setJobsModal(prev => ({ ...prev, loading: false }));
-    }
+    await refreshJobsModal(company.id);
   };
 
   const saveJobFromCompany = async () => {
     if (!jobForm.title) return showNotification("Completează titlul postului", "error");
     try {
-      await axios.post(`${API}/jobs`, {
+      const payload = {
         ...jobForm,
         salary_min: jobForm.salary_min !== "" ? parseFloat(jobForm.salary_min) : null,
         salary_max: jobForm.salary_max !== "" ? parseFloat(jobForm.salary_max) : null,
@@ -359,14 +380,36 @@ const CompaniesPage = ({ showNotification }) => {
         required_nationality: [],
         required_skills: [],
         required_experience_years: 0,
-      });
-      showNotification("Post vacant adăugat!");
+      };
+      if (editingJobId) {
+        await axios.put(`${API}/jobs/${editingJobId}`, payload);
+        showNotification("Post actualizat!");
+        setEditingJobId(null);
+      } else {
+        await axios.post(`${API}/jobs`, payload);
+        showNotification("Post vacant adăugat!");
+      }
       setShowJobForm(false);
-      // Reîncarcă posturile
-      const resp = await axios.get(`${API}/jobs`, { params: { company_id: jobsModal.company.id } });
-      setJobsModal(prev => ({ ...prev, jobs: resp.data || [] }));
+      await refreshJobsModal(jobsModal.company.id);
       fetchCompanies();
     } catch { showNotification("Eroare la salvare", "error"); }
+  };
+
+  const startEditJob = (job) => {
+    setEditingJobId(job.id);
+    setJobForm({
+      company_id: job.company_id, company_name: job.company_name,
+      title: job.title || "", location: job.location || "",
+      cor_code: job.cor_code || "", cor_name: job.cor_name || "",
+      contract_type: job.contract_type || "full_time",
+      salary_min: job.salary_min || "", salary_max: job.salary_max || "",
+      currency: job.currency || "EUR",
+      headcount_needed: job.headcount_needed || 1,
+      accommodation: !!job.accommodation, meals: !!job.meals, transport: !!job.transport,
+      description: job.description || "", requirements: job.requirements || "",
+      status: job.status || "activ",
+    });
+    setShowJobForm(true);
   };
 
   const deleteJobFromCompany = async (jobId) => {
@@ -374,8 +417,7 @@ const CompaniesPage = ({ showNotification }) => {
     try {
       await axios.delete(`${API}/jobs/${jobId}`);
       showNotification("Post șters!");
-      const resp = await axios.get(`${API}/jobs`, { params: { company_id: jobsModal.company.id } });
-      setJobsModal(prev => ({ ...prev, jobs: resp.data || [] }));
+      await refreshJobsModal(jobsModal.company.id);
       fetchCompanies();
     } catch { showNotification("Eroare", "error"); }
   };
@@ -556,11 +598,11 @@ const CompaniesPage = ({ showNotification }) => {
                     </span>
                   </td>
 
-                  {/* Posturi Vacante — click → modal posturi */}
+                  {/* Posturi Vacante — click → modal posturi — arată total LOCURI */}
                   <td>
                     <span
                       onClick={() => openJobsModal(company)}
-                      title="Click → gestionează posturile vacante"
+                      title={`Click → gestionează posturile vacante (${company.jobs_types || 0} tipuri / ${company.jobs_count || 0} locuri totale)`}
                       style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'4px', background:'#eef2ff', color:'#4f46e5', borderRadius:'12px', padding:'3px 10px', fontSize:'0.8rem', fontWeight:600 }}
                     >
                       <Briefcase size={12}/> {company.jobs_count != null ? company.jobs_count : 0}
@@ -766,7 +808,7 @@ const CompaniesPage = ({ showNotification }) => {
             {/* Formular adăugare post rapid */}
             {showJobForm && (
               <div style={{padding:'16px 20px', background:'#f8fafc', borderBottom:'1px solid var(--border-color)'}}>
-                <div style={{fontWeight:700, fontSize:'0.9rem', marginBottom:'12px', color:'#4f46e5'}}>Adaugă Post Vacant Nou</div>
+                <div style={{fontWeight:700, fontSize:'0.9rem', marginBottom:'12px', color:'#4f46e5'}}>{editingJobId ? '✏️ Editează Post' : 'Adaugă Post Vacant Nou'}</div>
                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'10px', marginBottom:'10px'}}>
                   <div>
                     <label style={{fontSize:'0.8rem', fontWeight:600, display:'block', marginBottom:3}}>Titlu Post *</label>
@@ -822,8 +864,14 @@ const CompaniesPage = ({ showNotification }) => {
                       <input type="checkbox" checked={!!jobForm[b.key]} onChange={e => setJobForm(f => ({...f, [b.key]: e.target.checked}))} /> {b.label}
                     </label>
                   ))}
-                  <button onClick={saveJobFromCompany} style={{marginLeft:'auto', padding:'7px 18px', background:'#6366f1', color:'#fff', border:'none', borderRadius:'7px', cursor:'pointer', fontWeight:600, fontSize:'0.85rem'}}>
-                    Salvează Post
+                  {editingJobId && (
+                    <button onClick={() => { setEditingJobId(null); setJobForm({ title:'', location:'', headcount_needed:1, salary_min:'', salary_max:'', currency:'EUR', cor_code:'', cor_name:'', description:'', accommodation:false, meals:false, transport:false, status:'activ' }); }}
+                      style={{padding:'7px 14px', background:'#f3f4f6', color:'#374151', border:'1px solid #e5e7eb', borderRadius:'7px', cursor:'pointer', fontWeight:600, fontSize:'0.85rem'}}>
+                      Anulează editarea
+                    </button>
+                  )}
+                  <button onClick={saveJobFromCompany} style={{marginLeft:'auto', padding:'7px 18px', background: editingJobId ? '#f59e0b' : '#6366f1', color:'#fff', border:'none', borderRadius:'7px', cursor:'pointer', fontWeight:600, fontSize:'0.85rem'}}>
+                    {editingJobId ? '💾 Actualizează Post' : 'Salvează Post'}
                   </button>
                 </div>
               </div>
@@ -864,7 +912,9 @@ const CompaniesPage = ({ showNotification }) => {
                           {job.salary_min || job.salary_max ? `${job.salary_min||'—'} - ${job.salary_max||'—'} ${job.currency||'EUR'}` : '—'}
                         </td>
                         <td style={{padding:'9px 14px'}}>
-                          <span style={{fontWeight:600}}>{job.positions_filled||0}/{job.headcount_needed||1}</span>
+                          <span style={{fontWeight:600, color: (job.candidates_count||0) >= (job.headcount_needed||1) ? '#065f46' : '#374151'}}>
+                            {job.candidates_count||0}/{job.headcount_needed||1}
+                          </span>
                         </td>
                         <td style={{padding:'9px 14px'}}>
                           {job.accommodation && '🏠'}{job.meals && '🍽️'}{job.transport && '🚌'}
@@ -875,7 +925,11 @@ const CompaniesPage = ({ showNotification }) => {
                             {job.status}
                           </span>
                         </td>
-                        <td style={{padding:'9px 14px', textAlign:'center'}}>
+                        <td style={{padding:'9px 14px', textAlign:'center', display:'flex', gap:'6px', justifyContent:'center', alignItems:'center'}}>
+                          <button onClick={() => { startEditJob(job); setShowJobForm(true); }}
+                            style={{background:'none', border:'none', cursor:'pointer', color:'#f59e0b'}} title="Editează">
+                            ✏️
+                          </button>
                           <button onClick={() => deleteJobFromCompany(job.id)}
                             style={{background:'none', border:'none', cursor:'pointer', color:'#ef4444'}} title="Șterge">
                             <Trash2 size={14}/>
