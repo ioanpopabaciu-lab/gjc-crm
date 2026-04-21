@@ -5,7 +5,14 @@ import './App.css';
 import { useAuth } from './hooks/useAuth';
 import { MODULE_PERMISSION } from './config/permissions';
 import MainLayout from './layouts/MainLayout';
+import ClientLayout from './layouts/ClientLayout';
 import LoadingSpinner from './components/LoadingSpinner';
+
+// Client portal pages
+import ClientDashboardPage from './pages/client/ClientDashboardPage';
+import ClientJobsPage from './pages/client/ClientJobsPage';
+import ClientCandidatesPage from './pages/client/ClientCandidatesPage';
+import ClientDocumentsPage from './pages/client/ClientDocumentsPage';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -51,7 +58,7 @@ const ProtectedPage = ({ moduleId, children }) => {
 };
 
 function App() {
-  const { loading: authLoading, login, isAuthenticated } = useAuth();
+  const { loading: authLoading, login, isAuthenticated, user } = useAuth();
   const [notification, setNotification] = useState(null);
 
   const showNotification = (message, type = "success") => {
@@ -77,6 +84,17 @@ function App() {
             element={<LoginPage onLogin={login} showNotification={showNotification} />} 
           />
         </Routes>
+      ) : user?.role === 'client' ? (
+        // ===== PORTAL CLIENT =====
+        <ClientLayout notification={notification}>
+          <Routes>
+            <Route path="/portal"            element={<ClientDashboardPage showNotification={showNotification} />} />
+            <Route path="/portal/posturi"    element={<ClientJobsPage showNotification={showNotification} />} />
+            <Route path="/portal/candidati"  element={<ClientCandidatesPage showNotification={showNotification} />} />
+            <Route path="/portal/documente"  element={<ClientDocumentsPage showNotification={showNotification} />} />
+            <Route path="*"                  element={<Navigate to="/portal" replace />} />
+          </Routes>
+        </ClientLayout>
       ) : (
         <MainLayout notification={notification}>
           <Routes>

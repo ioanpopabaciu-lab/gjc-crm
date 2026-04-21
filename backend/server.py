@@ -61,6 +61,8 @@ class UserCreate(BaseModel):
     password: str
     role: str = "operator"
     permissions: List[str] = Field(default_factory=list)
+    company_id: Optional[str] = None   # pentru rol 'client'
+    company_name: Optional[str] = None
 
 class UserUpdate(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -68,6 +70,8 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     new_password: Optional[str] = None
     permissions: Optional[List[str]] = None
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str
@@ -79,6 +83,23 @@ class UserResponse(BaseModel):
     role: str
     created_at: str
     permissions: List[str] = Field(default_factory=list)
+    company_id: Optional[str] = None
+    company_name: Optional[str] = None
+
+class ClientDocument(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    company_id: str
+    candidate_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    filename: str
+    category: str = "general"
+    uploaded_by: str
+    uploaded_by_role: str
+    file_size: int = 0
+    content_type: str = "application/octet-stream"
+    note: Optional[str] = None
+    created_at: str
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -130,6 +151,13 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
     user = await require_auth(credentials)
     if user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Acces interzis - necesită rol admin")
+    return user
+
+async def require_client_access(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Requires client or admin role. Returns user with company_id resolved."""
+    user = await require_auth(credentials)
+    if user.get('role') not in ['client', 'admin']:
+        raise HTTPException(status_code=403, detail="Acces interzis")
     return user
 
 # ===================== MODELS =====================
@@ -823,10 +851,12 @@ async def create_user_admin(user_data: UserCreate, admin = Depends(require_admin
         "password_hash": hashed_password,
         "role": user_data.role,
         "permissions": user_data.permissions,
+        "company_id": user_data.company_id,
+        "company_name": user_data.company_name,
         "created_at": created_at
     }
     await db.users.insert_one(user_doc)
-    return {"id": user_id, "email": user_data.email, "role": user_data.role, "permissions": user_data.permissions, "created_at": created_at}
+    return {"id": user_id, "email": user_data.email, "role": user_data.role, "permissions": user_data.permissions, "company_id": user_data.company_id, "company_name": user_data.company_name, "created_at": created_at}
 
 @api_router.put("/auth/users/{user_id}")
 async def update_user(user_id: str, data: UserUpdate, current_user = Depends(require_auth)):
@@ -845,6 +875,10 @@ async def update_user(user_id: str, data: UserUpdate, current_user = Depends(req
         update["password_hash"] = get_password_hash(data.new_password)
     if data.permissions is not None and current_user['role'] == 'admin':
         update["permissions"] = data.permissions
+    if data.company_id is not None and current_user['role'] == 'admin':
+        update["company_id"] = data.company_id
+    if data.company_name is not None and current_user['role'] == 'admin':
+        update["company_name"] = data.company_name
     if not update:
         raise HTTPException(status_code=400, detail="Nimic de actualizat")
     await db.users.update_one({"id": user_id}, {"$set": update})
@@ -920,6 +954,161 @@ async def setup_first_admin(secret: str, email: str = None, new_password: str = 
         "all_emails_in_db": [u["email"] for u in all_users],
         "action": "promoted"
     }
+
+# ===================== CLIENT PORTAL =====================
+
+import base64
+
+def _get_client_company_id(user: dict) -> str:
+    """Returnează company_id al utilizatorului client. Admin-ul trebuie să trimită company_id ca param."""
+    return user.get('company_id', '')
+
+@api_router.get("/client/dashboard")
+async def client_dashboard(user = Depends(require_client_access), company_id: str = None):
+    cid = company_id if user['role'] == 'admin' and company_id else user.get('company_id', '')
+    if not cid:
+        raise HTTPException(status_code=400, detail="company_id necunoscut")
+
+    company = await db.companies.find_one({"id": cid}, {"_id": 0}) or {}
+    jobs = await db.jobs.find({"company_id": cid, "status": {"$ne": "inchis"}}, {"_id": 0}).to_list(100)
+    candidates = await db.candidates.find({"company_id": cid}, {"_id": 0}).to_list(500)
+    cases = await db.immigration_cases.find({"company_id": cid}, {"_id": 0}).to_list(500)
+    documents = await db.client_documents.find({"company_id": cid}, {"_id": 0, "file_data": 0}).to_list(200)
+
+    total_locuri = sum(j.get('headcount_needed', 1) for j in jobs)
+    ocupate = len([c for c in candidates if c.get('status') in ['plasat', 'activ'] and c.get('company_id') == cid])
+
+    # Activitate recentă
+    recent_candidates = sorted(candidates, key=lambda x: x.get('created_at', ''), reverse=True)[:5]
+
+    return {
+        "company": company,
+        "stats": {
+            "total_locuri": total_locuri,
+            "ocupate": ocupate,
+            "libere": max(0, total_locuri - ocupate),
+            "candidati_activi": len(candidates),
+            "dosare_imigrare": len(cases),
+            "documente": len(documents),
+        },
+        "jobs": jobs,
+        "recent_candidates": recent_candidates,
+    }
+
+@api_router.get("/client/jobs")
+async def client_jobs(user = Depends(require_client_access), company_id: str = None):
+    cid = company_id if user['role'] == 'admin' and company_id else user.get('company_id', '')
+    if not cid:
+        raise HTTPException(status_code=400, detail="company_id necunoscut")
+
+    jobs = await db.jobs.find({"company_id": cid}, {"_id": 0}).to_list(200)
+    candidates = await db.candidates.find({"company_id": cid}, {"_id": 0, "first_name": 1, "last_name": 1, "job_type": 1, "status": 1}).to_list(500)
+
+    count_by_title = {}
+    for c in candidates:
+        k = (c.get('job_type') or '').strip().lower()
+        if k:
+            count_by_title[k] = count_by_title.get(k, 0) + 1
+
+    for j in jobs:
+        j['candidates_count'] = count_by_title.get((j.get('title') or '').strip().lower(), 0)
+
+    return jobs
+
+@api_router.get("/client/candidates")
+async def client_candidates(user = Depends(require_client_access), company_id: str = None):
+    cid = company_id if user['role'] == 'admin' and company_id else user.get('company_id', '')
+    if not cid:
+        raise HTTPException(status_code=400, detail="company_id necunoscut")
+
+    candidates = await db.candidates.find({"company_id": cid}, {"_id": 0}).to_list(500)
+
+    # Adaugă statusul dosarului de imigrare pentru fiecare candidat
+    for c in candidates:
+        case = await db.immigration_cases.find_one({"candidate_id": c.get('id')}, {"_id": 0, "status": 1, "igi_number": 1, "visa_status": 1, "permit_status": 1})
+        c['immigration_case'] = case
+
+    return candidates
+
+@api_router.get("/client/documents")
+async def client_documents(user = Depends(require_client_access), company_id: str = None):
+    cid = company_id if user['role'] == 'admin' and company_id else user.get('company_id', '')
+    if not cid:
+        raise HTTPException(status_code=400, detail="company_id necunoscut")
+
+    docs = await db.client_documents.find({"company_id": cid}, {"_id": 0, "file_data": 0}).to_list(500)
+    return docs
+
+@api_router.post("/client/documents/upload")
+async def client_upload_document(
+    file: UploadFile = File(...),
+    company_id: str = Form(...),
+    category: str = Form("general"),
+    candidate_id: str = Form(None),
+    candidate_name: str = Form(None),
+    note: str = Form(None),
+    user = Depends(require_client_access)
+):
+    # Verificăm că utilizatorul client accesează doar compania lui
+    if user['role'] == 'client' and user.get('company_id') != company_id:
+        raise HTTPException(status_code=403, detail="Acces interzis la această companie")
+
+    content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fișierul depășește limita de 15MB")
+
+    doc_id = str(uuid.uuid4())
+    file_b64 = base64.b64encode(content).decode('utf-8')
+
+    doc = {
+        "id": doc_id,
+        "company_id": company_id,
+        "candidate_id": candidate_id,
+        "candidate_name": candidate_name,
+        "filename": file.filename,
+        "category": category,
+        "uploaded_by": user['email'],
+        "uploaded_by_role": user['role'],
+        "file_size": len(content),
+        "content_type": file.content_type or "application/octet-stream",
+        "note": note,
+        "file_data": file_b64,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.client_documents.insert_one(doc)
+    doc.pop("file_data", None)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/client/documents/{doc_id}/download")
+async def client_download_document(doc_id: str, user = Depends(require_client_access)):
+    doc = await db.client_documents.find_one({"id": doc_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document negăsit")
+
+    if user['role'] == 'client' and user.get('company_id') != doc['company_id']:
+        raise HTTPException(status_code=403, detail="Acces interzis")
+
+    file_data = base64.b64decode(doc['file_data'])
+    from io import BytesIO
+    return StreamingResponse(
+        BytesIO(file_data),
+        media_type=doc.get('content_type', 'application/octet-stream'),
+        headers={"Content-Disposition": f"attachment; filename=\"{doc['filename']}\""}
+    )
+
+@api_router.delete("/client/documents/{doc_id}")
+async def client_delete_document(doc_id: str, user = Depends(require_client_access)):
+    doc = await db.client_documents.find_one({"id": doc_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document negăsit")
+
+    # Poate șterge: admin-ul sau cel care a uploadat
+    if user['role'] != 'admin' and doc.get('uploaded_by') != user['email']:
+        raise HTTPException(status_code=403, detail="Poți șterge doar documentele încărcate de tine")
+
+    await db.client_documents.delete_one({"id": doc_id})
+    return {"ok": True}
 
 # ===================== FILE UPLOAD =====================
 

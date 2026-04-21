@@ -20,7 +20,8 @@ const SettingsPage = ({ showNotification }) => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null); // null = adăugare nouă, obj = editare
-  const [userForm, setUserForm] = useState({ email: '', password: '', role: 'operator', permissions: [] });
+  const [userForm, setUserForm] = useState({ email: '', password: '', role: 'operator', permissions: [], company_id: '', company_name: '' });
+  const [companies, setCompanies] = useState([]);
   const [userSaving, setUserSaving] = useState(false);
 
   // SmartBill state
@@ -43,6 +44,13 @@ const SettingsPage = ({ showNotification }) => {
     }
   }, []);
 
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API}/companies?limit=500`);
+      setCompanies((r.data || []).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+    } catch { setCompanies([]); }
+  }, []);
+
   const fetchCrmUsers = useCallback(async () => {
     if (!isAdmin) return;
     setUsersLoading(true);
@@ -58,13 +66,15 @@ const SettingsPage = ({ showNotification }) => {
 
   const openAddUser = () => {
     setEditingUser(null);
-    setUserForm({ email: '', password: '', role: 'operator', permissions: [] });
+    setUserForm({ email: '', password: '', role: 'operator', permissions: [], company_id: '', company_name: '' });
+    fetchCompanies();
     setShowUserModal(true);
   };
 
   const openEditUser = (u) => {
     setEditingUser(u);
-    setUserForm({ email: u.email, password: '', role: u.role, permissions: u.permissions || [] });
+    setUserForm({ email: u.email, password: '', role: u.role, permissions: u.permissions || [], company_id: u.company_id || '', company_name: u.company_name || '' });
+    fetchCompanies();
     setShowUserModal(true);
   };
 
@@ -94,7 +104,9 @@ const SettingsPage = ({ showNotification }) => {
         if (userForm.email !== editingUser.email) payload.email = userForm.email;
         if (userForm.password) payload.new_password = userForm.password;
         if (userForm.role !== editingUser.role) payload.role = userForm.role;
-        payload.permissions = userForm.permissions; // întotdeauna trimitem permisiunile
+        payload.permissions = userForm.permissions;
+        payload.company_id = userForm.company_id || null;
+        payload.company_name = userForm.company_name || null;
         await axios.put(`${API}/auth/users/${editingUser.id}`, payload);
         showNotification("Cont actualizat!");
       } else {
@@ -516,13 +528,36 @@ const SettingsPage = ({ showNotification }) => {
                   {isAdmin && (
                     <div>
                       <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>🛡️ Rol sistem</label>
-                      <select value={userForm.role} onChange={e => setUserForm(f => ({...f, role: e.target.value}))}
+                      <select value={userForm.role} onChange={e => setUserForm(f => ({...f, role: e.target.value, permissions: e.target.value === 'client' ? [] : f.permissions}))}
                         style={{width:'100%', padding:'8px 11px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}}>
-                        <option value="operator">operator</option>
-                        <option value="admin">admin (acces total)</option>
+                        <option value="operator">operator — acces intern</option>
+                        <option value="admin">admin — acces total</option>
+                        <option value="client">🏢 client — portal client</option>
                       </select>
                     </div>
                   )}
+
+                  {/* Companie — apare doar pentru rol client */}
+                  {userForm.role === 'client' && (
+                    <div style={{gridColumn:'1 / -1'}}>
+                      <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>🏢 Companie client *</label>
+                      <select value={userForm.company_id}
+                        onChange={e => {
+                          const comp = companies.find(c => c.id === e.target.value);
+                          setUserForm(f => ({...f, company_id: e.target.value, company_name: comp?.name || ''}));
+                        }}
+                        style={{width:'100%', padding:'8px 11px', border:'1px solid var(--border-color)', borderRadius:'7px', fontSize:'0.875rem', boxSizing:'border-box'}}>
+                        <option value="">— Selectează compania —</option>
+                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}{c.cui ? ` (${c.cui})` : ''}</option>)}
+                      </select>
+                      {userForm.company_id && (
+                        <div style={{marginTop:6, fontSize:'0.78rem', color:'#065f46', background:'#f0fdf4', padding:'6px 10px', borderRadius:6}}>
+                          ✅ Clientul va vedea doar datele companiei <strong>{userForm.company_name}</strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div style={{gridColumn:'1 / -1'}}>
                     <label style={{display:'block', fontWeight:600, fontSize:'0.85rem', marginBottom:4}}>
                       🔑 {editingUser ? 'Parolă nouă (lasă gol dacă nu schimbi)' : 'Parolă *'}
@@ -534,8 +569,8 @@ const SettingsPage = ({ showNotification }) => {
                   </div>
                 </div>
 
-                {/* Permisiuni — doar pentru admin și doar pentru conturi cu rol operator */}
-                {isAdmin && userForm.role !== 'admin' && (
+                {/* Permisiuni — doar pentru operatori (nu pentru client sau admin) */}
+                {isAdmin && userForm.role === 'operator' && (
                   <div style={{border:'1px solid #e5e7eb', borderRadius:'10px', overflow:'hidden'}}>
                     <div style={{background:'#f8fafc', padding:'12px 16px', borderBottom:'1px solid #e5e7eb'}}>
                       <div style={{fontWeight:700, fontSize:'0.9rem', marginBottom:'8px'}}>🔐 Permisiuni acces</div>
