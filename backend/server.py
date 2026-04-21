@@ -860,7 +860,7 @@ async def delete_user(user_id: str, admin = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
     return {"ok": True}
 
-@api_router.post("/auth/setup-admin")
+@api_router.get("/auth/setup-admin")
 async def setup_first_admin(email: str, secret: str):
     """
     Promovează un utilizator la rol admin.
