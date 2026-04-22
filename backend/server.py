@@ -3209,6 +3209,54 @@ async def get_payment_stats():
         stats["count"] += r["count"]
     return stats
 
+@api_router.get("/payments/summaries")
+async def get_payment_summaries():
+    """Agregate plăți per entity_id — folosit pt badge-uri de plată în listele B2B/B2C."""
+    pipeline = [
+        {"$group": {
+            "_id": "$entity_id",
+            "total_amount":   {"$sum": "$amount"},
+            "paid_amount":    {"$sum": {"$cond": [{"$eq": ["$status", "platit"]},   "$amount", 0]}},
+            "partial_amount": {"$sum": {"$cond": [{"$eq": ["$status", "partial"]},  "$amount", 0]}},
+            "unpaid_amount":  {"$sum": {"$cond": [{"$eq": ["$status", "neplatit"]}, "$amount", 0]}},
+            "count":          {"$sum": 1},
+            "platit_count":   {"$sum": {"$cond": [{"$eq": ["$status", "platit"]},   1, 0]}},
+            "partial_count":  {"$sum": {"$cond": [{"$eq": ["$status", "partial"]},  1, 0]}},
+            "neplatit_count": {"$sum": {"$cond": [{"$eq": ["$status", "neplatit"]}, 1, 0]}},
+        }},
+    ]
+    result = await db.payments.aggregate(pipeline).to_list(5000)
+    out = {}
+    for r in result:
+        eid = r["_id"]
+        if not eid:
+            continue
+        # Status global: dacă are orice neplatit → rosu; dacă are partial → galben; altfel verde
+        if r["neplatit_count"] > 0:
+            status = "neplatit"
+        elif r["partial_count"] > 0:
+            status = "partial"
+        else:
+            status = "platit"
+        out[eid] = {
+            "total_amount":   round(r["total_amount"], 2),
+            "paid_amount":    round(r["paid_amount"], 2),
+            "partial_amount": round(r["partial_amount"], 2),
+            "unpaid_amount":  round(r["unpaid_amount"], 2),
+            "count":          r["count"],
+            "status":         status,
+        }
+    return out
+
+@api_router.get("/client/payments")
+async def client_payments(user = Depends(require_client_access), company_id: str = None):
+    """Endpoint portal client: returnează plățile proprii (vizibil DOAR clientului)."""
+    cid = company_id if user['role'] == 'admin' and company_id else user.get('company_id', '')
+    if not cid:
+        raise HTTPException(status_code=400, detail="company_id necunoscut")
+    payments = await db.payments.find({"entity_id": cid}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return [serialize_doc(p) for p in payments]
+
 @api_router.post("/payments")
 async def create_payment(payment: PaymentCreate):
     doc = Payment(**payment.model_dump()).model_dump()

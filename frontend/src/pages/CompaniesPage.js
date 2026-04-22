@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Building2, Phone, Edit, Trash2, RefreshCw, X, Download, Users, FileText, Award, MapPin, ExternalLink, ChevronRight, Briefcase, CreditCard } from 'lucide-react';
 import { API } from '../config';
+import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { CAEN_CODES } from '../data/caenCodes';
 
@@ -77,9 +78,28 @@ const CAENSelector = ({ value, valueName, onChange }) => {
   );
 };
 
+const PaymentBadge = ({ summary }) => {
+  if (!summary || summary.count === 0) return <span style={{ color: '#d1d5db', fontSize: '0.72rem' }}>—</span>;
+  const cfg = summary.status === 'platit'
+    ? { label: '🟢 Achitat',  bg: '#dcfce7', color: '#166534' }
+    : summary.status === 'partial'
+    ? { label: '🟡 Parțial',  bg: '#fef9c3', color: '#854d0e' }
+    : { label: '🔴 Datorii',  bg: '#fee2e2', color: '#991b1b' };
+  return (
+    <span title={`Plătit: ${summary.paid_amount} · Restant: ${summary.unpaid_amount}`}
+      style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+        background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap', display: 'inline-block' }}>
+      {cfg.label}
+    </span>
+  );
+};
+
 const CompaniesPage = ({ showNotification }) => {
   const navigate = useNavigate();
+  const { hasPermission, user: authUser } = useAuth();
+  const canSeePayments = hasPermission('plati_read') || authUser?.role === 'admin';
   const [companies, setCompanies] = useState([]);
+  const [paymentSummaries, setPaymentSummaries] = useState({});
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -140,6 +160,13 @@ const CompaniesPage = ({ showNotification }) => {
     const timer = setTimeout(fetchCompanies, 300);
     return () => clearTimeout(timer);
   }, [fetchCompanies]);
+
+  useEffect(() => {
+    if (!canSeePayments) return;
+    axios.get(`${API}/payments/summaries`)
+      .then(r => setPaymentSummaries(r.data || {}))
+      .catch(() => {});
+  }, [canSeePayments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyAnafData = (d, cleanCui, prev) => {
     const caenEntry = d.caen_code ? CAEN_CODES.find(c => c.code === d.caen_code) : null;
@@ -515,6 +542,7 @@ const CompaniesPage = ({ showNotification }) => {
                 <th title="Dosare imigrare active" style={{ cursor:'pointer', color:'#6b7280', background:'var(--bg-table-header)' }}>📁 Dosare</th>
                 <th title="Posturi vacante — click pentru a gestiona" style={{ cursor:'pointer', color:'#6366f1', background:'var(--bg-table-header)' }}>💼 Posturi</th>
                 <th style={{ background: 'var(--bg-table-header)' }}>Status</th>
+                {canSeePayments && <th title="Status plăți" style={{ background: 'var(--bg-table-header)', color:'#059669' }}>💰 Plăți</th>}
                 <th style={{ background: 'var(--bg-table-header)' }}>Acțiuni</th>
               </tr>
             </thead>
@@ -628,6 +656,12 @@ const CompaniesPage = ({ showNotification }) => {
                   <td>
                     <span className={`status-badge ${company.status}`}>{company.status}</span>
                   </td>
+
+                  {canSeePayments && (
+                    <td onClick={e => e.stopPropagation()}>
+                      <PaymentBadge summary={paymentSummaries[company.id]} />
+                    </td>
+                  )}
 
                   <td className="actions-cell" onClick={e => e.stopPropagation()}>
                     <button

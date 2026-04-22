@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API } from '../../config';
 import { useAuth } from '../../hooks/useAuth';
-import { Briefcase, Users, FileText, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
+import { Briefcase, Users, FileText, CheckCircle, Clock, AlertCircle, TrendingUp, CreditCard } from 'lucide-react';
 
 const STATUS_LABELS = {
   'in_asteptare': { label: 'În așteptare', color: '#f59e0b', bg: '#fef3c7' },
@@ -25,14 +25,18 @@ export default function ClientDashboardPage({ showNotification }) {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const resp = await axios.get(`${API}/client/dashboard`);
-        setData(resp.data);
-      } catch {
-        showNotification('Eroare la încărcarea datelor', 'error');
+        const [dashResp, payResp] = await Promise.allSettled([
+          axios.get(`${API}/client/dashboard`),
+          axios.get(`${API}/client/payments`),
+        ]);
+        if (dashResp.status === 'fulfilled') setData(dashResp.value.data);
+        else showNotification('Eroare la încărcarea datelor', 'error');
+        if (payResp.status === 'fulfilled') setPayments(payResp.value.data || []);
       } finally {
         setLoading(false);
       }
@@ -129,6 +133,85 @@ export default function ClientDashboardPage({ showNotification }) {
           })}
         </div>
       </div>
+
+      {/* ── Secțiune Plăți — vizibilă doar clientului ── */}
+      {payments.length > 0 && (
+        <div style={{ background: 'white', borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CreditCard size={18} color="#059669" /> Situația Plăților
+          </h3>
+          {/* Sumar */}
+          {(() => {
+            const total   = payments.reduce((s, p) => s + (p.amount || 0), 0);
+            const platit  = payments.filter(p => p.status === 'platit').reduce((s, p) => s + (p.amount || 0), 0);
+            const partial = payments.filter(p => p.status === 'partial').reduce((s, p) => s + (p.amount || 0), 0);
+            const restant = payments.filter(p => p.status === 'neplatit').reduce((s, p) => s + (p.amount || 0), 0);
+            const currency = payments[0]?.currency || 'EUR';
+            const pct = total > 0 ? Math.round((platit / total) * 100) : 0;
+            return (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                  {[
+                    { label: 'Total facturat', value: `${total.toFixed(2)} ${currency}`, color: '#374151', bg: '#f9fafb' },
+                    { label: 'Plătit',          value: `${platit.toFixed(2)} ${currency}`, color: '#065f46', bg: '#d1fae5' },
+                    { label: 'Restant',         value: `${restant.toFixed(2)} ${currency}`, color: restant > 0 ? '#991b1b' : '#6b7280', bg: restant > 0 ? '#fee2e2' : '#f3f4f6' },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: s.bg, borderRadius: 10, padding: '12px 14px' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#6b7280', marginBottom: 4 }}>{s.label}</div>
+                      <div style={{ fontWeight: 700, fontSize: '1rem', color: s.color }}>{s.value}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Bară progres */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#6b7280', marginBottom: 4 }}>
+                    <span>Progres achitare</span>
+                    <span style={{ fontWeight: 700, color: pct >= 100 ? '#059669' : '#374151' }}>{pct}%</span>
+                  </div>
+                  <div style={{ background: '#f3f4f6', borderRadius: 8, height: 10 }}>
+                    <div style={{ width: `${pct}%`, background: pct >= 100 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 8, height: 10, transition: 'width 0.6s' }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          {/* Tabel detaliu plăți */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                {['Data', 'Sumă', 'Nr. Factură', 'Metodă', 'Status'].map(h => (
+                  <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '0.75rem' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map(p => (
+                <tr key={p.id} style={{ borderBottom: '1px solid #f9fafb' }}>
+                  <td style={{ padding: '7px 8px', color: '#374151' }}>{p.date_received || '—'}</td>
+                  <td style={{ padding: '7px 8px', fontWeight: 600, color: '#059669' }}>{p.amount} {p.currency}</td>
+                  <td style={{ padding: '7px 8px', color: '#6b7280' }}>{p.invoice_number || '—'}</td>
+                  <td style={{ padding: '7px 8px', color: '#6b7280' }}>{p.method || '—'}</td>
+                  <td style={{ padding: '7px 8px' }}>
+                    <span style={{
+                      fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                      background: p.status === 'platit' ? '#d1fae5' : p.status === 'partial' ? '#fef3c7' : '#fee2e2',
+                      color:      p.status === 'platit' ? '#065f46' : p.status === 'partial' ? '#92400e' : '#991b1b',
+                    }}>
+                      {p.status === 'platit' ? '✓ Plătit' : p.status === 'partial' ? '½ Parțial' : '✗ Restant'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {payments.length === 0 && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '14px 18px', fontSize: '0.85rem', color: '#166534', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CheckCircle size={18} /> <span><strong>Plăți la zi.</strong> Nu există plăți restante înregistrate.</span>
+        </div>
+      )}
 
       {/* Info box */}
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '14px 18px', fontSize: '0.85rem', color: '#1e40af' }}>

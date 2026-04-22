@@ -5,8 +5,26 @@ import {
   ChevronRight, FileText, Clock, CheckCircle, XCircle, AlertCircle
 } from 'lucide-react';
 import { API } from '../config';
+import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 import COUNTRIES from '../data/countries';
+
+// ── Helper badge plăți ─────────────────────────────────────────────────────
+const PaymentBadge = ({ summary }) => {
+  if (!summary || summary.count === 0) return <span style={{ color: '#d1d5db', fontSize: '0.72rem' }}>—</span>;
+  const cfg = summary.status === 'platit'
+    ? { label: '🟢 Achitat',  bg: '#dcfce7', color: '#166534' }
+    : summary.status === 'partial'
+    ? { label: '🟡 Parțial',  bg: '#fef9c3', color: '#854d0e' }
+    : { label: '🔴 Datorii',  bg: '#fee2e2', color: '#991b1b' };
+  return (
+    <span title={`Total: ${summary.total_amount} · Plătit: ${summary.paid_amount} · Restant: ${summary.unpaid_amount}`}
+      style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+        background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap' }}>
+      {cfg.label}
+    </span>
+  );
+};
 
 // ─── Catalog servicii IGI (complet) ────────────────────────────────────────
 
@@ -138,11 +156,14 @@ const getStageInfo = (val) => CASE_STAGES.find(s => s.value === val) || CASE_STA
 // ─── Component principal ────────────────────────────────────────────────────
 
 const B2CPage = ({ showNotification }) => {
+  const { hasPermission, user: authUser } = useAuth();
+  const canSeePayments = hasPermission('plati_read') || authUser?.role === 'admin';
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterNationality, setFilterNationality] = useState("");
+  const [paymentSummaries, setPaymentSummaries] = useState({});
 
   // Modal client
   const [showClientModal, setShowClientModal] = useState(false);
@@ -200,10 +221,23 @@ const B2CPage = ({ showNotification }) => {
     }
   }, [showNotification]);
 
+  // Fetch payment summaries (doar pentru admin / utilizatori cu plati_read)
+  const fetchPaymentSummaries = useCallback(async () => {
+    if (!canSeePayments) return;
+    try {
+      const res = await axios.get(`${API}/payments/summaries`);
+      setPaymentSummaries(res.data || {});
+    } catch { /* silent */ }
+  }, [canSeePayments]);
+
   useEffect(() => {
     const t = setTimeout(fetchClients, 300);
     return () => clearTimeout(t);
   }, [fetchClients]);
+
+  useEffect(() => {
+    fetchPaymentSummaries();
+  }, [fetchPaymentSummaries]);
 
   useEffect(() => {
     if (selectedClient) fetchCases(selectedClient.id);
@@ -447,7 +481,7 @@ const B2CPage = ({ showNotification }) => {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#1f2937" }}>
                         {client.first_name} {client.last_name}
                       </div>
@@ -455,8 +489,13 @@ const B2CPage = ({ showNotification }) => {
                         {client.nationality && <span style={{ marginRight: 6 }}>🌍 {client.nationality}</span>}
                         {client.phone && <span>{client.phone}</span>}
                       </div>
+                      {canSeePayments && (
+                        <div style={{ marginTop: 4 }}>
+                          <PaymentBadge summary={paymentSummaries[client.id]} />
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                       <span style={{
                         fontSize: "0.7rem", fontWeight: 600, padding: "2px 6px", borderRadius: 4,
                         background: client.status === "activ" ? "#dcfce7" : client.status === "finalizat" ? "#e0e7ff" : "#f3f4f6",
