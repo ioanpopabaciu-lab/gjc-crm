@@ -100,18 +100,8 @@ const CompaniesPage = ({ showNotification }) => {
   const [jobForm, setJobForm] = useState({});
   const [editingJobId, setEditingJobId] = useState(null); // ID-ul jobului care se editează inline
   const [selectedCompanyId, setSelectedCompanyId] = useState(null); // Rând activ colorat
-  // Tab-uri pagina
-  const [pageTab, setPageTab] = useState("companii"); // "companii" | "contracte" | "plati"
-  // Contracte B2B
-  const [contracts, setContracts] = useState([]);
-  const [contractsLoading, setContractsLoading] = useState(false);
-  const [showContractModal, setShowContractModal] = useState(false);
-  const [editingContract, setEditingContract] = useState(null);
-  // Plăți B2B
-  const [payments, setPayments] = useState([]);
-  const [paymentsLoading, setPaymentsLoading] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [editingPayment, setEditingPayment] = useState(null);
+  // Tab-uri pagina — contracte/plati deschid tab nou de browser
+  const openNewTab = (path) => window.open(path, '_blank', 'noopener,noreferrer');
   // Posturi in modalul companiei
   const [pendingJobs, setPendingJobs] = useState([]);
   const [newJobRow, setNewJobRow] = useState({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false });
@@ -150,81 +140,6 @@ const CompaniesPage = ({ showNotification }) => {
     const timer = setTimeout(fetchCompanies, 300);
     return () => clearTimeout(timer);
   }, [fetchCompanies]);
-
-  // ── Fetch contracte B2B ────────────────────────────────────────────────────
-  const fetchContracts = useCallback(async () => {
-    setContractsLoading(true);
-    try {
-      const res = await axios.get(`${API}/contracts`);
-      // Arată contractele legate de companii (B2B)
-      setContracts(res.data.filter(c => c.company_id));
-    } catch { showNotification("Eroare la contracte", "error"); }
-    finally { setContractsLoading(false); }
-  }, [showNotification]);
-
-  const fetchPayments = useCallback(async () => {
-    setPaymentsLoading(true);
-    try {
-      const res = await axios.get(`${API}/payments?type=firma`);
-      setPayments(res.data);
-    } catch { showNotification("Eroare la plăți", "error"); }
-    finally { setPaymentsLoading(false); }
-  }, [showNotification]);
-
-  useEffect(() => {
-    if (pageTab === "contracte") fetchContracts();
-    if (pageTab === "plati") fetchPayments();
-  }, [pageTab, fetchContracts, fetchPayments]);
-
-  const handleSaveContract = async () => {
-    try {
-      const payload = { ...editingContract, type: editingContract?.type || "contract_mediere" };
-      if (editingContract?.id) {
-        await axios.put(`${API}/contracts/${editingContract.id}`, payload);
-        showNotification("Contract actualizat!");
-      } else {
-        await axios.post(`${API}/contracts`, payload);
-        showNotification("Contract adăugat!");
-      }
-      setShowContractModal(false);
-      setEditingContract(null);
-      fetchContracts();
-    } catch { showNotification("Eroare la salvare", "error"); }
-  };
-
-  const handleDeleteContract = async (id) => {
-    if (!window.confirm("Ștergi contractul?")) return;
-    try {
-      await axios.delete(`${API}/contracts/${id}`);
-      showNotification("Contract șters!");
-      fetchContracts();
-    } catch { showNotification("Eroare", "error"); }
-  };
-
-  const handleSavePayment = async () => {
-    try {
-      const payload = { ...editingPayment, type: "firma" };
-      if (editingPayment?.id) {
-        await axios.put(`${API}/payments/${editingPayment.id}`, payload);
-        showNotification("Plată actualizată!");
-      } else {
-        await axios.post(`${API}/payments`, payload);
-        showNotification("Plată adăugată!");
-      }
-      setShowPaymentModal(false);
-      setEditingPayment(null);
-      fetchPayments();
-    } catch { showNotification("Eroare la salvare", "error"); }
-  };
-
-  const handleDeletePayment = async (id) => {
-    if (!window.confirm("Ștergi plata?")) return;
-    try {
-      await axios.delete(`${API}/payments/${id}`);
-      showNotification("Plată ștearsă!");
-      fetchPayments();
-    } catch { showNotification("Eroare", "error"); }
-  };
 
   const applyAnafData = (d, cleanCui, prev) => {
     const caenEntry = d.caen_code ? CAEN_CODES.find(c => c.code === d.caen_code) : null;
@@ -561,48 +476,23 @@ const CompaniesPage = ({ showNotification }) => {
           <button className="btn btn-secondary" onClick={exportCSV}>
             <Download size={16} /> Export CSV
           </button>
-          {pageTab === "companii" && (
-            <button
-              className="btn btn-primary"
-              onClick={() => { setEditingCompany({}); setPendingJobs([]); setNewJobRow({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false }); setShowModal(true); }}
-              data-testid="add-company-btn"
-            >
-              <Plus size={16} /> Adaugă Companie
-            </button>
-          )}
-          {pageTab === "contracte" && (
-            <button className="btn btn-primary" onClick={() => { setEditingContract({ type: "contract_mediere", currency: "EUR", status: "activ" }); setShowContractModal(true); }}>
-              <Plus size={16} /> Contract nou
-            </button>
-          )}
-          {pageTab === "plati" && (
-            <button className="btn btn-primary" onClick={() => { setEditingPayment({ type: "firma", currency: "EUR", status: "platit" }); setShowPaymentModal(true); }}>
-              <Plus size={16} /> Plată nouă
-            </button>
-          )}
+          <button
+            className="btn btn-primary"
+            onClick={() => { setEditingCompany({}); setPendingJobs([]); setNewJobRow({ title: '', location: '', headcount_needed: 1, salary_min: '', salary_max: '', currency: 'EUR', description: '', accommodation: false, meals: false, transport: false }); setShowModal(true); }}
+            data-testid="add-company-btn"
+          >
+            <Plus size={16} /> Adaugă Companie
+          </button>
+          <button className="btn btn-secondary" onClick={() => openNewTab('/contracts')} title="Deschide Contracte în tab nou" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+            <FileText size={16} /> 📑 Contracte ↗
+          </button>
+          <button className="btn btn-secondary" onClick={() => openNewTab('/payments')} title="Deschide Plăți în tab nou" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+            <CreditCard size={16} /> 💰 Plăți ↗
+          </button>
         </div>
       </div>
 
-      {/* ── Tab-uri principale ── */}
-      <div style={{ display: "flex", borderBottom: "2px solid var(--border-color)", background: "var(--bg-card)", padding: "0 4px", marginBottom: 0 }}>
-        {[
-          { key: "companii",  label: "🏢 Companii B2B" },
-          { key: "contracte", label: "📑 Contracte" },
-          { key: "plati",     label: "💰 Plăți" },
-        ].map(t => (
-          <button key={t.key} onClick={() => setPageTab(t.key)} style={{
-            padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
-            fontWeight: pageTab === t.key ? 700 : 400,
-            color: pageTab === t.key ? "#3b82f6" : "#6b7280",
-            borderBottom: pageTab === t.key ? "2px solid #3b82f6" : "2px solid transparent",
-            marginBottom: "-2px", fontSize: "0.875rem", whiteSpace: "nowrap",
-          }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {loading && pageTab === "companii" ? <LoadingSpinner /> : loadError && pageTab === "companii" ? (
+      {loading ? <LoadingSpinner /> : loadError ? (
         <div style={{textAlign:'center', padding:'60px', color:'#ef4444'}}>
           <div style={{fontSize:'48px', marginBottom:'12px'}}>⚠️</div>
           <div style={{fontSize:'16px', fontWeight:600, marginBottom:'8px'}}>Nu s-au putut încărca companiile</div>
@@ -765,243 +655,6 @@ const CompaniesPage = ({ showNotification }) => {
               <p>Nu există companii. Adăugați prima companie!</p>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ─── TAB: CONTRACTE B2B ─── */}
-      {pageTab === "contracte" && (
-        <div className="data-table-container">
-          {contractsLoading ? <LoadingSpinner /> : (
-            <>
-              <table className="data-table">
-                <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                  <tr>
-                    {['Companie','Candidat','Tip Contract','Valoare','Data Semnare','Validitate','Status','Acțiuni'].map(h => (
-                      <th key={h} style={{ background: 'var(--bg-secondary, #f8fafc)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {contracts.map(c => (
-                    <tr key={c.id}>
-                      <td><strong>{c.company_name || "—"}</strong></td>
-                      <td>{c.candidate_name || "—"}</td>
-                      <td>
-                        <span style={{ fontSize:'0.78rem', padding:'2px 7px', borderRadius:4,
-                          background: c.type === 'contract_prestari' ? '#dbeafe' : '#f0fdf4',
-                          color:      c.type === 'contract_prestari' ? '#1d4ed8' : '#166534' }}>
-                          {c.type === 'contract_prestari' ? '📑 Prestări servicii' : '🤝 Mediere'}
-                        </span>
-                      </td>
-                      <td>{c.value ? `${c.value} ${c.currency}` : "—"}</td>
-                      <td>{c.date_signed || "—"}</td>
-                      <td>{c.validity_months ? `${c.validity_months} luni` : "—"}</td>
-                      <td>
-                        <span className={`status-badge ${c.status}`}>{c.status}</span>
-                      </td>
-                      <td className="actions-cell">
-                        <button className="icon-btn" onClick={() => { setEditingContract(c); setShowContractModal(true); }}><Edit size={15}/></button>
-                        <button className="icon-btn danger" onClick={() => handleDeleteContract(c.id)}><Trash2 size={15}/></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {contracts.length === 0 && (
-                <div className="empty-state">
-                  <FileText size={40}/>
-                  <p>Niciun contract B2B. Adaugă primul contract!</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ─── TAB: PLĂȚI B2B ─── */}
-      {pageTab === "plati" && (
-        <div className="data-table-container">
-          {paymentsLoading ? <LoadingSpinner /> : (
-            <>
-              <table className="data-table">
-                <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                  <tr>
-                    {['Companie / Entitate','Sumă','Data','Nr. Factură','Metodă','Status','Acțiuni'].map(h => (
-                      <th key={h} style={{ background: 'var(--bg-secondary, #f8fafc)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map(p => (
-                    <tr key={p.id}>
-                      <td><strong>{p.entity_name || "—"}</strong></td>
-                      <td style={{ fontWeight: 600, color: '#059669' }}>{p.amount ? `${p.amount} ${p.currency}` : "—"}</td>
-                      <td>{p.date_received || "—"}</td>
-                      <td>{p.invoice_number || "—"}</td>
-                      <td>{p.method || "—"}</td>
-                      <td>
-                        <span style={{ fontSize:'0.78rem', padding:'2px 7px', borderRadius:4,
-                          background: p.status === 'platit' ? '#d1fae5' : p.status === 'partial' ? '#fef3c7' : '#fee2e2',
-                          color:      p.status === 'platit' ? '#065f46' : p.status === 'partial' ? '#92400e' : '#991b1b' }}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="actions-cell">
-                        <button className="icon-btn" onClick={() => { setEditingPayment(p); setShowPaymentModal(true); }}><Edit size={15}/></button>
-                        <button className="icon-btn danger" onClick={() => handleDeletePayment(p.id)}><Trash2 size={15}/></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {payments.length === 0 && (
-                <div className="empty-state">
-                  <CreditCard size={40}/>
-                  <p>Nicio plată B2B. Adaugă prima plată!</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Modal Contract */}
-      {showContractModal && (
-        <div className="modal-overlay" onClick={() => setShowContractModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{editingContract?.id ? "Editează Contract" : "Contract Nou"}</h2>
-              <button className="close-btn" onClick={() => setShowContractModal(false)}><X size={20}/></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Tip Contract</label>
-                  <select value={editingContract?.type || "contract_mediere"} onChange={e => setEditingContract({...editingContract, type: e.target.value})}>
-                    <option value="contract_mediere">🤝 Contract Mediere</option>
-                    <option value="contract_prestari">📑 Contract Prestări Servicii</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Companie</label>
-                  <select value={editingContract?.company_id || ""} onChange={e => {
-                    const comp = companies.find(c => c.id === e.target.value);
-                    setEditingContract({...editingContract, company_id: e.target.value, company_name: comp?.name || ""});
-                  }}>
-                    <option value="">— Selectează companie —</option>
-                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Candidat (opțional)</label>
-                  <input type="text" value={editingContract?.candidate_name || ""} onChange={e => setEditingContract({...editingContract, candidate_name: e.target.value})} placeholder="Numele candidatului" />
-                </div>
-                <div className="form-group">
-                  <label>Valoare</label>
-                  <input type="number" value={editingContract?.value || ""} onChange={e => setEditingContract({...editingContract, value: parseFloat(e.target.value) || null})} />
-                </div>
-                <div className="form-group">
-                  <label>Monedă</label>
-                  <select value={editingContract?.currency || "EUR"} onChange={e => setEditingContract({...editingContract, currency: e.target.value})}>
-                    <option>EUR</option><option>RON</option><option>USD</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Data Semnării</label>
-                  <input type="date" value={editingContract?.date_signed || ""} onChange={e => setEditingContract({...editingContract, date_signed: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Validitate (luni)</label>
-                  <input type="number" value={editingContract?.validity_months || ""} onChange={e => setEditingContract({...editingContract, validity_months: parseInt(e.target.value) || null})} />
-                </div>
-                <div className="form-group">
-                  <label>Status</label>
-                  <select value={editingContract?.status || "activ"} onChange={e => setEditingContract({...editingContract, status: e.target.value})}>
-                    <option value="activ">Activ</option>
-                    <option value="expirat">Expirat</option>
-                    <option value="reziliat">Reziliat</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{gridColumn:'1/-1'}}>
-                  <label>Note</label>
-                  <textarea value={editingContract?.notes || ""} onChange={e => setEditingContract({...editingContract, notes: e.target.value})} rows={3}/>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowContractModal(false)}>Anulează</button>
-              <button className="btn btn-primary" onClick={handleSaveContract}>Salvează</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Plată */}
-      {showPaymentModal && (
-        <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{editingPayment?.id ? "Editează Plată" : "Plată Nouă"}</h2>
-              <button className="close-btn" onClick={() => setShowPaymentModal(false)}><X size={20}/></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Companie (plătitor)</label>
-                  <select value={editingPayment?.entity_id || ""} onChange={e => {
-                    const comp = companies.find(c => c.id === e.target.value);
-                    setEditingPayment({...editingPayment, entity_id: e.target.value, entity_name: comp?.name || ""});
-                  }}>
-                    <option value="">— Selectează companie —</option>
-                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Sumă</label>
-                  <input type="number" value={editingPayment?.amount || ""} onChange={e => setEditingPayment({...editingPayment, amount: parseFloat(e.target.value) || 0})} />
-                </div>
-                <div className="form-group">
-                  <label>Monedă</label>
-                  <select value={editingPayment?.currency || "EUR"} onChange={e => setEditingPayment({...editingPayment, currency: e.target.value})}>
-                    <option>EUR</option><option>RON</option><option>USD</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Data Primirii</label>
-                  <input type="date" value={editingPayment?.date_received || ""} onChange={e => setEditingPayment({...editingPayment, date_received: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Nr. Factură</label>
-                  <input type="text" value={editingPayment?.invoice_number || ""} onChange={e => setEditingPayment({...editingPayment, invoice_number: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Metodă Plată</label>
-                  <select value={editingPayment?.method || ""} onChange={e => setEditingPayment({...editingPayment, method: e.target.value})}>
-                    <option value="">—</option>
-                    <option value="transfer">Transfer bancar</option>
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Status</label>
-                  <select value={editingPayment?.status || "platit"} onChange={e => setEditingPayment({...editingPayment, status: e.target.value})}>
-                    <option value="platit">Plătit</option>
-                    <option value="partial">Parțial</option>
-                    <option value="neplatit">Neplătit</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{gridColumn:'1/-1'}}>
-                  <label>Note</label>
-                  <textarea value={editingPayment?.notes || ""} onChange={e => setEditingPayment({...editingPayment, notes: e.target.value})} rows={2}/>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowPaymentModal(false)}>Anulează</button>
-              <button className="btn btn-primary" onClick={handleSavePayment}>Salvează</button>
-            </div>
-          </div>
         </div>
       )}
 
