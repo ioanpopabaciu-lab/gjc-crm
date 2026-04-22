@@ -3126,12 +3126,21 @@ async def delete_partner(partner_id: str):
 # ===================== CONTRACTS =====================
 
 @api_router.get("/contracts")
-async def get_contracts(type: Optional[str] = None, status: Optional[str] = None):
+async def get_contracts(
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    company_id: Optional[str] = None,
+    b2c_client_id: Optional[str] = None,
+):
     query = {}
     if type:
         query["type"] = type
     if status:
         query["status"] = status
+    if company_id:
+        query["company_id"] = company_id
+    if b2c_client_id:
+        query["b2c_client_id"] = b2c_client_id
     contracts = await db.contracts.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return [serialize_doc(c) for c in contracts]
 
@@ -3164,12 +3173,24 @@ async def delete_contract(contract_id: str):
 # ===================== PAYMENTS =====================
 
 @api_router.get("/payments")
-async def get_payments(type: Optional[str] = None, status: Optional[str] = None):
+async def get_payments(
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    company_id: Optional[str] = None,
+    b2c_client_id: Optional[str] = None,
+):
     query = {}
     if type:
         query["type"] = type
     if status:
         query["status"] = status
+    if entity_id:
+        query["entity_id"] = entity_id
+    if company_id:
+        query["entity_id"] = company_id   # pentru B2B, entity_id = company_id
+    if b2c_client_id:
+        query["b2c_client_id"] = b2c_client_id
     payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return [serialize_doc(p) for p in payments]
 

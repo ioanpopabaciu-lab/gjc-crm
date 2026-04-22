@@ -23,8 +23,6 @@ const modules = [
   { id: "pipeline", path: "/pipeline", name: "Pipeline Vânzări", icon: TrendingUp },
   { id: "recrutare", path: "/recrutare", name: "Recrutare & Plasare", icon: Briefcase },
   { id: "tasks", path: "/tasks", name: "Sarcini", icon: CheckSquare },
-  { id: "contracts", path: "/contracts", name: "Contracte", icon: Receipt },
-  { id: "payments", path: "/payments", name: "Plăți", icon: CreditCard },
   { id: "documents", path: "/documents", name: "Documente", icon: FileText },
   { id: "reports", path: "/reports", name: "Rapoarte AI", icon: BarChart3 },
   { id: "templates", path: "/templates", name: "Template-uri Doc.", icon: FileEdit },
