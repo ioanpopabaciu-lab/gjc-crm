@@ -4663,9 +4663,6 @@ async def root():
 async def health():
     return {"status": "healthy", "version": "2.0", "database": "connected"}
 
-# Include router
-app.include_router(api_router)
-
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -5007,6 +5004,9 @@ async def check_one_year_alerts():
         await loop.run_in_executor(None, _send_alert)
 
     logger.info(f"[check_one_year_alerts] Procesate {len(candidates)} alerte de 1 an.")
+
+# Include router — DUPĂ ce toate rutele au fost definite
+app.include_router(api_router)
 
 
 @app.on_event("startup")
