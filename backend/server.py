@@ -233,7 +233,12 @@ class Candidate(BaseModel):
     service_type: Optional[str] = None  # "recrutare" | "imigrare_directa"
     source_partner_id: Optional[str] = None
     source_partner_name: Optional[str] = None
-    sursa: Optional[str] = None  # "international" | "romania"
+    sursa: Optional[str] = None  # "international" | "romania" (legacy)
+    # ETAPA 2 — origine și mobilitate
+    origine: Optional[str] = None  # "noneu_direct" | "noneu_partener" | "piata_interna"
+    angajator_curent: Optional[str] = None  # text liber
+    data_angajare_curent: Optional[str] = None  # ISO date YYYY-MM-DD
+    statut_mobilitate: Optional[str] = None  # "aviz_neutilizat" | "necesita_acord" | "liber"
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -255,7 +260,11 @@ class CandidateCreate(BaseModel):
     service_type: Optional[str] = None
     source_partner_id: Optional[str] = None
     source_partner_name: Optional[str] = None
-    sursa: Optional[str] = None  # "international" | "romania"
+    sursa: Optional[str] = None  # "international" | "romania" (legacy)
+    origine: Optional[str] = None  # "noneu_direct" | "noneu_partener" | "piata_interna"
+    angajator_curent: Optional[str] = None
+    data_angajare_curent: Optional[str] = None
+    statut_mobilitate: Optional[str] = None  # "aviz_neutilizat" | "necesita_acord" | "liber"
     notes: Optional[str] = None
 
 class ImmigrationDocument(BaseModel):
@@ -1557,7 +1566,9 @@ async def get_candidates(
     nationality: Optional[str] = None,
     company_id: Optional[str] = None,
     search: Optional[str] = None,
-    sursa: Optional[str] = None
+    sursa: Optional[str] = None,
+    origine: Optional[str] = None,
+    statut_mobilitate: Optional[str] = None
 ):
     query = {}
     if status:
@@ -1568,6 +1579,10 @@ async def get_candidates(
         query["company_id"] = company_id
     if sursa:
         query["sursa"] = sursa
+    if origine:
+        query["origine"] = origine
+    if statut_mobilitate:
+        query["statut_mobilitate"] = statut_mobilitate
     if search:
         query["$or"] = [
             {"first_name": {"$regex": search, "$options": "i"}},
@@ -4703,6 +4718,95 @@ async def manual_send_reminders(current_user=Depends(get_current_user)):
     return result
 
 
+async def check_one_year_alerts():
+    """
+    Verifică zilnic candidații de pe piața internă care au împlinit 1 an la angajatorul curent.
+    → actualizează statut_mobilitate din 'necesita_acord' în 'liber'
+    → trimite email de alertă
+    """
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+
+    today = datetime.now(timezone.utc).date()
+    one_year_ago = (today - timedelta(days=365)).isoformat()
+
+    # Candidați cu angajare <= 1 an în urmă și statut "necesita_acord"
+    candidates = await db.candidates.find({
+        "data_angajare_curent": {"$lte": one_year_ago},
+        "statut_mobilitate": "necesita_acord"
+    }, {"_id": 0}).to_list(200)
+
+    if not candidates:
+        return
+
+    for c in candidates:
+        name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+        employer = c.get("angajator_curent", "angajator necunoscut")
+        hire_date = c.get("data_angajare_curent", "")
+
+        # Actualizăm statusul la "liber"
+        await db.candidates.update_one(
+            {"id": c["id"]},
+            {"$set": {"statut_mobilitate": "liber"}}
+        )
+        logger.info(f"[1 AN] {name} → statut_mobilitate setat 'liber'")
+
+        if not smtp_user or not smtp_pass:
+            continue  # SMTP neconfigurat — actualizăm DB dar nu trimitem email
+
+        html = f"""
+        <html><body style="font-family:Arial,sans-serif;max-width:580px;margin:auto;padding:24px">
+        <div style="background:#16a34a;color:#fff;padding:18px 24px;border-radius:10px 10px 0 0">
+          <h2 style="margin:0;font-size:1.15rem">🟢 Candidat liber de transfer — 1 an împlinit</h2>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:20px 24px;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 16px;font-size:1rem;color:#1f2937">
+            Candidatul <strong>{name}</strong> a împlinit <strong>1 an</strong> la angajatorul actual
+            și poate fi transferat liber la un nou angajator.
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:0.875rem">
+            <tr><td style="padding:6px 0;color:#6b7280;width:160px">Candidat</td>
+                <td style="padding:6px 0;font-weight:600">{name}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Angajator curent</td>
+                <td style="padding:6px 0">{employer}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Data angajare</td>
+                <td style="padding:6px 0">{hire_date}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Status nou</td>
+                <td style="padding:6px 0;font-weight:600;color:#16a34a">🟢 LIBER DE TRANSFER</td></tr>
+          </table>
+          <p style="margin:16px 0 0;font-size:0.875rem;color:#4b5563">
+            Dacă există o oportunitate de plasare, poate fi demarat dosarul de
+            <strong>Schimbare Angajator</strong>.
+          </p>
+        </div>
+        <p style="font-size:0.75rem;color:#9ca3af;margin-top:16px;text-align:center">
+          GJC AI-CRM — alertă automată
+        </p>
+        </body></html>
+        """
+
+        def _send_alert(html=html, name=name):
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = f"🟢 Candidat liber de transfer: {name}"
+                msg["From"] = smtp_user
+                msg["To"] = smtp_user
+                msg.attach(MIMEText(html, "html", "utf-8"))
+                with smtplib.SMTP(smtp_host, smtp_port) as srv:
+                    srv.starttls()
+                    srv.login(smtp_user, smtp_pass)
+                    srv.sendmail(smtp_user, [smtp_user], msg.as_string())
+            except Exception as e:
+                logger.warning(f"Eroare trimitere alertă 1 an pentru {name}: {e}")
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _send_alert)
+
+    logger.info(f"[check_one_year_alerts] Procesate {len(candidates)} alerte de 1 an.")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Create default admin user on startup"""
@@ -4725,8 +4829,10 @@ async def startup_event():
 
     # Pornește scheduler pentru remindere sarcini
     scheduler.add_job(send_task_reminders, 'interval', hours=1, id='task_reminders', replace_existing=True)
+    # Verificare zilnică la ora 09:00 — candidați cu 1 an de angajare
+    scheduler.add_job(check_one_year_alerts, 'cron', hour=9, minute=0, id='one_year_alerts', replace_existing=True)
     scheduler.start()
-    logger.info("Scheduler pornit: remindere sarcini la fiecare oră")
+    logger.info("Scheduler pornit: remindere sarcini la fiecare oră + alerte 1 an la 09:00")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

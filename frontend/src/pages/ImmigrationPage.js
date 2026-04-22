@@ -730,6 +730,10 @@ const ImmigrationPage = ({ showNotification }) => {
                       value={newCase.candidate_id || ""}
                       onChange={(e) => {
                         const cand = candidates.find(c => c.id === e.target.value);
+                        // Dacă candidatul e de pe piața internă → auto-setăm Schimbare angajator
+                        const autoTipProcedura = cand?.origine === "piata_interna"
+                          ? "schimbare_angajator"
+                          : (newCase.tip_procedura || "");
                         setNewCase({
                           ...newCase,
                           candidate_id: e.target.value,
@@ -737,7 +741,8 @@ const ImmigrationPage = ({ showNotification }) => {
                           company_id: cand?.company_id,
                           company_name: cand?.company_name,
                           passport_expiry: cand?.passport_expiry,
-                          permit_expiry: cand?.permit_expiry
+                          permit_expiry: cand?.permit_expiry,
+                          tip_procedura: autoTipProcedura
                         });
                       }}
                       data-testid="case-candidate-select"
@@ -772,6 +777,21 @@ const ImmigrationPage = ({ showNotification }) => {
                       <option value="schimbare_angajator">🔄 Schimbare angajator (deja în RO)</option>
                       <option value="prelungire_permis">📅 Prelungire permis</option>
                     </select>
+                    {newCase.tip_procedura === "schimbare_angajator" && (() => {
+                      const cand = candidates.find(c => c.id === newCase.candidate_id);
+                      return cand?.origine === "piata_interna" ? (
+                        <small style={{
+                          display:'block', marginTop:4, padding:'4px 8px',
+                          background:'#fef3c7', color:'#92400e', borderRadius:4, fontSize:'0.78rem'
+                        }}>
+                          🔄 Auto-detectat: candidat de pe piața internă.
+                          {cand?.statut_mobilitate === "necesita_acord" && " ⚠️ Necesită acord scris de la angajatorul curent."}
+                          {cand?.statut_mobilitate === "liber" && " ✅ Liber de transfer — fără acord necesar."}
+                          {cand?.angajator_curent && ` Angajator curent: ${cand.angajator_curent}.`}
+                          {" Necesită aviz nou + permis de ședere nou."}
+                        </small>
+                      ) : null;
+                    })()}
                   </div>
                   <div className="form-group">
                     <label>Meserie / Cod COR</label>

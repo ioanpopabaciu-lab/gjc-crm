@@ -12,6 +12,32 @@ const SERVICE_TYPES = [
   { value: "imigrare_directa", label: "Serviciu 2 — Imigrare Directă" },
 ];
 
+const ORIGINE_OPTIONS = [
+  { value: "noneu_direct",   label: "🌍 Non-EU — recrutat direct" },
+  { value: "noneu_partener", label: "🤝 Non-EU — prin partener" },
+  { value: "piata_interna",  label: "🇷🇴 Piața internă (deja în România)" },
+];
+
+const MOBILITATE_OPTIONS = [
+  { value: "aviz_neutilizat", label: "🔵 Aviz neutilizat (nu a lucrat)" },
+  { value: "necesita_acord",  label: "🔴 Necesită acord angajator (<1 an)" },
+  { value: "liber",           label: "🟢 Liber de transfer (≥1 an)" },
+];
+
+const getMobilitateStyle = (val) => {
+  if (val === "liber")           return { background: "#dcfce7", color: "#166534" };
+  if (val === "necesita_acord")  return { background: "#fee2e2", color: "#991b1b" };
+  if (val === "aviz_neutilizat") return { background: "#dbeafe", color: "#1e40af" };
+  return {};
+};
+
+const getMobilitateLabel = (val) => {
+  if (val === "liber")           return "🟢 Liber";
+  if (val === "necesita_acord")  return "🔴 Necesită acord";
+  if (val === "aviz_neutilizat") return "🔵 Aviz neutilizat";
+  return null;
+};
+
 const CandidatesPage = ({ showNotification }) => {
   const [searchParams] = useSearchParams();
   const [candidates, setCandidates] = useState([]);
@@ -22,6 +48,8 @@ const CandidatesPage = ({ showNotification }) => {
   const [filterCompanyName, setFilterCompanyName] = useState(() => searchParams.get("company_name") || "");
   const [filterStatus, setFilterStatus] = useState(() => searchParams.get("status") || "");
   const [filterSursa, setFilterSursa] = useState(() => searchParams.get("sursa") || "");
+  const [filterOrigine, setFilterOrigine] = useState(() => searchParams.get("origine") || "");
+  const [filterMobilitate, setFilterMobilitate] = useState(() => searchParams.get("statut_mobilitate") || "");
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -37,6 +65,8 @@ const CandidatesPage = ({ showNotification }) => {
       if (filterCompany) params.push(`company_id=${encodeURIComponent(filterCompany)}`);
       if (filterStatus) params.push(`status=${encodeURIComponent(filterStatus)}`);
       if (filterSursa) params.push(`sursa=${encodeURIComponent(filterSursa)}`);
+      if (filterOrigine) params.push(`origine=${encodeURIComponent(filterOrigine)}`);
+      if (filterMobilitate) params.push(`statut_mobilitate=${encodeURIComponent(filterMobilitate)}`);
       const queryString = params.length > 0 ? `?${params.join("&")}` : "";
       const response = await axios.get(`${API}/candidates${queryString}`, { timeout: 20000 });
       setCandidates(response.data);
@@ -45,7 +75,7 @@ const CandidatesPage = ({ showNotification }) => {
     } finally {
       setLoading(false);
     }
-  }, [search, filterNationality, filterCompany, filterStatus, filterSursa, showNotification]);
+  }, [search, filterNationality, filterCompany, filterStatus, filterSursa, filterOrigine, filterMobilitate, showNotification]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchCompanies = async () => {
     try {
@@ -78,10 +108,11 @@ const CandidatesPage = ({ showNotification }) => {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hasActiveFilters = filterNationality || filterCompany || filterStatus || filterSursa;
+  const hasActiveFilters = filterNationality || filterCompany || filterStatus || filterSursa || filterOrigine || filterMobilitate;
 
   const clearFilters = () => {
-    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus(""); setFilterCompanyName(""); setFilterSursa("");
+    setSearch(""); setFilterNationality(""); setFilterCompany(""); setFilterStatus("");
+    setFilterCompanyName(""); setFilterSursa(""); setFilterOrigine(""); setFilterMobilitate("");
   };
 
   const exportCSV = () => {
@@ -247,11 +278,17 @@ const CandidatesPage = ({ showNotification }) => {
             </select>
           </div>
           <div className="filter-group">
-            <label>Sursă</label>
-            <select value={filterSursa} onChange={e => setFilterSursa(e.target.value)}>
-              <option value="">Toți candidații</option>
-              <option value="international">🌍 Internațional</option>
-              <option value="romania">🇷🇴 România</option>
+            <label>Origine</label>
+            <select value={filterOrigine} onChange={e => setFilterOrigine(e.target.value)}>
+              <option value="">Toți</option>
+              {ORIGINE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Mobilitate</label>
+            <select value={filterMobilitate} onChange={e => setFilterMobilitate(e.target.value)}>
+              <option value="">Toate statusurile</option>
+              {MOBILITATE_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </div>
         </div>
@@ -270,6 +307,7 @@ const CandidatesPage = ({ showNotification }) => {
                 <th>Exp. Permis</th>
                 <th>Job</th>
                 <th>Companie</th>
+                <th>Origine / Mobilitate</th>
                 <th>Agent/Partener</th>
                 <th>Status</th>
                 <th>Acțiuni</th>
@@ -316,6 +354,29 @@ const CandidatesPage = ({ showNotification }) => {
                     </td>
                     <td>{candidate.job_type || "-"}</td>
                     <td>{candidate.company_name || "-"}</td>
+                    <td>
+                      {candidate.origine && (
+                        <div style={{fontSize:'0.75rem', color:'#4b5563', marginBottom: candidate.statut_mobilitate ? 3 : 0}}>
+                          {ORIGINE_OPTIONS.find(o => o.value === candidate.origine)?.label || candidate.origine}
+                        </div>
+                      )}
+                      {candidate.statut_mobilitate && (
+                        <span style={{
+                          fontSize:'0.72rem', fontWeight:600, padding:'2px 7px',
+                          borderRadius:4, ...getMobilitateStyle(candidate.statut_mobilitate)
+                        }}>
+                          {getMobilitateLabel(candidate.statut_mobilitate)}
+                        </span>
+                      )}
+                      {candidate.angajator_curent && (
+                        <div style={{fontSize:'0.72rem', color:'#6b7280', marginTop:2}}>
+                          {candidate.angajator_curent}
+                        </div>
+                      )}
+                      {!candidate.origine && !candidate.statut_mobilitate && (
+                        <span style={{color:'#d1d5db'}}>—</span>
+                      )}
+                    </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                       {candidate.source_partner_name || <span style={{color:'#d1d5db'}}>—</span>}
                     </td>
@@ -476,17 +537,6 @@ const CandidatesPage = ({ showNotification }) => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Sursă Candidat</label>
-                  <select
-                    value={editingCandidate?.sursa || ""}
-                    onChange={(e) => setEditingCandidate({ ...editingCandidate, sursa: e.target.value })}
-                  >
-                    <option value="">Selectează...</option>
-                    <option value="international">🌍 Internațional (recrutare din țară)</option>
-                    <option value="romania">🇷🇴 România (deja în țară)</option>
-                  </select>
-                </div>
-                <div className="form-group">
                   <label>Tip Serviciu</label>
                   <select
                     value={editingCandidate?.service_type || ""}
@@ -498,25 +548,113 @@ const CandidatesPage = ({ showNotification }) => {
                     ))}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>Partener Sursă</label>
-                  <select
-                    value={editingCandidate?.source_partner_id || ""}
-                    onChange={(e) => {
-                      const partner = partners.find(p => p.id === e.target.value);
-                      setEditingCandidate({
-                        ...editingCandidate,
-                        source_partner_id: e.target.value,
-                        source_partner_name: partner?.name || ""
-                      });
-                    }}
-                  >
-                    <option value="">Selectează...</option>
-                    {partners.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.country})</option>
-                    ))}
-                  </select>
+              </div>
+
+              {/* ─── SECȚIUNEA ORIGINE ȘI MOBILITATE ─── */}
+              <div style={{
+                margin: '18px 0 0', padding: '16px 18px',
+                background: '#f8fafc', borderRadius: 10,
+                border: '1.5px solid #e2e8f0'
+              }}>
+                <div style={{fontWeight:700, fontSize:'0.9rem', color:'#1e40af', marginBottom:12}}>
+                  📍 Origine și Mobilitate
                 </div>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Origine candidat</label>
+                    <select
+                      value={editingCandidate?.origine || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingCandidate({
+                          ...editingCandidate,
+                          origine: val,
+                          // Setăm automat și câmpul legacy sursa
+                          sursa: val === "piata_interna" ? "romania" : (val ? "international" : ""),
+                          // Resetăm câmpurile piață internă dacă se schimbă originea
+                          ...(val !== "piata_interna" ? {
+                            angajator_curent: "", data_angajare_curent: "", statut_mobilitate: ""
+                          } : {}),
+                          // Resetăm partenerul dacă nu e partener
+                          ...(val !== "noneu_partener" ? {
+                            source_partner_id: "", source_partner_name: ""
+                          } : {})
+                        });
+                      }}
+                    >
+                      <option value="">— Selectează —</option>
+                      {ORIGINE_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Partener — apare doar pt Non-EU prin Partener */}
+                  {editingCandidate?.origine === "noneu_partener" && (
+                    <div className="form-group">
+                      <label>Partener Sursă</label>
+                      <select
+                        value={editingCandidate?.source_partner_id || ""}
+                        onChange={(e) => {
+                          const partner = partners.find(p => p.id === e.target.value);
+                          setEditingCandidate({
+                            ...editingCandidate,
+                            source_partner_id: e.target.value,
+                            source_partner_name: partner?.name || ""
+                          });
+                        }}
+                      >
+                        <option value="">Selectează partenerul...</option>
+                        {partners.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.country})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Câmpuri Piața Internă */}
+                  {editingCandidate?.origine === "piata_interna" && (<>
+                    <div className="form-group">
+                      <label>Angajator curent</label>
+                      <input
+                        type="text"
+                        placeholder="Numele firmei la care lucrează acum..."
+                        value={editingCandidate?.angajator_curent || ""}
+                        onChange={(e) => setEditingCandidate({ ...editingCandidate, angajator_curent: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Data angajare la angajatorul curent</label>
+                      <input
+                        type="date"
+                        value={editingCandidate?.data_angajare_curent || ""}
+                        onChange={(e) => setEditingCandidate({ ...editingCandidate, data_angajare_curent: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Statut mobilitate</label>
+                      <select
+                        value={editingCandidate?.statut_mobilitate || ""}
+                        onChange={(e) => setEditingCandidate({ ...editingCandidate, statut_mobilitate: e.target.value })}
+                      >
+                        <option value="">— Selectează —</option>
+                        {MOBILITATE_OPTIONS.map(m => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                      {editingCandidate?.statut_mobilitate && (
+                        <small style={{ marginTop: 4, display: 'block', ...getMobilitateStyle(editingCandidate.statut_mobilitate), padding: '3px 8px', borderRadius: 4, fontSize: '0.8rem' }}>
+                          {editingCandidate.statut_mobilitate === "necesita_acord" && "⚠️ Poate pleca doar cu acordul scris al angajatorului curent"}
+                          {editingCandidate.statut_mobilitate === "liber" && "✅ Poate semna cu orice angajator. Necesită aviz nou."}
+                          {editingCandidate.statut_mobilitate === "aviz_neutilizat" && "ℹ️ Are aviz emis dar nu a lucrat niciodată la acel angajator"}
+                        </small>
+                      )}
+                    </div>
+                  </>)}
+                </div>
+              </div>
+
+              <div className="form-grid" style={{marginTop:18}}>
                 <div className="form-group">
                   <label>Status</label>
                   <select
