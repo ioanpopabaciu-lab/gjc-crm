@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { COR_CODES } from '../data/corCodes';
+import AvizImportPage from './AvizImportPage';
 
 const ImmigrationPage = ({ showNotification }) => {
   // Make COR codes available globally for datalist
@@ -450,7 +451,7 @@ const ImmigrationPage = ({ showNotification }) => {
           </div>
         )}
 
-        {/* Tab switcher: Dosare / Avize de Muncă */}
+        {/* Tab switcher: Dosare / Avize de Muncă / Import Avize IGI */}
         <div style={{ display:'flex', gap:8, margin:'12px 0 4px', borderBottom:'2px solid var(--border-color)' }}>
           <button
             onClick={() => setPageView("dosare")}
@@ -473,6 +474,17 @@ const ImmigrationPage = ({ showNotification }) => {
             }}
           >
             🏅 Avize de Muncă ({cases.filter(c => c.aviz_number).length})
+          </button>
+          <button
+            onClick={() => setPageView("import")}
+            style={{
+              padding:'8px 20px', border:'none', background:'none', cursor:'pointer', fontWeight:600,
+              borderBottom: pageView==="import" ? '3px solid #0891b2' : '3px solid transparent',
+              color: pageView==="import" ? '#0891b2' : 'var(--text-muted)',
+              marginBottom:'-2px'
+            }}
+          >
+            📥 Import Avize IGI
           </button>
         </div>
 
@@ -620,6 +632,11 @@ const ImmigrationPage = ({ showNotification }) => {
             </div>
           );
         })()}
+
+        {/* ======= TAB IMPORT AVIZE IGI ======= */}
+        {pageView === "import" && (
+          <AvizImportPage showNotification={showNotification} />
+        )}
 
         {/* ======= TAB DOSARE (existent) ======= */}
         {pageView === "dosare" && (
