@@ -4,7 +4,7 @@ import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
   Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
   Search, X, Settings, Globe, CreditCard, Receipt, Target,
-  CheckSquare, UserCheck, FileEdit, FilePlus2, Briefcase
+  CheckSquare, UserCheck, FileEdit, FilePlus2, Briefcase, UserCog
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { MODULE_PERMISSION } from '../config/permissions';
@@ -14,7 +14,8 @@ import { API } from '../config';
 const modules = [
   { id: "dashboard", path: "/", name: "Dashboard", icon: Home },
   { id: "companies", path: "/companies", name: "Clienți B2B", icon: Building2 },
-  { id: "candidates", path: "/candidates", name: "Candidați B2C", icon: Users },
+  { id: "b2c",       path: "/b2c",       name: "Clienți B2C", icon: UserCog },
+  { id: "candidates", path: "/candidates", name: "Candidați", icon: Users },
   { id: "immigration", path: "/immigration", name: "Dosare Imigrare", icon: FileText },
   { id: "aviz-import", path: "/import-avize", name: "Import Avize IGI", icon: FilePlus2 },
   { id: "partners", path: "/partners", name: "Parteneri", icon: Globe },

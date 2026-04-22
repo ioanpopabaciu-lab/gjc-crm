@@ -325,6 +325,71 @@ class ImmigrationCaseCreate(BaseModel):
     tip_procedura: Optional[str] = None  # "angajare_initiala" | "schimbare_angajator" | "prelungire_permis"
     notes: Optional[str] = None
 
+# ─── B2C MODELS ─────────────────────────────────────────────────────────────
+
+class B2CClient(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    nationality: Optional[str] = None
+    id_document: Optional[str] = None       # CNP sau nr. pașaport
+    id_document_type: Optional[str] = None  # "cnp" | "pasaport"
+    address: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    status: str = "activ"                   # "activ" | "finalizat" | "inactiv"
+    candidate_id: Optional[str] = None      # legătură cu candidatul dacă a fost promovat
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class B2CClientCreate(BaseModel):
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    nationality: Optional[str] = None
+    id_document: Optional[str] = None
+    id_document_type: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    status: str = "activ"
+    candidate_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class B2CCase(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    client_id: str
+    client_name: Optional[str] = None
+    service_group: str    # "permise_sedere" | "reintregire_familie" | "cetatenie" | "vize" | "asistenta_juridica" | "alte_servicii"
+    service_type: str     # cod specific, ex: "ps_studii", "rf_sot_cetatean_ro"
+    service_label: Optional[str] = None  # label afișat, ex: "Permis ședere — Studii"
+    status: str = "intake"  # intake | documente | pregatire_dosar | depus | in_procesare | aprobat | respins | finalizat
+    assigned_to: str = "Ioan Baciu"
+    deadline: Optional[str] = None
+    submitted_date: Optional[str] = None
+    notes: Optional[str] = None
+    history: Optional[List[dict]] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class B2CCaseCreate(BaseModel):
+    client_id: str
+    client_name: Optional[str] = None
+    service_group: str
+    service_type: str
+    service_label: Optional[str] = None
+    status: str = "intake"
+    assigned_to: str = "Ioan Baciu"
+    deadline: Optional[str] = None
+    submitted_date: Optional[str] = None
+    notes: Optional[str] = None
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 class PipelineOpportunity(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -4717,6 +4782,143 @@ async def manual_send_reminders(current_user=Depends(get_current_user)):
     result = await send_task_reminders()
     return result
 
+
+# ===================== B2C API =====================
+
+@api_router.get("/b2c/clients")
+async def get_b2c_clients(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    nationality: Optional[str] = None
+):
+    query = {}
+    if status:
+        query["status"] = status
+    if nationality:
+        query["nationality"] = nationality
+    if search:
+        query["$or"] = [
+            {"first_name": {"$regex": search, "$options": "i"}},
+            {"last_name": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"id_document": {"$regex": search, "$options": "i"}},
+        ]
+    clients = await db.b2c_clients.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [serialize_doc(c) for c in clients]
+
+@api_router.post("/b2c/clients", response_model=B2CClient)
+async def create_b2c_client(input: B2CClientCreate):
+    client = B2CClient(**input.model_dump())
+    doc = client.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.b2c_clients.insert_one(doc)
+    return client
+
+@api_router.get("/b2c/clients/{client_id}")
+async def get_b2c_client(client_id: str):
+    client = await db.b2c_clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client B2C negăsit")
+    return serialize_doc(client)
+
+@api_router.put("/b2c/clients/{client_id}")
+async def update_b2c_client(client_id: str, input: B2CClientCreate):
+    existing = await db.b2c_clients.find_one({"id": client_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Client B2C negăsit")
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    await db.b2c_clients.update_one({"id": client_id}, {"$set": update_data})
+    updated = await db.b2c_clients.find_one({"id": client_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/b2c/clients/{client_id}")
+async def delete_b2c_client(client_id: str):
+    await db.b2c_clients.delete_one({"id": client_id})
+    await db.b2c_cases.delete_many({"client_id": client_id})
+    return {"message": "Client și dosarele sale șterse"}
+
+# ── B2C Cases ──────────────────────────────────────────────────────────────
+
+@api_router.get("/b2c/cases")
+async def get_b2c_cases(
+    client_id: Optional[str] = None,
+    status: Optional[str] = None,
+    service_group: Optional[str] = None
+):
+    query = {}
+    if client_id:
+        query["client_id"] = client_id
+    if status:
+        query["status"] = status
+    if service_group:
+        query["service_group"] = service_group
+    cases = await db.b2c_cases.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [serialize_doc(c) for c in cases]
+
+@api_router.post("/b2c/cases", response_model=B2CCase)
+async def create_b2c_case(input: B2CCaseCreate):
+    case = B2CCase(**input.model_dump())
+    doc = case.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    doc["history"] = [{"stage": "intake", "date": doc["created_at"], "note": "Dosar creat"}]
+    await db.b2c_cases.insert_one(doc)
+    return case
+
+@api_router.put("/b2c/cases/{case_id}")
+async def update_b2c_case(case_id: str, input: B2CCaseCreate):
+    existing = await db.b2c_cases.find_one({"id": case_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Dosar B2C negăsit")
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    # Dacă s-a schimbat statusul, adaugăm în istoric
+    if update_data.get("status") and update_data["status"] != existing.get("status"):
+        history = existing.get("history") or []
+        history.append({
+            "stage": update_data["status"],
+            "date": datetime.now(timezone.utc).isoformat(),
+            "note": f"Status schimbat: {existing.get('status','?')} → {update_data['status']}"
+        })
+        update_data["history"] = history
+    await db.b2c_cases.update_one({"id": case_id}, {"$set": update_data})
+    updated = await db.b2c_cases.find_one({"id": case_id}, {"_id": 0})
+    return serialize_doc(updated)
+
+@api_router.delete("/b2c/cases/{case_id}")
+async def delete_b2c_case(case_id: str):
+    await db.b2c_cases.delete_one({"id": case_id})
+    return {"message": "Dosar șters"}
+
+# ── Promovare Candidat → Client B2C ────────────────────────────────────────
+
+@api_router.post("/b2c/promote-candidate/{candidate_id}")
+async def promote_candidate_to_b2c(candidate_id: str):
+    """Promovează un candidat existent ca client B2C"""
+    cand = await db.candidates.find_one({"id": candidate_id}, {"_id": 0})
+    if not cand:
+        raise HTTPException(status_code=404, detail="Candidatul nu a fost găsit")
+    # Verificăm dacă există deja
+    existing_b2c = await db.b2c_clients.find_one({"candidate_id": candidate_id})
+    if existing_b2c:
+        return serialize_doc(existing_b2c)
+    # Creăm clientul B2C din datele candidatului
+    client = B2CClient(
+        first_name=cand.get("first_name", ""),
+        last_name=cand.get("last_name", ""),
+        phone=cand.get("phone"),
+        email=cand.get("email"),
+        nationality=cand.get("nationality"),
+        id_document=cand.get("passport_number"),
+        id_document_type="pasaport",
+        candidate_id=candidate_id,
+        notes=f"Promovat din secțiunea Candidați (ID: {candidate_id})"
+    )
+    doc = client.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.b2c_clients.insert_one(doc)
+    return serialize_doc(doc)
+
+# ──────────────────────────────────────────────────────────────────────────
 
 async def check_one_year_alerts():
     """

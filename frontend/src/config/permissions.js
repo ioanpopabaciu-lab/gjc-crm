@@ -90,6 +90,7 @@ export const PRESETS = {
 export const MODULE_PERMISSION = {
   dashboard:   null,
   companies:   'companii_read',
+  b2c:         'companii_read',
   candidates:  'candidati_read',
   immigration: 'imigrare_read',
   'aviz-import': 'imigrare_read',

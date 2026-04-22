@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, User, Edit, Trash2, X, Users, Download, Filter, MessageCircle } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Plus, User, Edit, Trash2, X, Users, Download, Filter, MessageCircle, UserCog } from 'lucide-react';
 import { API } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 import COUNTRIES from '../data/countries';
@@ -40,6 +40,7 @@ const getMobilitateLabel = (val) => {
 
 const CandidatesPage = ({ showNotification }) => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -396,6 +397,22 @@ const CandidatesPage = ({ showNotification }) => {
                           💬
                         </a>
                       )}
+                      <button
+                        className="icon-btn"
+                        title="Adaugă ca Client B2C"
+                        style={{ color: "#7c3aed" }}
+                        onClick={async () => {
+                          try {
+                            await axios.post(`${API}/b2c/promote-candidate/${candidate.id}`);
+                            showNotification(`${candidate.first_name} ${candidate.last_name} adăugat ca client B2C!`);
+                            navigate("/b2c");
+                          } catch {
+                            showNotification("Eroare la promovare B2C", "error");
+                          }
+                        }}
+                      >
+                        <UserCog size={15} />
+                      </button>
                       <button className="icon-btn" onClick={() => { setEditingCandidate(candidate); setShowModal(true); }}>
                         <Edit size={16} />
                       </button>
