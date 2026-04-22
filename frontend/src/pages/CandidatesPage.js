@@ -53,6 +53,7 @@ const CandidatesPage = ({ showNotification }) => {
   const [filterMobilitate, setFilterMobilitate] = useState(() => searchParams.get("statut_mobilitate") || "");
   const [showModal, setShowModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [partners, setPartners] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
@@ -298,28 +299,29 @@ const CandidatesPage = ({ showNotification }) => {
       {loading ? <LoadingSpinner /> : (
         <div className="data-table-container">
           <table className="data-table" data-testid="candidates-table">
-            <thead>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <tr>
-                <th>Nume</th>
-                <th>Naționalitate</th>
-                <th>Pașaport</th>
-                <th>Data Nașterii</th>
-                <th>Exp. Pașaport</th>
-                <th>Exp. Permis</th>
-                <th>Job</th>
-                <th>Companie</th>
-                <th>Origine / Mobilitate</th>
-                <th>Agent/Partener</th>
-                <th>Status</th>
-                <th>Acțiuni</th>
+                {['Nume','Naționalitate','Pașaport','Data Nașterii','Exp. Pașaport','Exp. Permis','Job','Companie','Origine / Mobilitate','Agent/Partener','Status','Acțiuni'].map(h => (
+                  <th key={h} style={{ background: 'var(--bg-secondary, #f8fafc)', boxShadow: '0 1px 0 var(--border-color)' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {candidates.map((candidate) => {
                 const passportDays = getDaysUntilExpiry(candidate.passport_expiry);
                 const permitDays = getDaysUntilExpiry(candidate.permit_expiry);
+                const isSelected = selectedCandidateId === candidate.id;
                 return (
-                  <tr key={candidate.id}>
+                  <tr
+                    key={candidate.id}
+                    onClick={() => setSelectedCandidateId(isSelected ? null : candidate.id)}
+                    style={{
+                      cursor: 'pointer',
+                      background: isSelected ? '#eff6ff' : undefined,
+                      outline: isSelected ? '2px solid #3b82f6' : undefined,
+                      outlineOffset: '-2px',
+                    }}
+                  >
                     <td className="candidate-name-cell">
                       <User size={16} />
                       {candidate.first_name} {candidate.last_name}
@@ -393,6 +395,7 @@ const CandidatesPage = ({ showNotification }) => {
                           className="icon-btn"
                           title="WhatsApp"
                           style={{color:'#25D366', textDecoration:'none'}}
+                          onClick={e => e.stopPropagation()}
                         >
                           💬
                         </a>
@@ -401,7 +404,8 @@ const CandidatesPage = ({ showNotification }) => {
                         className="icon-btn"
                         title="Adaugă ca Client B2C"
                         style={{ color: "#7c3aed" }}
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           try {
                             await axios.post(`${API}/b2c/promote-candidate/${candidate.id}`);
                             showNotification(`${candidate.first_name} ${candidate.last_name} adăugat ca client B2C!`);
@@ -413,10 +417,10 @@ const CandidatesPage = ({ showNotification }) => {
                       >
                         <UserCog size={15} />
                       </button>
-                      <button className="icon-btn" onClick={() => { setEditingCandidate(candidate); setShowModal(true); }}>
+                      <button className="icon-btn" onClick={(e) => { e.stopPropagation(); setEditingCandidate(candidate); setShowModal(true); }}>
                         <Edit size={16} />
                       </button>
-                      <button className="icon-btn danger" onClick={() => handleDelete(candidate.id)}>
+                      <button className="icon-btn danger" onClick={(e) => { e.stopPropagation(); handleDelete(candidate.id); }}>
                         <Trash2 size={16} />
                       </button>
                     </td>
