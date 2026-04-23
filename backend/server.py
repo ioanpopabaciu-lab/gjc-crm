@@ -3375,6 +3375,32 @@ async def import_smartbill_historical():
     return {"added": added, "skipped": skipped, "total": len(INVOICES),
             "message": f"Import complet: {added} facturi noi, {skipped} deja existente."}
 
+@api_router.post("/payments/cleanup-old-format")
+async def cleanup_old_format_payments():
+    """Sterge inregistrarile cu format vechi (EN-J1, EN-J22) unde exista deja format nou (EN-J0001, EN-J0022)"""
+    import re as _re
+    all_payments = await db.payments.find({}, {"_id": 0}).to_list(2000)
+    padded_exists = set()
+    for p in all_payments:
+        inv = str(p.get("invoice_number") or "")
+        if _re.match(r'^EN-J0\d+$', inv):
+            padded_exists.add(inv)
+    deleted = 0
+    kept_no_equiv = 0
+    for p in all_payments:
+        inv = str(p.get("invoice_number") or "")
+        m = _re.match(r'^EN-J(\d+)$', inv)
+        if m and not inv.startswith("EN-J0"):
+            num = int(m.group(1))
+            padded = f"EN-J{num:04d}"
+            if padded in padded_exists:
+                await db.payments.delete_one({"id": p["id"]})
+                deleted += 1
+            else:
+                kept_no_equiv += 1
+    return {"deleted": deleted, "kept": kept_no_equiv,
+            "message": f"Curatat {deleted} duplicate format vechi. Pastrat {kept_no_equiv} fara echivalent nou."}
+
 @api_router.post("/payments")
 async def create_payment(payment: PaymentCreate):
     doc = Payment(**payment.model_dump()).model_dump()
