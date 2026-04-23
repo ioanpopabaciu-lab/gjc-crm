@@ -3257,6 +3257,124 @@ async def client_payments(user = Depends(require_client_access), company_id: str
     payments = await db.payments.find({"entity_id": cid}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return [serialize_doc(p) for p in payments]
 
+@api_router.post("/payments/import-smartbill-historical")
+async def import_smartbill_historical():
+    """
+    Import unic: toate facturile SmartBill din raportul 01-apr-2023 → 30-apr-2026
+    (82 facturi, 310.359 RON + 600 EUR). Sarita automat daca exista deja.
+    """
+    INVOICES = [
+        ("EN-J0085","SPIELMANN COM SRL","2026-04-15","incasata",12891.00,"RON"),
+        ("EN-J0084","LUCA VETERINARUL SRL","2026-02-11","incasata",5094.00,"RON"),
+        ("EN-J0083","BALEARIA FOOD SRL","2026-01-22","incasata",10018.00,"RON"),
+        ("EN-J0082","GLOBAL TECHNOLOGY PRODUCTION S.R.L.","2026-01-22","incasata",2652.00,"RON"),
+        ("EN-J0081","SPES INVEST SRL","2026-01-19","incasata",10500.00,"RON"),
+        ("EN-J0080","MALOR TRADING S.R.L.","2025-11-18","incasata",2373.00,"RON"),
+        ("EN-J0079","D&C FASHION TREND SRL","2025-08-21","incasata",5789.59,"RON"),
+        ("EN-J0078","D&C FASHION TREND SRL","2025-08-07","incasata",2903.84,"RON"),
+        ("EN-J0077","NIDEC ORADEA SRL","2025-06-24","incasata",7063.42,"RON"),
+        ("EN-J0075","ALVEROSAL SRL","2025-06-23","incasata",6039.00,"RON"),
+        ("EN-J0074","MARA TOUR FELIX S.R.L.","2025-06-19","incasata",2012.68,"RON"),
+        ("EN-J0073","CRI TAXI SRL","2025-06-19","incasata",5284.13,"RON"),
+        ("EN-J0072","INTERTRANS GRAINS S.R.L.","2025-06-17","incasata",3017.40,"RON"),
+        ("EN-J0071","REPEDE PRESSURE CONTROL SRL","2025-06-17","incasata",6066.96,"RON"),
+        ("EN-J0070","REPEDE PRESSURE CONTROL SRL","2025-05-22","incasata",7683.30,"RON"),
+        ("EN-J0069","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2025-05-02","incasata",5155.00,"RON"),
+        ("EN-J0068","LARIS LEGEND FOOD S.R.L.","2025-04-13","incasata",1800.00,"RON"),
+        ("EN-J0067","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2025-04-07","incasata",5470.00,"RON"),
+        ("EN-J0066","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2025-04-03","incasata",3396.00,"RON"),
+        ("EN-J0065","ALLEGRIA TURISM SRL","2025-04-03","incasata",2000.00,"RON"),
+        ("EN-J0064","MANOPY BLINK SRL","2025-04-01","incasata",223.00,"RON"),
+        ("EN-J0063","PREMIUM MARTIN CONSTRUCT S.R.L.","2025-03-05","incasata",7125.00,"RON"),
+        ("EN-J0062","BALEARIA FOOD SRL","2025-03-03","incasata",6480.00,"RON"),
+        ("EN-J0061","BALEARIA FOOD SRL","2025-03-03","incasata",4320.00,"RON"),
+        ("EN-J0060","MANOPY BLINK SRL","2025-03-03","incasata",895.00,"RON"),
+        ("EN-J0059","SAPIENT CREATIVE SRL","2025-02-18","incasata",4000.00,"RON"),
+        ("EN-J0058","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2025-02-05","incasata",3000.00,"RON"),
+        ("EN-J0057","SEMARC A-Z CONSTRUCT S.R.L.","2025-02-05","incasata",26645.00,"RON"),
+        ("EN-J0056","MANOPY BLINK SRL","2025-02-03","incasata",1290.00,"RON"),
+        ("EN-J0055","TAKACS CSABA PEPINIERA CSABA II","2025-01-28","incasata",600.00,"EUR"),
+        ("EN-J0054","CARGO TRACK SOLUTIONS SRL","2025-01-16","depasita",550.00,"RON"),
+        ("EN-J0053","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2025-01-15","depasita",2392.00,"RON"),
+        ("EN-J0052","MANOPY BLINK SRL","2025-01-03","depasita",2372.00,"RON"),
+        ("EN-J0051","PFL FACILITY SERVICES SRL","2024-12-10","incasata",3000.00,"RON"),
+        ("EN-J0050","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2024-12-05","depasita",2738.00,"RON"),
+        ("EN-J0049","CARGO TRACK SOLUTIONS SRL","2024-12-03","depasita",150.00,"RON"),
+        ("EN-J0048","ELIAS POWER SRL","2024-12-03","emisa",-10000.00,"RON"),
+        ("EN-J0047","ELIAS POWER SRL","2024-12-03","emisa",-10000.00,"RON"),
+        ("EN-J0046","GIULIO IMPEX SRL","2024-11-26","incasata",2500.00,"RON"),
+        ("EN-J0045","MANOPY BLINK SRL","2024-11-11","depasita",1318.00,"RON"),
+        ("EN-J0044","OMNI DIGITAL NATIVE ECOMMERCE S.R.L.","2024-11-07","depasita",580.00,"RON"),
+        ("EN-J0043","ELIAS POWER SRL","2024-10-24","incasata",10000.00,"RON"),
+        ("EN-J0042","ELIAS POWER SRL","2024-10-24","incasata",-10000.00,"RON"),
+        ("EN-J0041","ELIAS POWER SRL","2024-10-24","incasata",10000.00,"RON"),
+        ("EN-J0040","BONAVILLA COMPLEX S.R.L.","2024-10-24","incasata",19920.00,"RON"),
+        ("EN-J0039","MANOPY BLINK SRL","2024-10-12","depasita",752.00,"RON"),
+        ("EN-J0038","IKIGAI MARKETING AGENCY S.R.L.","2024-10-11","depasita",750.00,"RON"),
+        ("EN-J0037","BOLD MARKETING AGENCY S.R.L.","2024-10-09","incasata",786.00,"RON"),
+        ("EN-J0036","REPEDE PRESSURE CONTROL SRL","2024-10-04","incasata",9951.60,"RON"),
+        ("EN-J0035","BABUIESTI S.R.L.","2024-09-26","incasata",2706.02,"RON"),
+        ("EN-J0034","ADORIANIS TRANS SRL","2024-09-24","incasata",5959.04,"RON"),
+        ("EN-J0033","ELIAS POWER SRL","2024-09-12","incasata",12438.75,"RON"),
+        ("EN-J0031","MANOPY BLINK SRL","2024-09-11","incasata",950.00,"RON"),
+        ("EN-J0030","IKIGAI MARKETING AGENCY S.R.L.","2024-09-11","incasata",1500.00,"RON"),
+        ("EN-J0028","IKIGAI MARKETING AGENCY S.R.L.","2024-08-12","incasata",1500.00,"RON"),
+        ("EN-J0027","BOLD MARKETING AGENCY S.R.L.","2024-08-12","incasata",796.00,"RON"),
+        ("EN-J0026","MANOPY BLINK SRL","2024-08-09","depasita",800.00,"RON"),
+        ("EN-J0025","BOLD MARKETING AGENCY S.R.L.","2024-07-17","incasata",300.00,"RON"),
+        ("EN-J0024","IKIGAI MARKETING AGENCY S.R.L.","2024-07-12","incasata",1500.00,"RON"),
+        ("EN-J0023","MANOPY BLINK SRL","2024-07-11","incasata",300.00,"RON"),
+        ("EN-J0022","IKIGAI MARKETING AGENCY S.R.L.","2024-06-18","depasita",3000.00,"RON"),
+        ("EN-J0021","ALLEGRIA TURISM SRL","2024-05-23","incasata",2470.00,"RON"),
+        ("EN-J0020","ALLEGRIA TURISM SRL","2024-05-23","incasata",4473.00,"RON"),
+        ("EN-J0019","IKIGAI MARKETING AGENCY S.R.L.","2024-05-23","incasata",3000.00,"RON"),
+        ("EN-J0018","BOLD MARKETING AGENCY S.R.L.","2024-05-23","incasata",746.00,"RON"),
+        ("EN-J0017","REPEDE PRESSURE CONTROL SRL","2024-05-23","incasata",4998.00,"RON"),
+        ("EN-J0016","MANOPY BLINK SRL","2024-05-23","incasata",598.30,"RON"),
+        ("EN-J0015","EIGHT EXPERT DELIVERY S.R.L.","2024-04-23","incasata",394.27,"RON"),
+        ("EN-J0014","IKIGAI MARKETING AGENCY S.R.L.","2024-04-16","incasata",3000.00,"RON"),
+        ("EN-J0013","NIDEC ORADEA SRL","2024-04-16","incasata",8466.00,"RON"),
+        ("EN-J0012","DANESSA IMPEX SRL","2024-03-26","incasata",16932.00,"RON"),
+        ("EN-J0011","EIGHT EXPERT DELIVERY S.R.L.","2024-03-26","incasata",567.68,"RON"),
+        ("EN-J0010","EIGHT EXPERT DELIVERY S.R.L.","2024-03-26","incasata",261.33,"RON"),
+        ("EN-J0009","BOLD MARKETING AGENCY S.R.L.","2024-03-26","incasata",750.00,"RON"),
+        ("EN-J0008","EIGHT EXPERT DELIVERY S.R.L.","2024-03-26","incasata",305.00,"RON"),
+        ("EN-J0007","ALLEGRIA TURISM SRL","2023-12-06","incasata",7497.00,"RON"),
+        ("EN-J0006","BALEARIA FOOD SRL","2023-12-05","incasata",3635.00,"RON"),
+        ("EN-J0005","BALEARIA FOOD SRL","2023-11-16","incasata",5964.00,"RON"),
+        ("EN-J0004","SIS MANAGEMENT SRL","2023-08-18","incasata",3635.00,"RON"),
+        ("EN-J0003","NIDEC ORADEA SRL","2023-07-26","incasata",4998.00,"RON"),
+        ("EN-J0002","ABA TURISM SRL","2023-07-12","incasata",2739.00,"RON"),
+        ("EN-J0001","ALLEGRIA TURISM SRL","2023-07-07","incasata",4233.00,"RON"),
+    ]
+    added = 0
+    skipped = 0
+    for inv_num, entity_name, date_em, sb_status, amount, currency in INVOICES:
+        existing = await db.payments.find_one({"invoice_number": inv_num})
+        if existing:
+            skipped += 1
+            continue
+        status = "platit" if sb_status == "incasata" else "neplatit"
+        doc = {
+            "id": str(uuid.uuid4()),
+            "type": "firma",
+            "entity_id": "",
+            "entity_name": entity_name,
+            "amount": amount,
+            "currency": currency,
+            "date_received": date_em,
+            "invoice_number": inv_num,
+            "status": status,
+            "method": "transfer",
+            "contract_id": "",
+            "notes": f"Import PDF SmartBill {date_em[:7]} — {sb_status}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.payments.insert_one(doc)
+        added += 1
+    return {"added": added, "skipped": skipped, "total": len(INVOICES),
+            "message": f"Import complet: {added} facturi noi, {skipped} deja existente."}
+
 @api_router.post("/payments")
 async def create_payment(payment: PaymentCreate):
     doc = Payment(**payment.model_dump()).model_dump()
