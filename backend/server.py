@@ -3838,7 +3838,7 @@ async def sync_smartbill_invoices():
     checked = 0
 
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             # Pasul 1: obtine seriile de facturi
             series_resp = await client.get(
                 f"{base_url}/series",
@@ -3859,12 +3859,13 @@ async def sync_smartbill_invoices():
             if not all_series:
                 return {"added": 0, "skipped": 0, "checked": 0, "message": "Nu s-au gasit serii de facturi in SmartBill."}
 
-            # Pasul 2: pentru fiecare serie, itereaza ultimele 50 numere
+            # Pasul 2: pentru fiecare serie, itereaza TOATE facturile (de la 1 la nextNumber-1)
             for serie in all_series:
                 series_name = serie.get("name", "")
                 next_number = int(serie.get("nextNumber", 1))
-                # Itereaza de la (nextNumber-1) in jos, max 50 facturi per serie
-                start_num = max(1, next_number - 50)
+                # Itereaza de la factura 1 pana la ultima — fara limita arbitrara
+                # Duplicatele sunt sarite automat prin verificarea invoice_number
+                start_num = 1
 
                 for num in range(next_number - 1, start_num - 1, -1):
                     checked += 1
