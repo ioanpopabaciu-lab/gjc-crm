@@ -62,7 +62,8 @@ const PaymentsPage = ({ showNotification }) => {
   const [sbConfigured,   setSbConfigured]   = useState(false);
   const [importing,      setImporting]      = useState(false);
   const [importResult,   setImportResult]   = useState(null);
-  const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const [expandedGroups,     setExpandedGroups]     = useState(new Set());
+  const [historicalImporting, setHistoricalImporting] = useState(false);
   const importFileRef = useRef();
 
   // ── Fetch ─────────────────────────────────────────────────────────
@@ -129,6 +130,21 @@ const PaymentsPage = ({ showNotification }) => {
     } finally {
       setImporting(false);
       e.target.value = "";
+    }
+  };
+
+  // ── Import Istoric SmartBill (one-time migration) ─────────────────
+  const handleImportHistorical = async () => {
+    if (!window.confirm("Importă toate cele 82 facturi SmartBill din perioada apr 2023 – apr 2026 în baza de date?\n\nFacturile deja existente vor fi sărite automat.")) return;
+    setHistoricalImporting(true);
+    try {
+      const r = await axios.post(`${API}/payments/import-smartbill-historical`);
+      showNotification(`✓ ${r.data.message}`, "success");
+      fetchPayments();
+    } catch (e) {
+      showNotification(e.response?.data?.detail || "Eroare la import istoric", "error");
+    } finally {
+      setHistoricalImporting(false);
     }
   };
 
@@ -296,6 +312,12 @@ const PaymentsPage = ({ showNotification }) => {
         </button>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          <button onClick={handleImportHistorical} disabled={historicalImporting}
+            title="Import una singura data: toate facturile SmartBill apr 2023 – apr 2026"
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#dc2626", color: "#fff", border: "none", borderRadius: "8px", cursor: historicalImporting ? "wait" : "pointer", fontWeight: "600", opacity: historicalImporting ? 0.7 : 1 }}>
+            {historicalImporting ? <RefreshCw size={15} style={{ animation: "spin 1s linear infinite" }}/> : <Upload size={15}/>}
+            {historicalImporting ? "Se importă..." : "🗂 Import Istoric SmartBill"}
+          </button>
           <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleImportSmartBill} />
           <button onClick={() => importFileRef.current?.click()} disabled={importing}
             style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#6366f1", color: "#fff", border: "none", borderRadius: "8px", cursor: importing ? "wait" : "pointer", fontWeight: "600", opacity: importing ? 0.7 : 1 }}>
