@@ -84,6 +84,10 @@ const LegalPage = ({ showNotification }) => {
   // Scrape job
   const [scrapeJobs, setScrapeJobs] = useState([]);
 
+  // Auto-build corpus
+  const [buildStatus, setBuildStatus]   = useState(null);
+  const pollRef                         = useRef(null);
+
   // Preview document generat
   const [previewDoc, setPreviewDoc]     = useState(null);
   const [editingText, setEditingText]   = useState('');
@@ -295,6 +299,49 @@ const LegalPage = ({ showNotification }) => {
       setPreviewDoc(prev => ({ ...prev, generated_text: editingText }));
     } catch { showNotification('Eroare la salvare', 'error'); }
     finally { setSavingEdit(false); }
+  };
+
+  // ── Auto-build corpus ─────────────────────────────────────────────────────
+  const startBuildPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const r = await axios.get(`${API}/legal/auto-build-status`);
+        setBuildStatus(r.data);
+        if (!r.data.running) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+          fetchAll(); // Refresh corpus stats
+        }
+      } catch { clearInterval(pollRef.current); }
+    }, 2500);
+  }, [fetchAll]);
+
+  // Cleanup polling on unmount
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
+  const handleAutoBuild = async (force = false) => {
+    try {
+      const r = await axios.post(`${API}/legal/auto-build-corpus?force=${force}`);
+      if (r.data.status === 'already_running') {
+        showNotification('Un build este deja în curs!', 'error');
+      } else {
+        showNotification(`✓ ${r.data.message}`);
+        setBuildStatus({ running: true, total: r.data.total, done: 0, failed: 0, skipped: 0, current_act: '', log: [] });
+        startBuildPolling();
+      }
+    } catch (e) {
+      showNotification(e.response?.data?.detail || 'Eroare la pornirea build-ului', 'error');
+    }
+  };
+
+  const handleStopBuild = async () => {
+    try {
+      await axios.post(`${API}/legal/auto-build-stop`);
+      showNotification('Build oprit');
+      if (pollRef.current) clearInterval(pollRef.current);
+      setBuildStatus(prev => prev ? { ...prev, running: false } : null);
+    } catch { showNotification('Eroare la oprire', 'error'); }
   };
 
   // ── Șterge act ────────────────────────────────────────────────────────────
@@ -656,6 +703,129 @@ const LegalPage = ({ showNotification }) => {
           </div>
 
           <div style={{ flex: '2 1 480px', minWidth: '300px' }}>
+
+            {/* ── Auto-build corpus ──────────────────────────────────────── */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1e3a5f 0%, #1e4d3a 100%)',
+              borderRadius: '14px', padding: '20px', marginBottom: '20px', color: '#fff',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: buildStatus ? '14px' : 0 }}>
+                <Globe size={22} color="#60a5fa" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '1rem', color: '#fff' }}>
+                    📥 Construiește Corpus Automat
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#bfdbfe', lineHeight: 1.5 }}>
+                    Descarcă automat <strong style={{ color: '#93c5fd' }}>20 acte legislative</strong> din{' '}
+                    <a href="https://legislatie.just.ro" target="_blank" rel="noreferrer"
+                      style={{ color: '#67e8f9', textDecoration: 'none' }}>legislatie.just.ro</a>
+                    {' '}— Codul Muncii, OUG 194/2002, OUG 56/2007, Legea 319/2006, OUG 102/2005 și altele.
+                    Durată estimată: <strong style={{ color: '#93c5fd' }}>~2 minute</strong>.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  {!buildStatus?.running && (
+                    <>
+                      <button onClick={() => handleAutoBuild(false)}
+                        style={{ padding: '9px 18px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
+                        ▶ Pornește
+                      </button>
+                      {buildStatus?.finished_at && acts.length > 0 && (
+                        <button onClick={() => handleAutoBuild(true)}
+                          title="Reimportă chiar dacă actele există deja"
+                          style={{ padding: '9px 14px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem' }}>
+                          🔄 Re-build
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {buildStatus?.running && (
+                    <button onClick={handleStopBuild}
+                      style={{ padding: '9px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.88rem' }}>
+                      ■ Oprește
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress — apare când build-ul a fost pornit */}
+              {buildStatus && (buildStatus.running || buildStatus.finished_at) && (
+                <div>
+                  {/* Bare progress */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#bfdbfe', marginBottom: '6px' }}>
+                    <span style={{ flex: 1, marginRight: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {buildStatus.running
+                        ? (buildStatus.current_act ? `⬇ ${buildStatus.current_act.slice(0, 55)}...` : 'Se pregătește...')
+                        : `✅ Finalizat la ${buildStatus.finished_at ? new Date(buildStatus.finished_at).toLocaleTimeString('ro-RO') : ''}`
+                      }
+                    </span>
+                    <span style={{ flexShrink: 0, fontWeight: 600 }}>
+                      {buildStatus.done + buildStatus.failed + buildStatus.skipped}/{buildStatus.total}
+                      {' · '}
+                      <span style={{ color: '#6ee7b7' }}>✓{buildStatus.done}</span>
+                      {' '}
+                      <span style={{ color: '#fca5a5' }}>✗{buildStatus.failed}</span>
+                      {' '}
+                      <span style={{ color: '#93c5fd' }}>→{buildStatus.skipped}</span>
+                    </span>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
+                    <div style={{
+                      background: buildStatus.running ? '#60a5fa' : '#34d399',
+                      height: '100%', borderRadius: '6px',
+                      width: buildStatus.total > 0
+                        ? `${Math.round(((buildStatus.done + buildStatus.failed + buildStatus.skipped) / buildStatus.total) * 100)}%`
+                        : '0%',
+                      transition: 'width 0.5s ease',
+                      ...(buildStatus.running ? { animation: 'none' } : {}),
+                    }} />
+                  </div>
+
+                  {/* Log intrări — ultimele 8 */}
+                  {buildStatus.log?.length > 0 && (
+                    <div style={{
+                      marginTop: '10px', maxHeight: '130px', overflowY: 'auto',
+                      background: 'rgba(0,0,0,0.25)', borderRadius: '8px', padding: '8px 10px',
+                    }}>
+                      {[...buildStatus.log].reverse().slice(0, 8).map((entry, i) => (
+                        <div key={i} style={{
+                          fontSize: '0.73rem',
+                          color: entry.status === 'ok' ? '#6ee7b7'
+                               : entry.status === 'sărit' ? '#93c5fd' : '#fca5a5',
+                          marginBottom: '3px', lineHeight: 1.4,
+                        }}>
+                          {entry.status === 'ok' ? '✓' : entry.status === 'sărit' ? '→' : '✗'}{' '}
+                          {entry.act.slice(0, 60)}
+                          {entry.chunks !== undefined && (
+                            <span style={{ color: '#a7f3d0' }}> ({entry.chunks} fragm.)</span>
+                          )}
+                          {entry.reason && (
+                            <span style={{ color: '#fda4af' }}> — {entry.reason.slice(0, 60)}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Sumar final */}
+                  {!buildStatus.running && buildStatus.finished_at && (
+                    <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.82rem', color: '#d1fae5', textAlign: 'center' }}>
+                      Build finalizat: <strong>{buildStatus.done}</strong> acte descărcate,{' '}
+                      <strong>{buildStatus.skipped}</strong> sărite (existente),{' '}
+                      <strong>{buildStatus.failed}</strong> erori
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Hint dacă build-ul nu a început */}
+              {!buildStatus && (
+                <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(255,255,255,0.08)', borderRadius: '6px', fontSize: '0.78rem', color: '#93c5fd' }}>
+                  💡 Actele deja existente în corpus vor fi sărite automat. Sau apasă{' '}
+                  <strong>Re-build</strong> pentru a re-descărca totul.
+                </div>
+              )}
+            </div>
 
             {/* Descărcare automată acte recomandate */}
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>

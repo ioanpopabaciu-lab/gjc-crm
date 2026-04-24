@@ -3,6 +3,7 @@ GJC Legal AI Assistant — FastAPI Router
 Toate endpoint-urile pentru modulul Legal AI (corpus, generare, documente).
 """
 
+import asyncio
 import os
 import io
 import hashlib
@@ -14,7 +15,7 @@ from typing import List, Optional, Dict, Any
 
 import jwt
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1859,6 +1860,252 @@ async def legal_stats(user: dict = Depends(_require_legal_read)):
         ),
         "templates_available": len(TEMPLATES),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  AUTO-BUILD CORPUS DIN SURSE OFICIALE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Stare globală a build-ului (resetată la pornire server)
+_build_status: Dict[str, Any] = {
+    "running":     False,
+    "started_at":  None,
+    "total":       0,
+    "done":        0,
+    "failed":      0,
+    "skipped":     0,
+    "current_act": "",
+    "log":         [],
+    "finished_at": None,
+}
+
+# 20 acte normative esențiale — sursa: legislatie.just.ro (HTML curat, nu PDF)
+CORPUS_ACTS_LIST = [
+    # ── PRIORITATE CRITICĂ ─────────────────────────────────────────────────────
+    {"key": "CM",      "title": "Codul Muncii — Legea 53/2003 (republicat)",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/266893",  "act_type": "cod"},
+    {"key": "OUG56",   "title": "OUG 56/2007 — Încadrarea în muncă a străinilor în România",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/81993",   "act_type": "oug"},
+    {"key": "OUG194",  "title": "OUG 194/2002 — Regimul juridic al străinilor în România",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/55826",   "act_type": "oug"},
+    {"key": "L108",    "title": "Legea 108/1999 — Înființarea și organizarea Inspecției Muncii",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/16354",   "act_type": "lege"},
+    # ── PRIORITATE RIDICATĂ ────────────────────────────────────────────────────
+    {"key": "OG25",    "title": "OG 25/2014 — Încadrarea în muncă și detașarea străinilor pe teritoriul României",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/159072",  "act_type": "og"},
+    {"key": "OUG102",  "title": "OUG 102/2005 — Libera circulație a cetățenilor UE și SEE pe teritoriul României",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/63556",   "act_type": "oug"},
+    {"key": "L156",    "title": "Legea 156/2000 — Protecția cetățenilor români care lucrează în străinătate",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/22814",   "act_type": "lege"},
+    {"key": "L122",    "title": "Legea 122/2006 — Azilul în România",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/75406",   "act_type": "lege"},
+    {"key": "L678",    "title": "Legea 678/2001 — Prevenirea și combaterea traficului de persoane",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/14062",   "act_type": "lege"},
+    {"key": "L248",    "title": "Legea 248/2005 — Regimul liberei circulații a cetățenilor români în străinătate",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/65285",   "act_type": "lege"},
+    # ── PRIORITATE MEDIE ───────────────────────────────────────────────────────
+    {"key": "L319",    "title": "Legea 319/2006 — Securitate și Sănătate în Muncă",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/74762",   "act_type": "lege"},
+    {"key": "HG905",   "title": "HG 905/2017 — Registrul general de evidență a salariaților (REVISAL)",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/185534",  "act_type": "hg"},
+    {"key": "L62",     "title": "Legea 62/2011 — Dialogul social (republicată)",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/135836",  "act_type": "lege"},
+    {"key": "OG137",   "title": "OG 137/2000 — Prevenirea și sancționarea tuturor formelor de discriminare",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/16835",   "act_type": "og"},
+    {"key": "OG2",     "title": "OG 2/2001 — Regimul juridic al contravențiilor",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/13740",   "act_type": "og"},
+    {"key": "L554",    "title": "Legea 554/2004 — Contenciosul administrativ",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/42215",   "act_type": "lege"},
+    {"key": "L192",    "title": "Legea 192/2006 — Medierea și organizarea profesiei de mediator",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/74637",   "act_type": "lege"},
+    # ── COMPLEMENTARE ─────────────────────────────────────────────────────────
+    {"key": "L76",     "title": "Legea 76/2002 — Sistemul asigurărilor pentru șomaj și stimularea ocupării forței de muncă",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/17989",   "act_type": "lege"},
+    {"key": "CPP",     "title": "Codul de Procedură Penală — Legea 135/2010",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/132290",  "act_type": "cod"},
+    {"key": "CPC",     "title": "Codul de Procedură Civilă — Legea 134/2010",
+     "url": "https://legislatie.just.ro/Public/DetaliiDocumentAfis/130671",  "act_type": "cod"},
+]
+
+
+async def _run_corpus_build(force: bool, created_by: str) -> None:
+    """Background task: descarcă și ingerează actele legislative din surse oficiale."""
+    global _build_status
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=45,
+            headers={
+                "User-Agent": "GJC-Legal-AI/1.0 (contact@gjc.ro)",
+                "Accept-Language": "ro,en;q=0.9",
+            },
+            follow_redirects=True,
+        ) as client:
+            for act in CORPUS_ACTS_LIST:
+                # Permite oprire manuală
+                if not _build_status["running"]:
+                    break
+
+                _build_status["current_act"] = act["title"]
+
+                try:
+                    # ── 1. Skip dacă există deja (după source_url) ────────────
+                    if not force:
+                        existing = await _db.legal_acts.find_one({"source_url": act["url"]})
+                        if existing:
+                            _build_status["skipped"] += 1
+                            _build_status["log"].append({
+                                "act": act["title"], "status": "sărit",
+                                "reason": "deja în corpus",
+                            })
+                            continue
+
+                    # ── 2. Descarcă pagina ────────────────────────────────────
+                    resp = await client.get(act["url"])
+                    resp.raise_for_status()
+
+                    html = resp.text
+                    text = _extract_text_from_html(html)
+
+                    if len(text.strip()) < 400:
+                        raise ValueError(
+                            f"Conținut insuficient ({len(text.strip())} car.) — "
+                            "pagina poate necesita autentificare sau nu e disponibilă"
+                        )
+
+                    # ── 3. Verificare duplicat după hash ──────────────────────
+                    c_hash = hashlib.sha256(text.encode()).hexdigest()
+                    if not force:
+                        dup = await _db.legal_acts.find_one({"content_hash": c_hash})
+                        if dup:
+                            _build_status["skipped"] += 1
+                            _build_status["log"].append({
+                                "act": act["title"], "status": "sărit",
+                                "reason": "conținut identic existent",
+                            })
+                            continue
+
+                    # ── 4. Chunking + ingestie ────────────────────────────────
+                    act_id = str(uuid.uuid4())
+                    chunks_raw = chunk_legal_text(text, act_title=act["title"], act_id=act_id)
+
+                    inserted = 0
+                    for idx, cd in enumerate(chunks_raw):
+                        ct  = cd["text"]
+                        ch  = hashlib.md5(ct.encode()).hexdigest()
+                        emb = await get_embedding(ct)
+                        try:
+                            await _db.legal_chunks.insert_one({
+                                "id":             str(uuid.uuid4()),
+                                "act_id":         act_id,
+                                "act_title":      act["title"],
+                                "chunk_index":    idx,
+                                "section_path":   cd["section_path"],
+                                "article_number": cd.get("article_number"),
+                                "text":           ct,
+                                "chunk_type":     cd.get("chunk_type", "paragraph"),
+                                "token_count":    len(ct.split()),
+                                "content_hash":   ch,
+                                "embedding":      emb,
+                                "created_at":     datetime.now(timezone.utc).isoformat(),
+                            })
+                            inserted += 1
+                        except Exception:
+                            pass  # Duplicate chunk hash — skip silently
+
+                    await _db.legal_acts.insert_one({
+                        "id":           act_id,
+                        "title":        act["title"],
+                        "act_type":     act["act_type"],
+                        "source_url":   act["url"],
+                        "content_hash": c_hash,
+                        "total_chunks": inserted,
+                        "status":       "active",
+                        "ingested_at":  datetime.now(timezone.utc).isoformat(),
+                        "created_by":   created_by,
+                        "auto_built":   True,
+                    })
+
+                    _build_status["done"] += 1
+                    _build_status["log"].append({
+                        "act": act["title"], "status": "ok", "chunks": inserted,
+                    })
+                    logger.info(f"Auto-build ✓ {act['title']} — {inserted} fragmente")
+
+                except Exception as exc:
+                    _build_status["failed"] += 1
+                    _build_status["log"].append({
+                        "act": act["title"], "status": "eroare",
+                        "reason": str(exc)[:120],
+                    })
+                    logger.warning(f"Auto-build ✗ {act['title']}: {exc}")
+
+                # Pauză între requesturi — respectuos față de serverul sursă
+                await asyncio.sleep(6)
+
+    except Exception as exc:
+        logger.error(f"Auto-build corpus crash: {exc}")
+    finally:
+        _build_status["running"]     = False
+        _build_status["current_act"] = ""
+        _build_status["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+
+@legal_router.post("/auto-build-corpus")
+async def auto_build_corpus(
+    background_tasks: BackgroundTasks,
+    force: bool = False,
+    user:  dict = Depends(_require_legal_generate),
+):
+    """
+    Lansează descărcarea automată a corpusului legislativ din legislatie.just.ro.
+    Procesul rulează în fundal; progresul se verifică via GET /auto-build-status.
+    """
+    global _build_status
+
+    if _build_status.get("running"):
+        return {
+            "status":  "already_running",
+            "message": "Un build este deja în curs de desfășurare",
+            **_build_status,
+        }
+
+    _build_status = {
+        "running":     True,
+        "started_at":  datetime.now(timezone.utc).isoformat(),
+        "total":       len(CORPUS_ACTS_LIST),
+        "done":        0,
+        "failed":      0,
+        "skipped":     0,
+        "current_act": "",
+        "log":         [],
+        "finished_at": None,
+    }
+    background_tasks.add_task(_run_corpus_build, force, user.get("email", ""))
+    return {
+        "status":  "started",
+        "total":   len(CORPUS_ACTS_LIST),
+        "message": (
+            f"Build pornit! Se vor descărca {len(CORPUS_ACTS_LIST)} acte legislative "
+            "din legislatie.just.ro (~2 minute). Monitorizează progresul în timp real."
+        ),
+    }
+
+
+@legal_router.get("/auto-build-status")
+async def get_auto_build_status(user: dict = Depends(_require_legal_read)):
+    """Returnează statusul curent al build-ului automat de corpus."""
+    return _build_status
+
+
+@legal_router.post("/auto-build-stop")
+async def stop_auto_build(user: dict = Depends(_require_legal_generate)):
+    """Oprește build-ul automat înainte de finalizare."""
+    global _build_status
+    if not _build_status.get("running"):
+        return {"status": "not_running", "message": "Niciun build activ"}
+    _build_status["running"] = False
+    return {"status": "stopped", "message": "Build oprit. Actele deja descărcate rămân în corpus."}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
