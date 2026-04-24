@@ -3,7 +3,8 @@ import axios from 'axios';
 import {
   Scale, Upload, FileText, Search, Download, CheckCircle, AlertTriangle,
   Plus, Trash2, RefreshCw, ChevronRight, X, Eye, Edit3, Users,
-  BookOpen, Zap, Globe, Info, FileSearch, Tag
+  BookOpen, Zap, Globe, Info, FileSearch, Tag, MessageSquare, Send,
+  Bot, User as UserIcon, Building2, Database, Gavel
 } from 'lucide-react';
 import { API } from '../config';
 
@@ -52,7 +53,7 @@ const PRIORITY_COLORS = {
 
 // ── Componenta principală ─────────────────────────────────────────────────────
 const LegalPage = ({ showNotification }) => {
-  const [tab, setTab]               = useState('generate');  // generate | corpus | documents | search
+  const [tab, setTab]               = useState('agent');  // agent | generate | corpus | documents | search
   const [stats, setStats]           = useState({});
   const [templates, setTemplates]   = useState([]);
   const [acts, setActs]             = useState([]);
@@ -87,6 +88,13 @@ const LegalPage = ({ showNotification }) => {
   // Auto-build corpus
   const [buildStatus, setBuildStatus]   = useState(null);
   const pollRef                         = useRef(null);
+
+  // Agent Claude Legis
+  const [agentMessages, setAgentMessages] = useState([]);
+  const [agentInput, setAgentInput]       = useState('');
+  const [agentLoading, setAgentLoading]   = useState(false);
+  const [agentSessionId]                  = useState(() => `session_${Date.now()}`);
+  const chatEndRef                        = useRef(null);
 
   // Preview document generat
   const [previewDoc, setPreviewDoc]     = useState(null);
@@ -301,6 +309,49 @@ const LegalPage = ({ showNotification }) => {
     finally { setSavingEdit(false); }
   };
 
+  // ── Scroll chat la ultimul mesaj ─────────────────────────────────────────
+  useEffect(() => {
+    if (tab === 'agent') chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [agentMessages, tab]);
+
+  // ── Trimite mesaj agent ───────────────────────────────────────────────────
+  const handleAgentSend = async (overrideMsg) => {
+    const msg = (overrideMsg || agentInput).trim();
+    if (!msg || agentLoading) return;
+    setAgentInput('');
+    setAgentMessages(prev => [...prev, { role: 'user', content: msg }]);
+    setAgentLoading(true);
+    try {
+      const r = await axios.post(`${API}/legal/agent/chat`, {
+        message:    msg,
+        session_id: agentSessionId,
+      });
+      setAgentMessages(prev => [...prev, {
+        role:       'agent',
+        content:    r.data.message,
+        tool_calls: r.data.tool_calls || [],
+        doc_id:     r.data.doc_id,
+        doc_title:  r.data.doc_title,
+        status:     r.data.status,
+      }]);
+    } catch (e) {
+      setAgentMessages(prev => [...prev, {
+        role:    'agent',
+        content: `⚠️ Eroare: ${e.response?.data?.detail || e.message}`,
+        status:  'error',
+      }]);
+    } finally {
+      setAgentLoading(false);
+    }
+  };
+
+  const handleAgentClear = async () => {
+    try {
+      await axios.post(`${API}/legal/agent/clear?session_id=${agentSessionId}`);
+      setAgentMessages([]);
+    } catch { setAgentMessages([]); }
+  };
+
   // ── Auto-build corpus ─────────────────────────────────────────────────────
   const startBuildPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -399,11 +450,12 @@ const LegalPage = ({ showNotification }) => {
       )}
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '24px', gap: '4px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '24px', gap: '4px', flexWrap: 'wrap' }}>
         {[
+          { id: 'agent',     label: '🤖 Claude Legis Agent' },
           { id: 'generate',  label: '⚡ Generează Document' },
           { id: 'corpus',    label: '📚 Corpus Legislativ' },
-          { id: 'documents', label: `📄 Documente Generate (${documents.length})` },
+          { id: 'documents', label: `📄 Documente (${documents.length})` },
           { id: 'search',    label: '🔍 Caută în Lege' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -417,6 +469,209 @@ const LegalPage = ({ showNotification }) => {
           >{t.label}</button>
         ))}
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          TAB 0: AGENT CLAUDE LEGIS
+         ══════════════════════════════════════════════════════════════════ */}
+      {tab === 'agent' && (
+        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 280px)', minHeight: '500px' }}>
+
+          {/* Header agent */}
+          <div style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #4c1d95 100%)', borderRadius: '12px 12px 0 0', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Scale size={20} color="#c4b5fd" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>Claude Legis</div>
+              <div style={{ fontSize: '0.75rem', color: '#c4b5fd' }}>
+                Asistent juridic AI · Caută automat în CRM și legislație · Generează documente
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.15)', color: '#a5f3fc', padding: '2px 8px', borderRadius: '10px' }}>
+                {stats.chunks > 0 ? `📚 ${(stats.chunks||0).toLocaleString('ro-RO')} fragm. lege` : '⚠️ Corpus gol'}
+              </span>
+              {agentMessages.length > 0 && (
+                <button onClick={handleAgentClear}
+                  title="Șterge conversația"
+                  style={{ padding: '5px 10px', background: 'rgba(239,68,68,0.3)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                  🗑 Șterge conversația
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Zona mesaje */}
+          <div style={{ flex: 1, overflowY: 'auto', background: '#f8fafc', border: '1px solid #e5e7eb', borderTop: 'none', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Mesaj bun-venit */}
+            {agentMessages.length === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '20px', padding: '20px' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #1e3a5f, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Scale size={32} color="#c4b5fd" />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <h3 style={{ margin: '0 0 8px', color: '#1f2937', fontSize: '1.1rem' }}>Bun venit la Claude Legis</h3>
+                  <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.9rem', maxWidth: '500px' }}>
+                    Descrie ce document ai nevoie în limbaj natural. Agentul caută automat datele din CRM, articolele de lege relevante și generează documentul complet.
+                  </p>
+                </div>
+                {/* Exemple rapide */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', maxWidth: '600px' }}>
+                  {[
+                    '📝 Demisie pentru Nguyen Van An de la Allegria, 2 luni salariu neachitat',
+                    '🏛️ Sesizare ITM Bihor — candidații fără echipament de protecție',
+                    '📋 Adresă oficială GJC către IGI pentru prelungire permis',
+                    '⚖️ Ce drepturi are un angajat care nu a primit salariul?',
+                    '📜 Contestație amendă primită de la ITM',
+                  ].map((ex, i) => (
+                    <button key={i} onClick={() => handleAgentSend(ex.replace(/^[^\s]+\s/, ''))}
+                      style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '20px', cursor: 'pointer', fontSize: '0.82rem', color: '#374151', transition: 'all 0.15s', textAlign: 'left' }}
+                      onMouseEnter={e => { e.target.style.background = '#f5f3ff'; e.target.style.borderColor = '#7c3aed'; }}
+                      onMouseLeave={e => { e.target.style.background = '#fff'; e.target.style.borderColor = '#e5e7eb'; }}>
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mesajele conversației */}
+            {agentMessages.map((msg, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: '10px', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
+
+                {/* Avatar */}
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                  background: msg.role === 'user' ? '#7c3aed' : 'linear-gradient(135deg, #1e3a5f, #4c1d95)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {msg.role === 'user'
+                    ? <UserIcon size={15} color="#fff" />
+                    : <Scale size={15} color="#c4b5fd" />
+                  }
+                </div>
+
+                <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+
+                  {/* Bule tool calls — arată ce a făcut agentul */}
+                  {msg.tool_calls?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      {msg.tool_calls.map((tc, ti) => {
+                        const toolMeta = {
+                          search_candidates:       { icon: '👤', color: '#0891b2', bg: '#f0f9ff', label: 'Căutat candidat' },
+                          search_companies:        { icon: '🏢', color: '#059669', bg: '#f0fdf4', label: 'Căutat companie' },
+                          search_immigration_cases:{ icon: '🛂', color: '#7c3aed', bg: '#f5f3ff', label: 'Căutat dosar IGI' },
+                          search_legal_corpus:     { icon: '📖', color: '#2563eb', bg: '#eff6ff', label: 'Căutat în lege' },
+                          list_templates:          { icon: '📋', color: '#6b7280', bg: '#f9fafb', label: 'Listat template-uri' },
+                          generate_legal_document: { icon: '📄', color: '#d97706', bg: '#fffbeb', label: 'Document generat' },
+                        }[tc.tool] || { icon: '⚙️', color: '#6b7280', bg: '#f9fafb', label: tc.tool };
+                        const queryVal = tc.input?.query || tc.input?.template_id || '';
+                        return (
+                          <span key={ti} style={{
+                            fontSize: '0.72rem', padding: '3px 8px', borderRadius: '10px',
+                            background: toolMeta.bg, color: toolMeta.color,
+                            border: `1px solid ${toolMeta.color}30`,
+                            fontWeight: 600,
+                          }}>
+                            {toolMeta.icon} {toolMeta.label}{queryVal ? `: "${queryVal.toString().slice(0, 30)}"` : ''}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Bula mesaj principal */}
+                  <div style={{
+                    background:   msg.role === 'user' ? '#7c3aed' : '#fff',
+                    color:        msg.role === 'user' ? '#fff' : '#1f2937',
+                    border:       msg.role === 'user' ? 'none' : '1px solid #e5e7eb',
+                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    padding: '10px 14px',
+                    fontSize: '0.88rem',
+                    lineHeight: 1.6,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                    whiteSpace: 'pre-wrap',
+                  }}>
+                    {msg.content}
+                  </div>
+
+                  {/* Card document generat */}
+                  {msg.doc_id && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <FileText size={20} color="#059669" />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#065f46' }}>{msg.doc_title || 'Document generat'}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#059669' }}>Document salvat · Disponibil în tab-ul Documente</div>
+                      </div>
+                      <button onClick={() => window.open(`${API}/legal/documents/${msg.doc_id}/download`, '_blank')}
+                        style={{ padding: '7px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '7px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Download size={13} /> .docx
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Loading — agentul procesează */}
+            {agentLoading && (
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #1e3a5f, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Scale size={15} color="#c4b5fd" />
+                </div>
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '16px 16px 16px 4px', padding: '12px 16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <RefreshCw size={14} color="#7c3aed" style={{ animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Claude Legis caută în CRM și legislație…</span>
+                </div>
+              </div>
+            )}
+
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input bar */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+              <textarea
+                value={agentInput}
+                onChange={e => setAgentInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAgentSend();
+                  }
+                }}
+                placeholder="Descrie ce document ai nevoie... (ex: 'Demisie pentru Ion Popescu de la Allegria, salariu neachitat')"
+                rows={2}
+                disabled={agentLoading}
+                style={{
+                  flex: 1, padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '10px',
+                  fontSize: '0.9rem', resize: 'none', fontFamily: 'inherit',
+                  background: agentLoading ? '#f9fafb' : '#fff', color: '#1f2937',
+                  lineHeight: 1.5,
+                }}
+              />
+              <button
+                onClick={() => handleAgentSend()}
+                disabled={!agentInput.trim() || agentLoading}
+                style={{
+                  padding: '10px 18px', borderRadius: '10px', border: 'none',
+                  background: !agentInput.trim() || agentLoading ? '#e5e7eb' : '#7c3aed',
+                  color: !agentInput.trim() || agentLoading ? '#9ca3af' : '#fff',
+                  cursor: !agentInput.trim() || agentLoading ? 'not-allowed' : 'pointer',
+                  fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px',
+                  height: '60px', flexShrink: 0,
+                }}>
+                <Send size={16} />
+              </button>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '6px', textAlign: 'center' }}>
+              Enter = trimite · Shift+Enter = linie nouă · Agentul poate căuta în CRM și genera documente automat
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           TAB 1: GENERARE DOCUMENT

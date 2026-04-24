@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
+import anthropic as anthropic_sdk
+
 import jwt
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, Query
@@ -1210,6 +1212,11 @@ class GenerateRequest(BaseModel):
     bulk_candidates: Optional[List[Dict[str, Any]]] = None   # pentru bulk mode
 
 
+class AgentChatRequest(BaseModel):
+    message:    str
+    session_id: str = "default"
+
+
 class ValidateDocRequest(BaseModel):
     notes: str = ""
 
@@ -1860,6 +1867,460 @@ async def legal_stats(user: dict = Depends(_require_legal_read)):
         ),
         "templates_available": len(TEMPLATES),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  AGENT CLAUDE LEGIS — Conversational Legal AI cu tool use
+# ═══════════════════════════════════════════════════════════════════════════════
+
+AGENT_MODEL = os.environ.get("ANTHROPIC_AGENT_MODEL", "claude-opus-4-5")
+
+AGENT_SYSTEM_PROMPT = """Ești **Claude Legis**, asistentul juridic AI al companiei Global Jobs Consulting SRL (GJC).
+Specializarea ta: dreptul muncii, imigrare, proceduri administrative și judiciare în România.
+
+## REGULILE TALE ABSOLUTE
+1. **Caută ÎNTOTDEAUNA date reale** — înainte să generezi orice document, folosești uneltele să găsești candidatul, compania, dosarul din CRM.
+2. **Nu inventa niciodată** nume, CNP-uri, CUI-uri, adrese sau date calendaristice — dacă nu le găsești în CRM, întrebi utilizatorul.
+3. **Caută temeiul legal** — înainte de orice document juridic, cauți în corpusul legislativ articolele relevante.
+4. **Fii direct și eficient** — utilizatorul vrea documentul, nu explicații lungi. Maxim 3 propoziții de context.
+5. **Răspunzi EXCLUSIV în română**, indiferent de limba mesajului primit.
+6. **Când documentul e gata**, prezinți un sumar de 2-3 rânduri: ce conține, baza legală principală, cine îl semnează.
+7. **Dacă lipsesc date critice**, întrebi exact ce anume lipsește, nu generezi cu câmpuri goale.
+
+## FLUXUL TĂU STANDARD
+Pentru orice document:
+1. `search_candidates` sau `search_companies` → găsești datele din CRM
+2. `search_legal_corpus` → găsești articolele de lege relevante
+3. `generate_legal_document` → generezi documentul complet
+4. Prezinți sumar + descărcare
+
+## DATE GJC (emitent implicit)
+- Companie: Global Jobs Consulting SRL | CUI: 44678741
+- Sediu: Oradea, județul Bihor | Email: contact@gjc.ro
+- Calitate: Agent de muncă temporară autorizat / Intermediar plasare forță de muncă"""
+
+
+# ── Definiții unelte disponibile pentru agent ─────────────────────────────────
+LEGAL_TOOLS = [
+    {
+        "name": "search_candidates",
+        "description": (
+            "Caută candidați în baza de date CRM după nume, naționalitate sau număr pașaport. "
+            "Returnează date complete: nume, pașaport, CNP, naționalitate, dată naștere, telefon, email."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Numele candidatului (parțial sau complet), nr. pașaport sau naționalitate",
+                }
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "search_companies",
+        "description": (
+            "Caută companii angajatoare în CRM după denumire sau CUI. "
+            "Returnează: denumire, CUI, adresă, reprezentant legal, telefon, email, județ."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Denumirea companiei (parțial) sau CUI-ul",
+                }
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "search_immigration_cases",
+        "description": (
+            "Caută dosare de imigrare după numele candidatului sau al companiei. "
+            "Returnează: nr. IGI, status dosar, tip permis, dată expirare, companie angajatoare."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Numele candidatului, al companiei sau numărul IGI",
+                }
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "search_legal_corpus",
+        "description": (
+            "Caută articole de lege relevante în corpusul legislativ GJC (Codul Muncii, OUG 194/2002, "
+            "OUG 56/2007, Legea 319/2006 etc.). Folosește înainte de orice generare de document juridic."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Interogarea juridică (ex: 'demisie neplata salariu art 81', 'permis sedere prelungire straini')",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Număr maxim rezultate (implicit 8, max 15)",
+                    "default": 8,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "list_templates",
+        "description": (
+            "Listează toate template-urile de documente juridice disponibile cu ID-urile lor. "
+            "Folosește când nu știi exact ce template să alegi pentru situația descrisă."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "name": "generate_legal_document",
+        "description": (
+            "Generează un document juridic complet (.docx) pe baza template-ului și variabilelor furnizate. "
+            "Documentul va fi salvat și disponibil pentru descărcare. "
+            "IMPORTANT: completează cât mai multe variabile posibil din datele găsite în CRM."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "template_id": {
+                    "type": "string",
+                    "description": "ID-ul exact al template-ului (ex: DEMISIE_ART_81_8, SESIZARE_ITM, ADRESA_GENERICA)",
+                },
+                "variables": {
+                    "type": "object",
+                    "description": "Obiect cu toate variabilele documentului (candidat_name, angajator_name, angajator_cui etc.)",
+                },
+            },
+            "required": ["template_id", "variables"],
+        },
+    },
+]
+
+
+# ── Memorie conversații (in-memory per sesiune utilizator) ─────────────────────
+_conversations: Dict[str, List[Dict]] = {}
+
+
+async def _execute_tool(tool_name: str, tool_input: Dict, user: Dict) -> str:
+    """Execută o unealtă a agentului și returnează rezultatul ca string."""
+    try:
+        # ── search_candidates ─────────────────────────────────────────────────
+        if tool_name == "search_candidates":
+            q = tool_input.get("query", "").strip()
+            if not q:
+                return "Eroare: query gol"
+            candidates = await _db.candidates.find(
+                {"$or": [
+                    {"first_name":      {"$regex": q, "$options": "i"}},
+                    {"last_name":       {"$regex": q, "$options": "i"}},
+                    {"passport_number": {"$regex": q, "$options": "i"}},
+                    {"nationality":     {"$regex": q, "$options": "i"}},
+                ]},
+                {"_id": 0, "password": 0, "password_hash": 0},
+            ).limit(5).to_list(5)
+            if not candidates:
+                return f"Nu am găsit niciun candidat cu '{q}' în CRM."
+            lines = [f"Găsit {len(candidates)} candidat(i):"]
+            for c in candidates:
+                lines.append(
+                    f"- {c.get('first_name','')} {c.get('last_name','')} "
+                    f"| Pașaport: {c.get('passport_number','N/A')} "
+                    f"| CNP: {c.get('cnp','N/A')} "
+                    f"| Naționalitate: {c.get('nationality','N/A')} "
+                    f"| Dată naștere: {c.get('birth_date','N/A')} "
+                    f"| Tel: {c.get('phone','N/A')} "
+                    f"| Email: {c.get('email','N/A')}"
+                )
+            return "\n".join(lines)
+
+        # ── search_companies ──────────────────────────────────────────────────
+        elif tool_name == "search_companies":
+            q = tool_input.get("query", "").strip()
+            companies = await _db.companies.find(
+                {"$or": [
+                    {"name": {"$regex": q, "$options": "i"}},
+                    {"cui":  {"$regex": q, "$options": "i"}},
+                ]},
+                {"_id": 0},
+            ).limit(5).to_list(5)
+            if not companies:
+                return f"Nu am găsit nicio companie cu '{q}' în CRM."
+            lines = [f"Găsit {len(companies)} companie(i):"]
+            for c in companies:
+                lines.append(
+                    f"- {c.get('name','')} "
+                    f"| CUI: {c.get('cui','N/A')} "
+                    f"| Adresă: {c.get('address','')} {c.get('city','')} {c.get('county','')} "
+                    f"| Rep. legal: {c.get('legal_representative', c.get('contact_person','N/A'))} "
+                    f"| Tel: {c.get('phone','N/A')} "
+                    f"| Email: {c.get('email','N/A')}"
+                )
+            return "\n".join(lines)
+
+        # ── search_immigration_cases ──────────────────────────────────────────
+        elif tool_name == "search_immigration_cases":
+            q = tool_input.get("query", "").strip()
+            cases = await _db.immigration_cases.find(
+                {"$or": [
+                    {"candidate_name": {"$regex": q, "$options": "i"}},
+                    {"company_name":   {"$regex": q, "$options": "i"}},
+                    {"igi_number":     {"$regex": q, "$options": "i"}},
+                ]},
+                {"_id": 0},
+            ).limit(5).to_list(5)
+            if not cases:
+                return f"Nu am găsit dosare de imigrare cu '{q}'."
+            lines = [f"Găsit {len(cases)} dosar(e):"]
+            for c in cases:
+                lines.append(
+                    f"- {c.get('candidate_name','')} @ {c.get('company_name','')} "
+                    f"| IGI: {c.get('igi_number','N/A')} "
+                    f"| Status: {c.get('status','N/A')} "
+                    f"| Tip permis: {c.get('permit_type','N/A')} "
+                    f"| Exp: {c.get('permit_expiry','N/A')}"
+                )
+            return "\n".join(lines)
+
+        # ── search_legal_corpus ───────────────────────────────────────────────
+        elif tool_name == "search_legal_corpus":
+            q     = tool_input.get("query", "").strip()
+            top_k = min(int(tool_input.get("top_k", 8)), 15)
+            if not q:
+                return "Eroare: query gol"
+            chunks = await search_corpus(_db, q, top_k=top_k)
+            if not chunks:
+                return (
+                    "Nu am găsit articole relevante în corpusul legislativ. "
+                    "Corpusul poate fi gol — accesează tab-ul 'Corpus Legislativ' și pornește build-ul automat."
+                )
+            lines = [f"{len(chunks)} fragmente găsite pentru '{q}':"]
+            for ch in chunks[:8]:
+                lines.append(
+                    f"\n[{ch.get('act_title','')} — {ch.get('section_path','')}]\n"
+                    f"{ch.get('text','')[:350]}…"
+                )
+            return "\n".join(lines)
+
+        # ── list_templates ────────────────────────────────────────────────────
+        elif tool_name == "list_templates":
+            lines = ["Template-uri disponibile:"]
+            for t in TEMPLATES.values():
+                lines.append(
+                    f"- ID: {t['id']} | {t['name']} | Categorie: {t['category']} "
+                    f"| Emis de: {t.get('emitent','GJC')}"
+                )
+            return "\n".join(lines)
+
+        # ── generate_legal_document ───────────────────────────────────────────
+        elif tool_name == "generate_legal_document":
+            template_id = tool_input.get("template_id", "")
+            variables   = tool_input.get("variables", {})
+            template_def = TEMPLATES.get(template_id)
+            if not template_def:
+                available = ", ".join(list(TEMPLATES.keys())[:8])
+                return f"Template '{template_id}' nu există. Disponibile: {available}. Folosește list_templates."
+
+            corpus_count = await _db.legal_chunks.count_documents({})
+            rag_result   = await generate_legal_document(_db, template_def, variables, "")
+
+            # Generare .docx
+            doc_id        = str(uuid.uuid4())
+            docx_filename = None
+            docx_error    = None
+            if DOCX_AVAILABLE:
+                try:
+                    candidat_name = variables.get(
+                        "candidat_name",
+                        variables.get("mandant_name",
+                        variables.get("reclamant_name", ""))
+                    )
+                    docx_filename = generate_docx(
+                        title         = template_def["name"],
+                        body_text     = rag_result["text"],
+                        template_id   = template_id,
+                        variables     = variables,
+                        doc_id        = doc_id,
+                        emitent       = template_def.get("emitent", "GJC"),
+                        candidat_name = candidat_name,
+                    )
+                except Exception as e:
+                    docx_error = str(e)
+                    logger.error(f"Agent DOCX error: {e}")
+
+            # Salvare în MongoDB
+            validation = rag_result["citations_validation"]
+            doc_record = {
+                "id":               doc_id,
+                "template_id":      template_id,
+                "template_name":    template_def["name"],
+                "title": (
+                    f"{template_def['name']} — "
+                    f"{variables.get('candidat_name') or variables.get('sesizant_name') or variables.get('reclamant_name','')}"
+                ),
+                "variables":          variables,
+                "generated_text":     rag_result["text"],
+                "citations":          validation.get("valid_citations", []),
+                "invalid_citations":  validation.get("invalid_citations", []),
+                "confidence_score":   validation.get("confidence", 0.0),
+                "status":             "draft",
+                "model":              rag_result.get("model", ""),
+                "tokens_used":        rag_result.get("tokens_used", 0),
+                "docx_filename":      docx_filename,
+                "docx_error":         docx_error,
+                "corpus_size":        corpus_count,
+                "created_by":         user.get("email", "agent"),
+                "created_at":         datetime.now(timezone.utc).isoformat(),
+                "agent_generated":    True,
+            }
+            await _db.generated_documents.insert_one(doc_record)
+
+            citations      = validation.get("valid_citations", [])
+            confidence_pct = round(validation.get("confidence", 0.0) * 100)
+            return (
+                f"DOCUMENT_GENERATED\n"
+                f"doc_id:{doc_id}\n"
+                f"title:{template_def['name']}\n"
+                f"confidence:{confidence_pct}%\n"
+                f"citations:{', '.join(citations) or 'niciuna verificată'}\n"
+                f"docx_ok:{docx_filename is not None}\n"
+                f"preview:{rag_result['text'][:400]}…"
+            )
+
+        return f"Unealtă necunoscută: {tool_name}"
+
+    except Exception as exc:
+        logger.error(f"Agent tool error [{tool_name}]: {exc}")
+        return f"Eroare internă la executarea uneltei '{tool_name}': {str(exc)[:150]}"
+
+
+@legal_router.post("/agent/chat")
+async def agent_chat(
+    req:  AgentChatRequest,
+    user: dict = Depends(_require_legal_read),
+):
+    """
+    Agentul conversational Claude Legis.
+    Primește un mesaj în limbaj natural, execută unelte (CRM + corpus) și
+    returnează răspunsul final împreună cu documentul generat (dacă e cazul).
+    """
+    session_key = f"{user.get('email', 'anon')}:{req.session_id}"
+
+    if session_key not in _conversations:
+        _conversations[session_key] = []
+
+    history = _conversations[session_key]
+    history.append({"role": "user", "content": req.message})
+
+    # Limităm istoricul la ultimele 20 schimburi pentru a nu depăși token limit
+    if len(history) > 20:
+        history = history[-20:]
+
+    client = anthropic_sdk.AsyncAnthropic(
+        api_key=os.environ.get("ANTHROPIC_API_KEY", "")
+    )
+
+    messages       = list(history)
+    tool_calls_log: List[Dict] = []
+
+    # ── Agent loop (max 10 iterații) ──────────────────────────────────────────
+    for _iteration in range(10):
+        response = await client.messages.create(
+            model      = AGENT_MODEL,
+            max_tokens = 4096,
+            system     = AGENT_SYSTEM_PROMPT,
+            tools      = LEGAL_TOOLS,
+            messages   = messages,
+        )
+
+        # ── Răspuns final ─────────────────────────────────────────────────────
+        if response.stop_reason == "end_turn":
+            final_text = ""
+            for block in response.content:
+                if hasattr(block, "text"):
+                    final_text = block.text
+                    break
+
+            # Salvează istoricul
+            history.append({"role": "assistant", "content": response.content})
+            _conversations[session_key] = history[-20:]
+
+            # Extrage doc_id dacă s-a generat vreun document
+            doc_id    = None
+            doc_title = None
+            for call in tool_calls_log:
+                raw = call.get("result", "")
+                if "DOCUMENT_GENERATED" in raw:
+                    for line in raw.split("\n"):
+                        if line.startswith("doc_id:"):
+                            doc_id = line.split(":", 1)[1].strip()
+                        elif line.startswith("title:"):
+                            doc_title = line.split(":", 1)[1].strip()
+
+            return {
+                "status":     "done",
+                "message":    final_text,
+                "tool_calls": tool_calls_log,
+                "doc_id":     doc_id,
+                "doc_title":  doc_title,
+                "session_id": req.session_id,
+            }
+
+        # ── Execuție unelte ───────────────────────────────────────────────────
+        elif response.stop_reason == "tool_use":
+            tool_results: List[Dict] = []
+            messages.append({"role": "assistant", "content": response.content})
+
+            for block in response.content:
+                if block.type == "tool_use":
+                    result = await _execute_tool(block.name, block.input, user)
+                    tool_calls_log.append({
+                        "tool":   block.name,
+                        "input":  block.input,
+                        "result": result,
+                    })
+                    tool_results.append({
+                        "type":        "tool_result",
+                        "tool_use_id": block.id,
+                        "content":     result,
+                    })
+
+            messages.append({"role": "user", "content": tool_results})
+
+        else:
+            break
+
+    return {
+        "status":     "error",
+        "message":    "Agentul nu a putut finaliza sarcina. Încearcă un mesaj mai specific.",
+        "tool_calls": tool_calls_log,
+        "doc_id":     None,
+        "doc_title":  None,
+    }
+
+
+@legal_router.post("/agent/clear")
+async def clear_agent_conversation(
+    session_id: str = "default",
+    user: dict = Depends(_require_legal_read),
+):
+    """Resetează istoricul conversației pentru sesiunea curentă."""
+    session_key = f"{user.get('email', 'anon')}:{session_id}"
+    _conversations.pop(session_key, None)
+    return {"status": "ok", "message": "Conversație resetată. Poți începe o nouă sesiune."}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
