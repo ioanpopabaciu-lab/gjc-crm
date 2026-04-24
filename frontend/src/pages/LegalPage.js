@@ -3,9 +3,19 @@ import axios from 'axios';
 import {
   Scale, Upload, FileText, Search, Download, CheckCircle, AlertTriangle,
   Plus, Trash2, RefreshCw, ChevronRight, X, Eye, Edit3, Users,
-  BookOpen, Zap, Globe, AlertCircle, Info
+  BookOpen, Zap, Globe, Info, FileSearch, Tag
 } from 'lucide-react';
 import { API } from '../config';
+
+// Icoane și culori pe categorie
+const CATEGORY_META = {
+  'Raporturi de muncă':           { icon: '⚒️', color: '#2563eb', bg: '#eff6ff' },
+  'Sesizări instituții control':  { icon: '🏛️', color: '#d97706', bg: '#fffbeb' },
+  'Proceduri IGI / Imigrare':     { icon: '🛂', color: '#7c3aed', bg: '#f5f3ff' },
+  'Instanțe judecătorești':       { icon: '⚖️', color: '#dc2626', bg: '#fef2f2' },
+  'Contestații și memorii':       { icon: '📋', color: '#059669', bg: '#f0fdf4' },
+  'Documente GJC / Corespondență':{ icon: '🏢', color: '#0891b2', bg: '#f0f9ff' },
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n) => (n || 0).toLocaleString('ro-RO');
@@ -74,10 +84,14 @@ const LegalPage = ({ showNotification }) => {
   // Scrape job
   const [scrapeJobs, setScrapeJobs] = useState([]);
 
-  // Preview document
+  // Preview document generat
   const [previewDoc, setPreviewDoc]     = useState(null);
   const [editingText, setEditingText]   = useState('');
   const [savingEdit, setSavingEdit]     = useState(false);
+
+  // Preview MODEL (șablon)
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
 
   // ── Fetch date ─────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -262,6 +276,16 @@ const LegalPage = ({ showNotification }) => {
     } catch { showNotification('Eroare la validare', 'error'); }
   };
 
+  // ── Preview model (șablon) ───────────────────────────────────────────────
+  const handlePreviewTemplate = async (tmplId) => {
+    setLoadingTemplate(true);
+    try {
+      const r = await axios.get(`${API}/legal/templates/${tmplId}`);
+      setPreviewTemplate(r.data);
+    } catch { showNotification('Eroare la încărcarea modelului', 'error'); }
+    finally { setLoadingTemplate(false); }
+  };
+
   // ── Salvare editare text ──────────────────────────────────────────────────
   const handleSaveEdit = async (docId) => {
     setSavingEdit(true);
@@ -356,29 +380,65 @@ const LegalPage = ({ showNotification }) => {
           {/* Panoul stânga: selectare template + variabile */}
           <div style={{ flex: '1 1 380px', minWidth: '320px' }}>
 
-            {/* Template selectie */}
+            {/* Template selectie — grupate pe categorii */}
             <h3 style={{ margin: '0 0 12px', fontSize: '1rem', color: '#374151' }}>1. Alege tipul documentului</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-              {templates.map(tmpl => (
-                <button key={tmpl.id} onClick={() => handleSelectTemplate(tmpl)}
-                  style={{
-                    padding: '12px 14px', borderRadius: '10px', border: `2px solid ${selectedTemplate?.id === tmpl.id ? '#7c3aed' : '#e5e7eb'}`,
-                    background: selectedTemplate?.id === tmpl.id ? '#f5f3ff' : '#fff',
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'all 0.15s',
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <strong style={{ color: selectedTemplate?.id === tmpl.id ? '#7c3aed' : '#1f2937', fontSize: '0.9rem' }}>
-                      {tmpl.name}
-                    </strong>
-                    {tmpl.bulk_mode && (
-                      <span style={{ fontSize: '0.7rem', background: '#ddd6fe', color: '#6d28d9', borderRadius: '4px', padding: '2px 6px' }}>BULK</span>
-                    )}
+            <div style={{ marginBottom: '20px' }}>
+              {/* Grupare pe categorii */}
+              {Object.entries(
+                templates.reduce((acc, t) => {
+                  const cat = t.category || 'Alte documente';
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(t);
+                  return acc;
+                }, {})
+              ).map(([category, tmplList]) => {
+                const meta = CATEGORY_META[category] || { icon: '📄', color: '#6b7280', bg: '#f9fafb' };
+                return (
+                  <div key={category} style={{ marginBottom: '12px' }}>
+                    {/* Header categorie */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: meta.bg, borderRadius: '6px', marginBottom: '6px' }}>
+                      <span>{meta.icon}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: meta.color }}>{category}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af', marginLeft: 'auto' }}>{tmplList.length} doc.</span>
+                    </div>
+                    {/* Template-urile din categorie */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '8px' }}>
+                      {tmplList.map(tmpl => (
+                        <div key={tmpl.id} style={{
+                          borderRadius: '8px', border: `2px solid ${selectedTemplate?.id === tmpl.id ? meta.color : '#e5e7eb'}`,
+                          background: selectedTemplate?.id === tmpl.id ? meta.bg : '#fff',
+                          overflow: 'hidden',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            {/* Buton selectare */}
+                            <button onClick={() => handleSelectTemplate(tmpl)}
+                              style={{ flex: 1, padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <strong style={{ color: selectedTemplate?.id === tmpl.id ? meta.color : '#1f2937', fontSize: '0.87rem' }}>
+                                  {tmpl.name}
+                                </strong>
+                                {tmpl.bulk_mode && (
+                                  <span style={{ fontSize: '0.65rem', background: '#ddd6fe', color: '#6d28d9', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>BULK</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>{tmpl.description}</div>
+                            </button>
+                            {/* Buton preview model */}
+                            <button
+                              onClick={() => handlePreviewTemplate(tmpl.id)}
+                              disabled={loadingTemplate}
+                              title="Vizualizează modelul documentului"
+                              style={{ padding: '8px 10px', background: 'none', border: 'none', borderLeft: '1px solid #f3f4f6', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', flexShrink: 0 }}>
+                              <FileSearch size={14} />
+                              <span style={{ display: window.innerWidth < 600 ? 'none' : 'inline' }}>Model</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '3px' }}>{tmpl.description}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '2px' }}>📂 {tmpl.category}</div>
-                </button>
-              ))}
+                );
+              })}
             </div>
 
             {/* Formular variabile */}
@@ -768,6 +828,108 @@ const LegalPage = ({ showNotification }) => {
         </div>
       )}
 
+      {/* ── Modal Preview MODEL (șablon) ─────────────────────────────────── */}
+      {previewTemplate && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+          onClick={e => { if (e.target === e.currentTarget) setPreviewTemplate(null); }}>
+          <div style={{ background: '#fff', borderRadius: '14px', maxWidth: '820px', width: '100%', maxHeight: '88vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+
+            {/* Header modal */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 24px 14px', borderBottom: '1px solid #e5e7eb', gap: '12px', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <FileSearch size={18} color="#7c3aed" />
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#1f2937' }}>Model document: {previewTemplate.name}</h3>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.75rem', background: (CATEGORY_META[previewTemplate.category] || {}).bg || '#f3f4f6', color: (CATEGORY_META[previewTemplate.category] || {}).color || '#6b7280', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    {(CATEGORY_META[previewTemplate.category] || {}).icon} {previewTemplate.category}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', background: previewTemplate.emitent === 'GJC' ? '#f0f9ff' : '#fdf4ff', color: previewTemplate.emitent === 'GJC' ? '#0891b2' : '#7c3aed', padding: '2px 8px', borderRadius: '4px' }}>
+                    Emis de: {previewTemplate.emitent === 'GJC' ? '🏢 GJC' : '👤 Candidat'}
+                  </span>
+                  {previewTemplate.bulk_mode && (
+                    <span style={{ fontSize: '0.75rem', background: '#f5f3ff', color: '#6d28d9', padding: '2px 8px', borderRadius: '4px' }}>🔁 Bulk disponibil</span>
+                  )}
+                  <span style={{ fontSize: '0.75rem', background: '#f0fdf4', color: '#166534', padding: '2px 8px', borderRadius: '4px' }}>
+                    Min. {previewTemplate.min_citations} citări legale
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <button onClick={() => { handleSelectTemplate(previewTemplate); setPreviewTemplate(null); }}
+                  style={{ ...btnStyle('#7c3aed'), padding: '7px 14px' }}>
+                  <Zap size={13} /> Folosește
+                </button>
+                <button onClick={() => setPreviewTemplate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                  <X size={20} color="#6b7280" />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '0 24px 24px' }}>
+              {/* Descriere */}
+              <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px 14px', margin: '16px 0 12px', fontSize: '0.85rem', color: '#374151' }}>
+                ℹ️ {previewTemplate.description}
+              </div>
+
+              {/* Variabile necesare */}
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Tag size={14} color="#7c3aed" /> Variabile necesare ({previewTemplate.variables?.length || 0}):
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {(previewTemplate.variables || []).map(v => (
+                    <span key={v.key} style={{
+                      fontSize: '0.75rem', padding: '3px 8px', borderRadius: '5px',
+                      background: v.required ? '#fef3c7' : '#f3f4f6',
+                      color: v.required ? '#92400e' : '#6b7280',
+                      border: `1px solid ${v.required ? '#fcd34d' : '#e5e7eb'}`,
+                    }}>
+                      {v.required ? '* ' : ''}{v.label}
+                      <span style={{ color: '#9ca3af', marginLeft: '4px' }}>({v.source})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bază legală folosită */}
+              {previewTemplate.rag_queries?.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <BookOpen size={14} color="#2563eb" /> Bază legală căutată automat:
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {previewTemplate.rag_queries.map((q, i) => (
+                      <div key={i} style={{ fontSize: '0.8rem', color: '#2563eb', background: '#eff6ff', padding: '4px 10px', borderRadius: '5px' }}>
+                        🔍 {q}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* MODEL DOCUMENT */}
+              <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={14} color="#374151" /> Modelul documentului
+                <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: 400 }}>— variabilele apar între {'{}'}, Claude va completa cu datele reale</span>
+              </h4>
+              <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '20px', fontFamily: 'Georgia, serif' }}>
+                {/* Render cu variabile colorate */}
+                <TemplatePreviewRenderer text={previewTemplate.preview_text || ''} variables={previewTemplate.variables || []} />
+              </div>
+
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <button onClick={() => { handleSelectTemplate(previewTemplate); setPreviewTemplate(null); }}
+                  style={{ ...btnStyle('#7c3aed'), padding: '10px 24px', fontSize: '0.95rem' }}>
+                  <Zap size={16} /> Generează acest document acum
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Modal Preview / Editare document ─────────────────────────────── */}
       {previewDoc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
@@ -921,6 +1083,45 @@ const DocResult = ({ doc, onValidate, onDownload, onEdit }) => (
     </div>
   </div>
 );
+
+// Render model cu variabilele evidențiate colorat
+const TemplatePreviewRenderer = ({ text, variables }) => {
+  if (!text) return <em style={{ color: '#9ca3af' }}>Model nedisponibil</em>;
+
+  const requiredKeys = new Set((variables || []).filter(v => v.required).map(v => v.key));
+
+  // Împarte textul în segmente: text normal și {variabile}
+  const parts = text.split(/(\{[^}]+\})/g);
+
+  return (
+    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.87rem', lineHeight: 1.75, color: '#1f2937', fontFamily: 'Georgia, serif' }}>
+      {parts.map((part, i) => {
+        const match = part.match(/^\{([^}]+)\}$/);
+        if (match) {
+          const key = match[1];
+          const isRequired = requiredKeys.has(key);
+          const varDef = (variables || []).find(v => v.key === key);
+          return (
+            <span key={i} title={varDef ? `${varDef.label} (${varDef.source})` : key}
+              style={{
+                background: isRequired ? '#fef9c3' : '#f0fdf4',
+                color: isRequired ? '#92400e' : '#166534',
+                border: `1px solid ${isRequired ? '#fcd34d' : '#86efac'}`,
+                borderRadius: '4px',
+                padding: '1px 5px',
+                fontFamily: 'monospace',
+                fontSize: '0.82rem',
+                cursor: 'help',
+              }}>
+              {`{${key}}`}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </pre>
+  );
+};
 
 const inputStyle = {
   padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db',

@@ -78,7 +78,15 @@ async def _require_legal_generate(credentials: HTTPAuthorizationCredentials = De
 
 # ── TEMPLATES definite în cod ────────────────────────────────────────────────
 
+def _v(key, label, required=True, source="manual", typ="text"):
+    return {"key": key, "label": label, "required": required, "source": source, "type": typ}
+
 TEMPLATES: Dict[str, Dict] = {
+
+    # ════════════════════════════════════════════════════════════════
+    # CATEGORIE: Raporturi de Muncă
+    # ════════════════════════════════════════════════════════════════
+
     "DEMISIE_ART_81_8": {
         "id":          "DEMISIE_ART_81_8",
         "name":        "Demisie — Art. 81 alin. (8) Codul Muncii",
@@ -111,7 +119,189 @@ TEMPLATES: Dict[str, Dict] = {
         "min_citations": 2,
         "bulk_mode":     True,
         "bulk_key":      "candidat_name",
+        "preview_text": """DEMISIE
+
+Subsemnatul/a {candidat_name}, cetățean {candidat_nationalitate},
+posesor/posesoare al/a actului de identitate/pașaportului nr. {candidat_cnp},
+cu domiciliul/reședința în {candidat_adresa},
+angajat/ă la {angajator_name} (CUI: {angajator_cui}), cu sediul în {angajator_adresa},
+în funcția de {functia}, începând cu data de {data_angajarii},
+
+în temeiul art. 81 alin. (8) din Legea nr. 53/2003 — Codul Muncii, republicat,
+care prevede dreptul salariatului de a demisiona fără preaviz atunci când angajatorul
+nu își îndeplinește obligațiile asumate prin contractul individual de muncă,
+
+NOTIFIC prin prezenta demisia mea imediată din funcția deținută,
+
+MOTIVAT de faptul că {angajator_name} nu mi-a achitat drepturile salariale
+aferente lunii/lunilor {luna_neplatita}, reprezentând suma estimată de {suma_neplatita} RON,
+deși ultima plată a fost efectuată la data de {data_ultimei_plati}.
+
+Prezenta demisie produce efecte începând cu data de {data_demisiei}.
+
+{motiv_suplimentar}
+
+Data: {data_demisiei}
+Semnătura: ___________________________
+{candidat_name}""",
     },
+    "DEMISIE_STANDARD": {
+        "id":          "DEMISIE_STANDARD",
+        "name":        "Demisie standard cu preaviz",
+        "category":    "Raporturi de muncă",
+        "description": "Demisie cu respectarea termenului legal de preaviz (20 zile lucrătoare pentru funcții de execuție, 45 pentru funcții de conducere). Fără motiv obligatoriu.",
+        "emitent":     "candidat",
+        "variables": [
+            _v("candidat_name",       "Numele complet candidat",         True,  "candidate"),
+            _v("candidat_cnp",        "CNP / serie pașaport",            False, "candidate"),
+            _v("candidat_nationalitate","Naționalitate",                  False, "candidate"),
+            _v("angajator_name",      "Denumire angajator",              True,  "company"),
+            _v("angajator_cui",       "CUI angajator",                   False, "company"),
+            _v("functia",             "Funcția / postul",                False, "manual"),
+            _v("durata_preaviz",      "Durata preaviz (ex: 20 zile lucrătoare)", True, "manual"),
+            _v("data_notificarii",    "Data notificării (dd.mm.yyyy)",   True,  "manual"),
+            _v("data_incetarii",      "Data ultimei zile de muncă",      False, "manual"),
+            _v("motiv",               "Motiv (opțional)",                False, "manual", "textarea"),
+        ],
+        "rag_queries": [
+            "art 81 alin 1 codul muncii demisie preaviz 20 zile",
+            "art 75 codul muncii termenul de preaviz",
+            "art 55 litera b codul muncii incetare CIM salariat",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """DEMISIE
+
+Subsemnatul/a {candidat_name}, cetățean {candidat_nationalitate},
+posesor/posesoare al/a actului nr. {candidat_cnp},
+angajat/ă la {angajator_name} (CUI: {angajator_cui}),
+în funcția de {functia},
+
+în temeiul art. 81 alin. (1) din Legea nr. 53/2003 — Codul Muncii,
+prin prezenta formulez DEMISIA din funcția deținută,
+cu respectarea termenului de preaviz de {durata_preaviz}.
+
+Prezenta demisie se notifică la data de {data_notificarii},
+ultima zi de muncă fiind {data_incetarii}.
+
+{motiv}
+
+Data: {data_notificarii}
+Semnătura: ___________________________
+{candidat_name}""",
+    },
+    "CONTESTATIE_CONCEDIERE": {
+        "id":          "CONTESTATIE_CONCEDIERE",
+        "name":        "Contestație decizie de concediere",
+        "category":    "Raporturi de muncă",
+        "description": "Contestație la Tribunalul Muncii împotriva deciziei de concediere. Termen: 30 zile calendaristice de la comunicare.",
+        "emitent":     "candidat",
+        "variables": [
+            _v("contestatar_name",    "Numele contestatarului",          True,  "candidate"),
+            _v("contestatar_cnp",     "CNP contestatar",                 False, "candidate"),
+            _v("contestatar_adresa",  "Domiciliu/reședință contestatar", False, "manual"),
+            _v("angajator_name",      "Denumire angajator intimat",      True,  "company"),
+            _v("angajator_cui",       "CUI angajator",                   False, "company"),
+            _v("angajator_adresa",    "Sediu angajator",                 False, "company"),
+            _v("nr_decizie",          "Nr. deciziei de concediere",      True,  "manual"),
+            _v("data_decizie",        "Data deciziei de concediere",     True,  "manual"),
+            _v("data_comunicare",     "Data comunicării deciziei",       True,  "manual"),
+            _v("motiv_concediere",    "Motivul invocat de angajator",    True,  "manual"),
+            _v("motivare_contestatie","Motivele contestației",           True,  "manual", "textarea"),
+            _v("probe_anexate",       "Probe/înscrisuri anexate",        False, "manual", "textarea"),
+            _v("tribunal_judet",      "Tribunalul sesizat (județ)",      True,  "manual"),
+            _v("data_contestatiei",   "Data contestației (dd.mm.yyyy)",  True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 268 codul muncii contestatie concediere tribunal 30 zile",
+            "art 252 codul muncii decizia de concediere conditii forma",
+            "art 248 art 249 codul muncii concediere disciplinara",
+            "art 65 codul muncii concediere motive neimputabile salariatul",
+        ],
+        "min_citations": 3,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+TRIBUNALUL {tribunal_judet}
+Secția Conflicte de Muncă și Asigurări Sociale
+
+CONTESTAȚIE
+împotriva Deciziei de concediere nr. {nr_decizie} din {data_decizie}
+
+Contestatar: {contestatar_name}, domiciliat în {contestatar_adresa}, CNP {contestatar_cnp}
+Intimat:     {angajator_name}, CUI {angajator_cui}, cu sediul în {angajator_adresa}
+
+Subsemnatul/a {contestatar_name}, în temeiul art. 268 din Legea nr. 53/2003 — Codul Muncii,
+formulez prezenta CONTESTAȚIE împotriva Deciziei de concediere nr. {nr_decizie}/{data_decizie},
+comunicată la data de {data_comunicare}.
+
+MOTIVUL INVOCAT DE ANGAJATOR: {motiv_concediere}
+
+MOTIVELE CONTESTAȚIEI:
+{motivare_contestatie}
+
+PROBE ANEXATE: {probe_anexate}
+
+Solicit admiterea contestației, anularea deciziei de concediere,
+reintegrarea în funcție și plata drepturilor salariale pe perioada nelegalei concedieri.
+
+Data: {data_contestatiei}                    Semnătura: ___________________
+{contestatar_name}""",
+    },
+    "NOTIFICARE_RECUPERARE_SALARII": {
+        "id":          "NOTIFICARE_RECUPERARE_SALARII",
+        "name":        "Notificare somare recuperare drepturi salariale",
+        "category":    "Raporturi de muncă",
+        "description": "Notificare/somare trimisă angajatorului înainte de acțiunea în instanță, prin care se solicită plata salariilor restante. Pasul premergător acțiunii la Tribunalul Muncii.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("salariat_name",       "Numele salariatului",             True,  "candidate"),
+            _v("angajator_name",      "Denumire angajator",              True,  "company"),
+            _v("angajator_cui",       "CUI angajator",                   False, "company"),
+            _v("angajator_adresa",    "Adresa angajatorului",            False, "company"),
+            _v("angajator_reprezentant","Reprezentant legal",            False, "manual"),
+            _v("suma_solicitata",     "Suma solicitată (RON)",           True,  "manual"),
+            _v("perioada_neplatita",  "Perioada neplatită",              True,  "manual"),
+            _v("termen_plata",        "Termen acordat pentru plată (ex: 5 zile)", True, "manual"),
+            _v("data_notificarii",    "Data notificării",                True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 171 codul muncii plata salariului data scadenta",
+            "art 166 codul muncii salariul confidentialitate plata",
+            "art 253 codul muncii raspunderea patrimoniala angajator daune",
+            "art 1516 cod civil obligatia de plata somatia",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     True,
+        "bulk_key":      "salariat_name",
+        "preview_text": """NOTIFICARE / SOMARE
+
+Către: {angajator_name} (CUI: {angajator_cui})
+Adresa: {angajator_adresa}
+În atenția: {angajator_reprezentant}
+
+Referitor la: Recuperare drepturi salariale — {salariat_name}
+
+Prin prezenta, în calitate de reprezentant al d-lui/d-nei {salariat_name},
+angajat/ă în cadrul societății dumneavoastră,
+vă notificăm că drepturile salariale aferente perioadei {perioada_neplatita},
+în valoare totală de {suma_solicitata} RON, nu au fost achitate până la data prezentei.
+
+Această situație contravine dispozițiilor art. 171 din Legea nr. 53/2003 — Codul Muncii.
+
+Vă somăm să procedați la plata integrală a sumei de {suma_solicitata} RON
+în termen de {termen_plata} de la primirea prezentei notificări.
+
+În lipsa achitării, vom proceda la sesizarea Inspecției Muncii și introducerea
+unei acțiuni în pretenții la Tribunalul Muncii, cu solicitarea de daune-interese.
+
+Data: {data_notificarii}
+Global Jobs Consulting SRL""",
+    },
+
+    # ════════════════════════════════════════════════════════════════
+    # CATEGORIE: Sesizări Instituții de Control
+    # ════════════════════════════════════════════════════════════════
+
     "PLANGERE_ITM": {
         "id":          "PLANGERE_ITM",
         "name":        "Sesizare / Plângere la Inspectoratul Teritorial de Muncă",
@@ -140,7 +330,170 @@ TEMPLATES: Dict[str, Dict] = {
         ],
         "min_citations": 3,
         "bulk_mode":     False,
+        "preview_text": """Către,
+INSPECTORATUL TERITORIAL DE MUNCĂ {itm_judet}
+
+SESIZARE / PLÂNGERE
+
+Sesizant: {sesizant_name}, în calitate de {sesizant_calitate}
+Angajator reclamat: {angajator_name}, CUI {angajator_cui}, sediu: {angajator_adresa}
+
+Stimate doamne/Stimați domni,
+
+Prin prezenta, subsemnatul/a {sesizant_name}, formulez prezenta SESIZARE
+împotriva {angajator_name}, pentru săvârșirea următoarelor încălcări ale legislației muncii:
+
+DESCRIEREA FAPTELOR:
+{fapta_descriere}
+
+PERIOADA: {perioada_faptei}
+Nr. salariați afectați: {nr_salariati_afectati}
+
+Faptele sus-menționate constituie contravenții/încălcări ale:
+— art. 171 din Legea nr. 53/2003 (Codul Muncii) privind obligația de plată a salariului
+— Legea nr. 108/1999 privind Inspecția Muncii
+
+PROBE ANEXATE: {probe_anexate}
+
+Solicităm efectuarea unui control și aplicarea sancțiunilor legale.
+
+Data sesizării: {data_sesizarii}          Nr. ref. anterior: {nr_inregistrare_ref}
+Global Jobs Consulting SRL
+(în reprezentarea salariaților afectați)""",
     },
+    "SESIZARE_ITM_CONDITII": {
+        "id":          "SESIZARE_ITM_CONDITII",
+        "name":        "Sesizare ITM — condiții de muncă necorespunzătoare",
+        "category":    "Sesizări instituții control",
+        "description": "Sesizare la ITM pentru condiții de muncă improprii: cazare, echipament protecție, ore suplimentare neplătite, discriminare.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("sesizant_name",       "Sesizant",                        True,  "manual"),
+            _v("angajator_name",      "Angajatorul reclamat",            True,  "company"),
+            _v("angajator_cui",       "CUI",                             False, "company"),
+            _v("angajator_adresa",    "Adresa punct de lucru",           False, "company"),
+            _v("conditii_descrise",   "Descrierea condițiilor necorespunzătoare", True, "manual", "textarea"),
+            _v("nr_persoane_afectate","Nr. persoane afectate",           False, "manual"),
+            _v("probe_foto",          "Probe fotografice/documente",     False, "manual", "textarea"),
+            _v("itm_judet",           "Județ ITM",                       True,  "manual"),
+            _v("data_sesizarii",      "Data sesizării",                  True,  "manual"),
+        ],
+        "rag_queries": [
+            "legea 319 2006 securitate sanatate munca obligatii angajator",
+            "art 175 codul muncii securitate munca echipament protectie",
+            "legea 108 1999 inspectia muncii control conditii munca",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+INSPECTORATUL TERITORIAL DE MUNCĂ {itm_judet}
+
+SESIZARE — CONDIȚII DE MUNCĂ NECORESPUNZĂTOARE
+
+Sesizant: {sesizant_name}
+Angajator reclamat: {angajator_name} (CUI: {angajator_cui})
+Punct de lucru: {angajator_adresa}
+
+Prin prezenta sesizare aducem la cunoștința ITM {itm_judet} că angajatorul
+{angajator_name} nu respectă normele legale privind securitatea și sănătatea
+în muncă, în condițiile prevăzute de Legea nr. 319/2006.
+
+SITUAȚIA CONSTATATĂ:
+{conditii_descrise}
+
+Nr. persoane afectate: {nr_persoane_afectate}
+Probe: {probe_foto}
+
+Solicităm efectuarea unui control inopinant și aplicarea măsurilor legale.
+
+Data: {data_sesizarii}
+Global Jobs Consulting SRL""",
+    },
+    "SESIZARE_ANOFM": {
+        "id":          "SESIZARE_ANOFM",
+        "name":        "Sesizare ANOFM / AJOFM",
+        "category":    "Sesizări instituții control",
+        "description": "Sesizare la Agenția Județeană pentru Ocuparea Forței de Muncă privind nereguli în plasarea forței de muncă, avize ilegale sau condiții contractuale abuzive.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("sesizant_name",    "Sesizant",                           True,  "manual"),
+            _v("angajator_name",   "Angajatorul vizat",                  True,  "company"),
+            _v("angajator_cui",    "CUI",                                False, "company"),
+            _v("fapta_descriere",  "Descrierea situației sesizate",      True,  "manual", "textarea"),
+            _v("ajofm_judet",      "Județ AJOFM",                        True,  "manual"),
+            _v("data_sesizarii",   "Data sesizării",                     True,  "manual"),
+        ],
+        "rag_queries": [
+            "legea 76 2002 sistemul asigurarilor somaj forta munca",
+            "oug 56 2007 incadrarea strainilor munca aviz angajare",
+            "legea 156 2000 protectia cetatenilor romani plasare munca",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+AGENȚIA JUDEȚEANĂ PENTRU OCUPAREA FORȚEI DE MUNCĂ {ajofm_judet}
+
+SESIZARE
+
+Sesizant: {sesizant_name}
+Angajator vizat: {angajator_name} (CUI: {angajator_cui})
+
+Vă sesizăm cu privire la următoarea situație:
+
+{fapta_descriere}
+
+Solicitam verificarea legalității și luarea măsurilor ce se impun.
+
+Data: {data_sesizarii}
+Global Jobs Consulting SRL""",
+    },
+    "SESIZARE_ANAF": {
+        "id":          "SESIZARE_ANAF",
+        "name":        "Sesizare ANAF — neachitare obligații fiscale",
+        "category":    "Sesizări instituții control",
+        "description": "Sesizare la Agenția Națională de Administrare Fiscală privind neplata contribuțiilor sociale, CAS, CASS pentru salariați sau alte obligații fiscale.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("sesizant_name",    "Sesizant",                           True,  "manual"),
+            _v("angajator_name",   "Angajatorul reclamat",               True,  "company"),
+            _v("angajator_cui",    "CUI",                                False, "company"),
+            _v("fapta_descriere",  "Descrierea neregulilor fiscale",     True,  "manual", "textarea"),
+            _v("perioada",         "Perioada vizată",                    True,  "manual"),
+            _v("data_sesizarii",   "Data sesizării",                     True,  "manual"),
+        ],
+        "rag_queries": [
+            "legea 227 2015 codul fiscal obligatii angajator CAS CASS",
+            "art 6 codul fiscal contribuabil obligatii plata taxe",
+            "art 219 codul fiscal contraventii sanctiuni neachitare",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+AGENȚIA NAȚIONALĂ DE ADMINISTRARE FISCALĂ
+(prin Administrația Județeană a Finanțelor Publice)
+
+SESIZARE
+
+Sesizant: {sesizant_name}
+Angajator reclamat: {angajator_name} (CUI: {angajator_cui})
+
+Vă sesizăm că angajatorul {angajator_name} nu și-a îndeplinit obligațiile
+fiscale privind declararea și virarea contribuțiilor sociale (CAS/CASS/impozit pe venit)
+pentru salariații săi, în perioada {perioada}.
+
+SITUAȚIA CONSTATATĂ:
+{fapta_descriere}
+
+Solicităm verificarea și aplicarea măsurilor fiscale legale.
+
+Data: {data_sesizarii}
+Global Jobs Consulting SRL""",
+    },
+
+    # ════════════════════════════════════════════════════════════════
+    # CATEGORIE: Proceduri IGI / Imigrare
+    # ════════════════════════════════════════════════════════════════
+
     "PROCURA_IGI": {
         "id":          "PROCURA_IGI",
         "name":        "Procură specială pentru reprezentare IGI",
@@ -165,7 +518,388 @@ TEMPLATES: Dict[str, Dict] = {
         ],
         "min_citations": 1,
         "bulk_mode":     False,
+        "preview_text": """PROCURĂ SPECIALĂ
+
+Subsemnatul/a {mandant_name}, cetățean/cetățeancă {mandant_nationalitate},
+născut/ă la data de {mandant_nascut},
+posesor/posesoare al/a pașaportului nr. {mandant_pasaport},
+
+ÎMPUTERNICESC prin prezenta pe d-l/d-na {mandatar_name}, CNP {mandatar_cnp},
+reprezentant al Global Jobs Consulting SRL,
+
+să mă reprezinte în fața Inspectoratului General pentru Imigrări
+și a oricăror alte instituții competente, pentru:
+
+{scopul_procurii}
+
+Mandatarul este autorizat să depună, ridice și semneze orice acte și documente
+necesare îndeplinirii mandatului, pe o perioadă de {valabilitate}.
+
+Prezenta procură a fost redactată în {nr_exemplare} exemplare originale.
+
+Data: {data_procurii}
+
+Mandant: {mandant_name}                    Mandatar: {mandatar_name}
+Semnătura: ___________________             Semnătura: ___________________""",
     },
+    "CERERE_PRELUNGIRE_SEDERE": {
+        "id":          "CERERE_PRELUNGIRE_SEDERE",
+        "name":        "Cerere prelungire drept de ședere în scop de muncă",
+        "category":    "Proceduri IGI / Imigrare",
+        "description": "Cerere adresată IGI pentru prelungirea dreptului de ședere temporară în scop de muncă, conform OUG 194/2002 și OUG 56/2007.",
+        "emitent":     "candidat",
+        "variables": [
+            _v("candidat_name",       "Numele complet",                  True,  "candidate"),
+            _v("candidat_nationalitate","Naționalitate",                  True,  "candidate"),
+            _v("candidat_pasaport",   "Nr. pașaport",                    True,  "candidate"),
+            _v("candidat_cnp",        "CNP (dacă există)",               False, "candidate"),
+            _v("data_nasterii",       "Data nașterii",                   False, "candidate"),
+            _v("permis_actual_nr",    "Nr. permis de ședere actual",     True,  "manual"),
+            _v("permis_expira",       "Data expirării permisului actual", True,  "manual"),
+            _v("angajator_name",      "Angajatorul actual",              True,  "company"),
+            _v("angajator_cui",       "CUI angajator",                   False, "company"),
+            _v("aviz_munca_nr",       "Nr. aviz de muncă",               False, "manual"),
+            _v("functia",             "Funcția / COR",                   False, "manual"),
+            _v("data_cererii",        "Data cererii",                    True,  "manual"),
+        ],
+        "rag_queries": [
+            "oug 194 2002 prelungire drept sedere temporara scop munca",
+            "oug 56 2007 aviz munca strain angajare",
+            "art 54 oug 194 2002 documente prelungire sedere",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+INSPECTORATUL GENERAL PENTRU IMIGRĂRI
+(prin Serviciul pentru Imigrări al județului _____)
+
+CERERE DE PRELUNGIRE A DREPTULUI DE ȘEDERE TEMPORARĂ
+în scop de muncă
+
+Subsemnatul/a {candidat_name}, cetățean/cetățeancă {candidat_nationalitate},
+născut/ă la {data_nasterii}, posesor/posesoare al/a pașaportului nr. {candidat_pasaport}
+(CNP: {candidat_cnp}), titular/ă al/a permisului de ședere nr. {permis_actual_nr},
+valabil până la {permis_expira},
+
+angajat/ă la {angajator_name} (CUI: {angajator_cui}),
+în funcția de {functia}, în baza avizului de muncă nr. {aviz_munca_nr},
+
+solicit PRELUNGIREA DREPTULUI DE ȘEDERE TEMPORARĂ în scop de muncă
+pe teritoriul României, în conformitate cu OUG nr. 194/2002 și OUG nr. 56/2007.
+
+Anexez documentele prevăzute de lege (pașaport, contract muncă, aviz, dovadă cazare, asigurare medicală).
+
+Data: {data_cererii}
+Semnătura: ___________________________
+{candidat_name}""",
+    },
+    "NOTIFICARE_SCHIMBARE_ANGAJATOR": {
+        "id":          "NOTIFICARE_SCHIMBARE_ANGAJATOR",
+        "name":        "Notificare IGI — schimbare angajator",
+        "category":    "Proceduri IGI / Imigrare",
+        "description": "Notificare obligatorie la IGI în cazul schimbării angajatorului de către un cetățean non-UE cu permis de muncă activ.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("candidat_name",       "Numele lucrătorului",             True,  "candidate"),
+            _v("candidat_pasaport",   "Nr. pașaport",                    True,  "candidate"),
+            _v("angajator_vechi",     "Angajatorul anterior",            True,  "manual"),
+            _v("angajator_nou",       "Noul angajator",                  True,  "company"),
+            _v("angajator_nou_cui",   "CUI noul angajator",              False, "company"),
+            _v("data_schimbarii",     "Data schimbării angajatorului",   True,  "manual"),
+            _v("aviz_munca_nr",       "Nr. aviz de muncă",               False, "manual"),
+            _v("data_notificarii",    "Data notificării",                True,  "manual"),
+        ],
+        "rag_queries": [
+            "oug 56 2007 schimbare angajator notificare igi strain",
+            "art 44 oug 194 2002 schimbare angajator permis sedere",
+        ],
+        "min_citations": 1,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+INSPECTORATUL GENERAL PENTRU IMIGRĂRI
+
+NOTIFICARE — SCHIMBARE ANGAJATOR
+
+Referitor la: {candidat_name}, pașaport nr. {candidat_pasaport}
+
+Prin prezenta notificăm că lucrătorul {candidat_name},
+titular al avizului de muncă nr. {aviz_munca_nr},
+a încetat raportul de muncă cu {angajator_vechi}
+și a încheiat contract de muncă cu {angajator_nou} (CUI: {angajator_nou_cui}),
+începând cu data de {data_schimbarii}.
+
+Solicităm luarea de act a acestei modificări.
+
+Data: {data_notificarii}
+Global Jobs Consulting SRL (în reprezentarea lucrătorului)""",
+    },
+    "CONTESTATIE_DECIZIE_IGI": {
+        "id":          "CONTESTATIE_DECIZIE_IGI",
+        "name":        "Contestație decizie IGI (respingere/revocare)",
+        "category":    "Proceduri IGI / Imigrare",
+        "description": "Contestație administrativă împotriva unei decizii IGI de respingere/revocare a dreptului de ședere sau a avizului de muncă.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("candidat_name",       "Numele candidatului",             True,  "candidate"),
+            _v("candidat_pasaport",   "Nr. pașaport",                    True,  "candidate"),
+            _v("candidat_nationalitate","Naționalitate",                  False, "candidate"),
+            _v("nr_decizie_igi",      "Nr. deciziei IGI contestate",     True,  "manual"),
+            _v("data_decizie",        "Data deciziei IGI",               True,  "manual"),
+            _v("motivul_respingerii", "Motivul invocat de IGI",          True,  "manual"),
+            _v("motivare_contestatie","Motivarea contestației noastre",  True,  "manual", "textarea"),
+            _v("probe_anexate",       "Documente anexate",               False, "manual", "textarea"),
+            _v("data_contestatiei",   "Data contestației",               True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 86 oug 194 2002 contestatie decizie imigrari termen",
+            "legea 554 2004 contencios administrativ contestatie",
+            "oug 56 2007 contestatie respingere aviz munca",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+INSPECTORATUL GENERAL PENTRU IMIGRĂRI
+(Directorul General)
+
+CONTESTAȚIE
+împotriva Deciziei nr. {nr_decizie_igi} din {data_decizie}
+
+Contestatar: {candidat_name}, cetățean {candidat_nationalitate}, pașaport {candidat_pasaport}
+Reprezentat prin: Global Jobs Consulting SRL
+
+Prin prezenta contestăm Decizia IGI nr. {nr_decizie_igi}/{data_decizie},
+prin care s-a dispus {motivul_respingerii},
+considerând-o netemeinică și nelegală pentru următoarele motive:
+
+{motivare_contestatie}
+
+DOCUMENTE ANEXATE: {probe_anexate}
+
+Solicităm revocarea deciziei contestate și admiterea cererii inițiale.
+
+Data: {data_contestatiei}
+Global Jobs Consulting SRL""",
+    },
+
+    # ════════════════════════════════════════════════════════════════
+    # CATEGORIE: Instanțe Judecătorești
+    # ════════════════════════════════════════════════════════════════
+
+    "ACTIUNE_PRETENTII_SALARIALE": {
+        "id":          "ACTIUNE_PRETENTII_SALARIALE",
+        "name":        "Acțiune în pretenții salariale — Tribunal Muncii",
+        "category":    "Instanțe judecătorești",
+        "description": "Cerere de chemare în judecată la Tribunalul Muncii pentru recuperarea drepturilor salariale neachitate. Scutită de taxă de timbru.",
+        "emitent":     "candidat",
+        "variables": [
+            _v("reclamant_name",      "Reclamant (salariat)",            True,  "candidate"),
+            _v("reclamant_cnp",       "CNP reclamant",                   False, "candidate"),
+            _v("reclamant_adresa",    "Domiciliu reclamant",             False, "manual"),
+            _v("parat_name",          "Pârât (angajator)",               True,  "company"),
+            _v("parat_cui",           "CUI pârât",                       False, "company"),
+            _v("parat_adresa",        "Sediu pârât",                     False, "company"),
+            _v("suma_solicitata",     "Suma solicitată (RON)",           True,  "manual"),
+            _v("perioada_neplatita",  "Perioada salariilor neachitate",  True,  "manual"),
+            _v("data_angajarii",      "Data angajării",                  False, "manual"),
+            _v("functia",             "Funcția",                         False, "manual"),
+            _v("probe_descrise",      "Descrierea probelor",             False, "manual", "textarea"),
+            _v("tribunal_judet",      "Tribunalul sesizat",              True,  "manual"),
+            _v("data_cererii",        "Data cererii",                    True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 171 codul muncii plata salariului data scadenta",
+            "art 266 codul muncii competenta tribunalul muncii drepturi salariale",
+            "art 272 codul muncii sarcina probei in litigii munca",
+            "art 253 codul muncii raspundere patrimoniala angajator",
+        ],
+        "min_citations": 3,
+        "bulk_mode":     True,
+        "bulk_key":      "reclamant_name",
+        "preview_text": """Către,
+TRIBUNALUL {tribunal_judet}
+Secția I Civilă — Conflicte de Muncă
+
+CERERE DE CHEMARE ÎN JUDECATĂ
+(Acțiune în pretenții — drepturi salariale)
+
+Reclamant: {reclamant_name}, domiciliat în {reclamant_adresa}, CNP {reclamant_cnp}
+Pârât:     {parat_name}, CUI {parat_cui}, sediu: {parat_adresa}
+
+Obiect: Obligarea pârâtului la plata sumei de {suma_solicitata} RON
+        reprezentând drepturi salariale neachitate aferente perioadei {perioada_neplatita}
+
+Valoare litigiu: {suma_solicitata} RON (scutit de taxă de timbru — art. 270 CM)
+
+ÎN FAPT:
+Reclamantul este angajat al pârâtului din data de {data_angajarii}, în funcția de {functia}.
+Pârâtul nu și-a îndeplinit obligația de plată a salariului pentru perioada {perioada_neplatita},
+contrar dispozițiilor art. 171 din Legea nr. 53/2003 — Codul Muncii.
+
+ÎN DREPT: art. 171, art. 253, art. 266 din Legea nr. 53/2003 (Codul Muncii)
+
+PROBE: {probe_descrise}
+
+Solicităm: obligarea pârâtului la plata sumei de {suma_solicitata} RON + dobânda legală.
+
+Data: {data_cererii}                        Reclamant: {reclamant_name}
+                                             Semnătura: ___________________""",
+    },
+    "INTAMPINARE": {
+        "id":          "INTAMPINARE",
+        "name":        "Întâmpinare la acțiune civilă / muncă",
+        "category":    "Instanțe judecătorești",
+        "description": "Răspuns formal la o acțiune judecătorească, depus în termen legal. Folosit când GJC sau un candidat este chemat în judecată.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("intimat_name",        "Intimat (cel care depune întâmpinarea)", True, "manual"),
+            _v("intimat_calitate",    "Calitate intimat (pârât/intervenient)", True, "manual"),
+            _v("reclamant_name",      "Reclamant (cel care a introdus acțiunea)", True, "manual"),
+            _v("dosar_nr",            "Nr. dosar instanță",              True,  "manual"),
+            _v("tribunal_judet",      "Instanța",                        True,  "manual"),
+            _v("obiect_actiune",      "Obiectul acțiunii reclamantului", True,  "manual"),
+            _v("motivare_intampinare","Motivele întâmpinării (apărările)", True, "manual", "textarea"),
+            _v("probe_propuse",       "Probe propuse în apărare",        False, "manual", "textarea"),
+            _v("data_depunerii",      "Data depunerii",                  True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 205 cod procedura civila intampinare termen depunere",
+            "art 254 cod procedura civila probe admisibilitate",
+            "art 268 codul muncii termen contestatie",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+{tribunal_judet}
+
+Dosar nr. {dosar_nr}
+
+ÎNTÂMPINARE
+
+Intimat:    {intimat_name}, în calitate de {intimat_calitate}
+Reclamant:  {reclamant_name}
+
+Obiect acțiune: {obiect_actiune}
+
+Subsemnatul/a {intimat_name}, prin prezenta ÎNTÂMPINARE, formulez
+următoarele apărări față de acțiunea reclamantului:
+
+{motivare_intampinare}
+
+PROBE PROPUSE ÎN APĂRARE:
+{probe_propuse}
+
+Solicităm respingerea acțiunii ca neîntemeiată/nefondata.
+
+Data: {data_depunerii}
+{intimat_name}
+Semnătura: ___________________________""",
+    },
+    "PLANGERE_PENALA": {
+        "id":          "PLANGERE_PENALA",
+        "name":        "Plângere penală la Poliție / Parchet",
+        "category":    "Instanțe judecătorești",
+        "description": "Plângere penală pentru infracțiuni săvârșite împotriva lucrătorilor: exploatare, trafic de persoane, lipsire de libertate, abuz de serviciu.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("petent_name",         "Petent (persoana lezată sau GJC)", True, "manual"),
+            _v("petent_calitate",     "Calitate petent",                 True,  "manual"),
+            _v("inculpat_name",       "Inculpat / făptuitor",            True,  "manual"),
+            _v("inculpat_calitate",   "Calitate inculpat",               False, "manual"),
+            _v("fapta_descrisa",      "Descrierea faptei penale",        True,  "manual", "textarea"),
+            _v("data_savarsirii",     "Data/perioada săvârșirii",        True,  "manual"),
+            _v("locul_savarsirii",    "Locul săvârșirii",                False, "manual"),
+            _v("prejudiciu",          "Prejudiciul cauzat",              False, "manual"),
+            _v("probe_anexate",       "Probe/martori",                   False, "manual", "textarea"),
+            _v("unitate_sesizata",    "Unitatea de Poliție / Parchet sesizat", True, "manual"),
+            _v("data_plangerii",      "Data plângerii",                  True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 210 cod penal trafic persoane exploatare munca",
+            "art 211 cod penal exploatare cersetorie sau munca",
+            "art 297 cod penal abuz de serviciu",
+            "art 189 cod penal lipsire de libertate",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+{unitate_sesizata}
+
+PLÂNGERE PENALĂ
+
+Petent:     {petent_name}, în calitate de {petent_calitate}
+Inculpat:   {inculpat_name} ({inculpat_calitate})
+
+Subsemnatul/a {petent_name}, formulez prezenta PLÂNGERE PENALĂ împotriva
+lui/ei {inculpat_name}, pentru săvârșirea infracțiunii de ______,
+prevăzută de Codul Penal.
+
+SITUAȚIA DE FAPT:
+{fapta_descrisa}
+
+Data/Perioada săvârșirii: {data_savarsirii}
+Locul săvârșirii: {locul_savarsirii}
+Prejudiciul cauzat: {prejudiciu}
+
+PROBE ȘI MARTORI: {probe_anexate}
+
+Solicităm efectuarea cercetărilor penale și tragerea la răspundere penală
+a inculpatului conform legii.
+
+Data: {data_plangerii}                      Semnătura: ___________________
+{petent_name}""",
+    },
+    "SESIZARE_DIICOT": {
+        "id":          "SESIZARE_DIICOT",
+        "name":        "Sesizare DIICOT — trafic de persoane / exploatare forță de muncă",
+        "category":    "Instanțe judecătorești",
+        "description": "Sesizare la Direcția de Investigare a Infracțiunilor de Criminalitate Organizată și Terorism pentru infracțiuni grave: trafic de persoane, exploatarea forței de muncă, rețele de recrutare ilegală.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("sesizant_name",       "Sesizant",                        True,  "manual"),
+            _v("sesizant_calitate",   "Calitate sesizant",               True,  "manual"),
+            _v("inculpat_name",       "Persoana/organizația sesizată",   True,  "manual"),
+            _v("fapta_descrisa",      "Descrierea detaliată a faptelor", True,  "manual", "textarea"),
+            _v("victimele",           "Numărul și datele victimelor",    True,  "manual"),
+            _v("probe_anexate",       "Probe disponibile",               False, "manual", "textarea"),
+            _v("data_sesizarii",      "Data sesizării",                  True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 210 cod penal trafic de persoane definitie",
+            "legea 678 2001 trafic de persoane prevenire combatere",
+            "art 182 cod penal exploatarea cersetoriei munca fortata",
+        ],
+        "min_citations": 3,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+DIRECȚIA DE INVESTIGARE A INFRACȚIUNILOR DE CRIMINALITATE ORGANIZATĂ
+ȘI TERORISM — Serviciul Teritorial ______
+
+SESIZARE
+
+Sesizant:  {sesizant_name}, în calitate de {sesizant_calitate}
+Persoana sesizată: {inculpat_name}
+
+Prin prezenta, vă sesizăm cu privire la săvârșirea unor infracțiuni
+ce intră în competența DIICOT, respectiv trafic de persoane și/sau
+exploatarea forței de muncă, fapte prevăzute de art. 210-211 Cod Penal
+și Legea nr. 678/2001.
+
+SITUAȚIA VICTIMELOR: {victimele}
+
+DESCRIEREA FAPTELOR:
+{fapta_descrisa}
+
+PROBE DISPONIBILE: {probe_anexate}
+
+Data: {data_sesizarii}
+{sesizant_name}
+Semnătura: ___________________________""",
+    },
+
+    # ════════════════════════════════════════════════════════════════
+    # CATEGORIE: Contestații și Memorii
+    # ════════════════════════════════════════════════════════════════
+
     "MEMORIU_CONTESTATIE": {
         "id":          "MEMORIU_CONTESTATIE",
         "name":        "Memoriu / Contestație administrativă",
@@ -188,6 +922,280 @@ TEMPLATES: Dict[str, Dict] = {
         ],
         "min_citations": 2,
         "bulk_mode":     False,
+        "preview_text": """Către,
+{autoritate_name}
+
+MEMORIU / CONTESTAȚIE
+
+Contestatar: {contestatar_name}
+Act contestat: {act_contestat}
+
+Subsemnatul/a/societatea {contestatar_name}, formulez prezenta CONTESTAȚIE
+împotriva actului administrativ {act_contestat}, pe care îl considerăm
+nelegal/netemeinic pentru următoarele motive:
+
+MOTIVARE:
+{motivare}
+
+SOLICITARE:
+{solicitare}
+
+PROBE ANEXATE: {probe_anexate}
+
+Data: {data_contestatiei}
+{contestatar_name} / Global Jobs Consulting SRL
+Semnătura: ___________________________""",
+    },
+    "CONTESTATIE_AMENDA": {
+        "id":          "CONTESTATIE_AMENDA",
+        "name":        "Contestație amendă contravențională",
+        "category":    "Contestații și memorii",
+        "description": "Contestație la Judecătorie împotriva unui proces-verbal de contravenție (ITM, Poliție, ANAF, IGI etc.). Termen 15 zile calendaristice de la comunicare.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("petent_name",         "Petent (cel sancționat)",         True,  "manual"),
+            _v("petent_adresa",       "Adresa petentului",               False, "manual"),
+            _v("pv_nr",               "Nr. procesului-verbal",           True,  "manual"),
+            _v("pv_data",             "Data procesului-verbal",          True,  "manual"),
+            _v("pv_emitent",          "Emitentul PV (ex: ITM Bihor)",   True,  "manual"),
+            _v("suma_amenda",         "Suma amenzii (RON)",              True,  "manual"),
+            _v("fapta_retinuta",      "Fapta reținută în PV",           True,  "manual"),
+            _v("motivare_contestatie","Motivele contestației",           True,  "manual", "textarea"),
+            _v("probe_anexate",       "Probe anexate",                   False, "manual", "textarea"),
+            _v("judecatorie_judet",   "Judecătoria competentă",         True,  "manual"),
+            _v("data_contestatiei",   "Data contestației",               True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 31 32 33 ordonanta 2 2001 contestatie contraventie judecatorie",
+            "art 7 ordonanta 2 2001 prescriptie contraventie",
+            "termen 15 zile contestatie proces verbal contraventie",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+JUDECĂTORIA {judecatorie_judet}
+
+PLÂNGERE CONTRAVENȚIONALĂ
+(Contestație la procesul-verbal de contravenție)
+
+Petent:    {petent_name}, domiciliat în {petent_adresa}
+Intimat:   {pv_emitent}
+
+Obiect: Anularea Procesului-Verbal de Contravenție nr. {pv_nr} din {pv_data},
+        prin care s-a aplicat o amendă de {suma_amenda} RON
+
+Fapta reținută: {fapta_retinuta}
+
+Subsemnatul/a {petent_name}, în termen legal (15 zile de la comunicare),
+formulez prezenta PLÂNGERE împotriva PV nr. {pv_nr}/{pv_data},
+pentru următoarele motive:
+
+{motivare_contestatie}
+
+PROBE: {probe_anexate}
+
+Solicităm anularea procesului-verbal și exonerarea de la plata amenzii.
+
+Data: {data_contestatiei}
+{petent_name}
+Semnătura: ___________________________""",
+    },
+    "PLANGERE_PREALABILA": {
+        "id":          "PLANGERE_PREALABILA",
+        "name":        "Plângere prealabilă — înainte de contencios administrativ",
+        "category":    "Contestații și memorii",
+        "description": "Pas obligatoriu înainte de a sesiza instanța de contencios administrativ. Se depune la autoritatea emitentă a actului contestat. Termen răspuns: 30 zile.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("petent_name",         "Petent",                          True,  "manual"),
+            _v("autoritate_name",     "Autoritatea publică sesizată",    True,  "manual"),
+            _v("act_contestat",       "Actul administrativ contestat",   True,  "manual"),
+            _v("data_emitere_act",    "Data emiterii actului",           False, "manual"),
+            _v("motivare",            "Motivele plângerii",              True,  "manual", "textarea"),
+            _v("solicitare",          "Ce se solicită (revocare/modificare)", True, "manual", "textarea"),
+            _v("data_plangerii",      "Data plângerii",                  True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 7 legea 554 2004 plangere prealabila contencios administrativ",
+            "art 8 legea 554 2004 termen sesizare instanta contencios",
+            "act administrativ nelegal revocare anulare",
+        ],
+        "min_citations": 2,
+        "bulk_mode":     False,
+        "preview_text": """Către,
+{autoritate_name}
+
+PLÂNGERE PREALABILĂ
+(conform art. 7 din Legea nr. 554/2004 a contenciosului administrativ)
+
+Petent: {petent_name}
+Act contestat: {act_contestat} emis la data de {data_emitere_act}
+
+Subsemnatul/a {petent_name}, în temeiul art. 7 din Legea nr. 554/2004,
+formulez prezenta PLÂNGERE PREALABILĂ împotriva actului administrativ
+{act_contestat}, solicitând revocarea/modificarea acestuia.
+
+MOTIVELE PLÂNGERII:
+{motivare}
+
+SOLICITARE:
+{solicitare}
+
+În lipsa unui răspuns favorabil în termen de 30 de zile,
+vom sesiza instanța de contencios administrativ competentă.
+
+Data: {data_plangerii}
+{petent_name} / Global Jobs Consulting SRL
+Semnătura: ___________________________""",
+    },
+
+    # ════════════════════════════════════════════════════════════════
+    # CATEGORIE: Documente GJC / Corespondență oficială
+    # ════════════════════════════════════════════════════════════════
+
+    "ADRESA_GENERICA": {
+        "id":          "ADRESA_GENERICA",
+        "name":        "Adresă oficială GJC către orice instituție",
+        "category":    "Documente GJC / Corespondență",
+        "description": "Adresă oficială emisă de GJC pentru orice solicitare, informare sau comunicare formală cu instituții de stat, angajatori sau parteneri.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("destinatar",          "Destinatar (instituție/persoană)", True,  "manual"),
+            _v("subiect",             "Subiectul adresei",               True,  "manual"),
+            _v("continut",            "Conținutul adresei",              True,  "manual", "textarea"),
+            _v("referitor_la",        "Referitor la (dosar/persoană/situație)", False, "manual"),
+            _v("solicitare",          "Ce se solicită (dacă e cazul)",  False,  "manual", "textarea"),
+            _v("persoana_contact",    "Persoana de contact GJC",        False,  "manual"),
+            _v("data_adresei",        "Data adresei",                    True,  "manual"),
+        ],
+        "rag_queries": [],
+        "min_citations": 0,
+        "bulk_mode":     False,
+        "preview_text": """GLOBAL JOBS CONSULTING SRL
+CUI: 44678741 | Oradea, Bihor | contact@gjc.ro
+
+Nr. înreg.: _____ / {data_adresei}
+
+Către: {destinatar}
+Referitor la: {referitor_la}
+
+ADRESĂ — {subiect}
+
+Stimate/Stimată doamne/domn,
+
+{continut}
+
+{solicitare}
+
+Cu stimă,
+{persoana_contact}
+GLOBAL JOBS CONSULTING SRL
+
+Data: {data_adresei}""",
+    },
+    "NOTIFICARE_CLIENT_DEBIT": {
+        "id":          "NOTIFICARE_CLIENT_DEBIT",
+        "name":        "Notificare client — debit restant",
+        "category":    "Documente GJC / Corespondență",
+        "description": "Notificare de plată trimisă clienților restanți (companii sau persoane fizice) cu detaliile debitului și termenul de plată.",
+        "emitent":     "GJC",
+        "variables": [
+            _v("client_name",         "Denumire client",                 True,  "company"),
+            _v("client_cui",          "CUI client",                      False, "company"),
+            _v("client_adresa",       "Adresa clientului",               False, "company"),
+            _v("client_reprezentant", "Reprezentant legal client",       False, "manual"),
+            _v("suma_datorata",       "Suma datorată (RON/EUR)",         True,  "manual"),
+            _v("factura_nr",          "Nr. factură / contract",          False, "manual"),
+            _v("servicii_prestate",   "Serviciile prestate",             False, "manual"),
+            _v("termen_plata",        "Termen de plată acordat",        True,  "manual"),
+            _v("consecinte",          "Consecințe în caz de neplată",   False,  "manual"),
+            _v("data_notificarii",    "Data notificării",                True,  "manual"),
+        ],
+        "rag_queries": [
+            "art 1516 cod civil punerea in intarziere debitorul",
+            "art 1535 cod civil dobanda penalizatoare intarziere",
+            "art 1516 cod civil dreptul creditorului executare silita",
+        ],
+        "min_citations": 1,
+        "bulk_mode":     False,
+        "preview_text": """NOTIFICARE DE PLATĂ
+
+Către: {client_name} (CUI: {client_cui})
+Adresa: {client_adresa}
+În atenția: {client_reprezentant}
+
+Referitor la: Factura/Contractul nr. {factura_nr}
+
+Stimate/Stimată doamne/domn,
+
+Global Jobs Consulting SRL vă notifică că suma de {suma_datorata},
+reprezentând contravaloarea serviciilor de {servicii_prestate},
+nu a fost achitată până la data prezentei notificări.
+
+Vă solicităm achitarea integrală a sumei datorate în termen de {termen_plata}.
+
+{consecinte}
+
+În caz de neplată, ne rezervăm dreptul de a recurge la procedurile legale
+de recuperare a creanței, conform art. 1516 din Codul Civil.
+
+Data: {data_notificarii}
+Global Jobs Consulting SRL""",
+    },
+    "ACORD_MEDIERE_MUNCII": {
+        "id":          "ACORD_MEDIERE_MUNCII",
+        "name":        "Acord de mediere — litigiu de muncă",
+        "category":    "Documente GJC / Corespondență",
+        "description": "Acord de mediere amiabilă între un angajator și un salariat, pentru stingerea unui litigiu (plată drepturi salariale, încetare CIM, despăgubiri).",
+        "emitent":     "GJC",
+        "variables": [
+            _v("salariat_name",       "Numele salariatului",             True,  "candidate"),
+            _v("angajator_name",      "Denumire angajator",              True,  "company"),
+            _v("angajator_cui",       "CUI",                             False, "company"),
+            _v("angajator_reprezentant","Reprezentant legal angajator",  True,  "manual"),
+            _v("obiectul_litigiului", "Obiectul litigiului",            True,  "manual"),
+            _v("suma_acordata",       "Suma agreată pentru stingere (RON)", True, "manual"),
+            _v("termen_plata",        "Termen de plată",                 True,  "manual"),
+            _v("clauze_suplimentare", "Alte clauze agreate",            False,  "manual", "textarea"),
+            _v("data_acordului",      "Data acordului",                  True,  "manual"),
+        ],
+        "rag_queries": [
+            "legea 192 2006 medierea solutionarea litigii de munca",
+            "art 231 codul muncii conciliere litigiu",
+            "acordul partilor stingerea litigiu de munca",
+        ],
+        "min_citations": 1,
+        "bulk_mode":     False,
+        "preview_text": """ACORD DE MEDIERE
+
+Încheiat astăzi, {data_acordului}
+
+Între:
+1. {angajator_name} (CUI: {angajator_cui}), reprezentată prin {angajator_reprezentant} — ANGAJATOR
+2. {salariat_name} — SALARIAT
+3. Global Jobs Consulting SRL — MEDIATOR
+
+Obiectul litigiului: {obiectul_litigiului}
+
+TERMENII ACORDULUI:
+
+Angajatorul se obligă să achite suma de {suma_acordata} RON
+în termen de {termen_plata} de la semnarea prezentului acord.
+
+Salariatul renunță la orice pretenție suplimentară față de angajator
+cu privire la obiectul prezentului litigiu.
+
+{clauze_suplimentare}
+
+Prezentul acord stinge orice litigiu între părți cu privire la obiectul menționat.
+
+Semnat în 3 exemplare originale.
+
+Angajator: {angajator_reprezentant}    Salariat: {salariat_name}
+Semnătura: __________________          Semnătura: __________________
+
+Mediator: Global Jobs Consulting SRL
+Semnătura: ___________________________""",
     },
 }
 
@@ -405,19 +1413,40 @@ async def search_legal(
 
 @legal_router.get("/templates")
 async def list_templates(user: dict = Depends(_require_legal_read)):
-    """Listează toate template-urile disponibile."""
+    """Listează toate template-urile disponibile, grupate pe categorii."""
     result = []
     for t in TEMPLATES.values():
         result.append({
-            "id":          t["id"],
-            "name":        t["name"],
-            "category":    t["category"],
-            "description": t["description"],
-            "variables":   t["variables"],
-            "bulk_mode":   t.get("bulk_mode", False),
-            "emitent":     t.get("emitent", "GJC"),
+            "id":           t["id"],
+            "name":         t["name"],
+            "category":     t["category"],
+            "description":  t["description"],
+            "variables":    t["variables"],
+            "bulk_mode":    t.get("bulk_mode", False),
+            "emitent":      t.get("emitent", "GJC"),
+            "min_citations": t.get("min_citations", 2),
         })
     return result
+
+
+@legal_router.get("/templates/{template_id}")
+async def get_template(template_id: str, user: dict = Depends(_require_legal_read)):
+    """Returnează detaliile complete ale unui template, inclusiv modelul (preview_text)."""
+    t = TEMPLATES.get(template_id)
+    if not t:
+        raise HTTPException(status_code=404, detail=f"Template '{template_id}' negăsit")
+    return {
+        "id":            t["id"],
+        "name":          t["name"],
+        "category":      t["category"],
+        "description":   t["description"],
+        "variables":     t["variables"],
+        "bulk_mode":     t.get("bulk_mode", False),
+        "emitent":       t.get("emitent", "GJC"),
+        "min_citations": t.get("min_citations", 2),
+        "rag_queries":   t.get("rag_queries", []),
+        "preview_text":  t.get("preview_text", "(Model nedisponibil pentru acest șablon)"),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
