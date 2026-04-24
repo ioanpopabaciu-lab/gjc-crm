@@ -4,7 +4,7 @@ import {
   Users, Building2, FileText, TrendingUp, Bell, BarChart3,
   Menu, Home, Calendar, User, LogOut, CheckCircle, AlertTriangle,
   Search, X, Settings, Globe, CreditCard, Receipt, Target,
-  CheckSquare, UserCheck, FileEdit, Briefcase, UserCog
+  CheckSquare, UserCheck, FileEdit, Briefcase, UserCog, Scale
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { MODULE_PERMISSION } from '../config/permissions';
@@ -27,6 +27,7 @@ const modules = [
   { id: "templates", path: "/templates", name: "Template-uri Doc.", icon: FileEdit },
   { id: "alerts", path: "/alerts", name: "Centru Alerte", icon: Bell },
   { id: "settings", path: "/settings", name: "Operatori & WA", icon: Settings },
+  { id: "legal",    path: "/legal",    name: "Legal AI",        icon: Scale },
 ];
 
 const GlobalSearch = () => {

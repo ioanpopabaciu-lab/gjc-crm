@@ -5222,6 +5222,11 @@ async def check_one_year_alerts():
 # Include router — DUPĂ ce toate rutele au fost definite
 app.include_router(api_router)
 
+# ── Legal AI Router ───────────────────────────────────────────────────────────
+from legal_router import legal_router, setup_legal_indexes
+app.include_router(legal_router, prefix="/api")
+# ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -5249,6 +5254,9 @@ async def startup_event():
     scheduler.add_job(check_one_year_alerts, 'cron', hour=9, minute=0, id='one_year_alerts', replace_existing=True)
     scheduler.start()
     logger.info("Scheduler pornit: remindere sarcini la fiecare oră + alerte 1 an la 09:00")
+
+    # ── Legal AI: creare indexuri MongoDB ────────────────────────────────────
+    await setup_legal_indexes()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

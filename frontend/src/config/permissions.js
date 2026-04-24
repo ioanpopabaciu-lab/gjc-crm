@@ -18,6 +18,9 @@ export const ALL_PERMISSIONS = [
   'rapoarte_read',
   'alerte_read',
   'setari_read',
+  // ── Legal AI (acces restricționat — doar admin/Ioan implicit) ─────────────
+  'legal_read',       // vizualizare corpus, documente generate, căutare
+  'legal_generate',   // generare documente noi, upload acte, validare
 ];
 
 // Grupuri afișate în UI (checkbox-uri per modul)
@@ -36,6 +39,7 @@ export const PERMISSION_GROUPS = [
   { label: '📊 Rapoarte AI',         read: 'rapoarte_read',   write: null               },
   { label: '🔔 Centru Alerte',       read: 'alerte_read',     write: null               },
   { label: '⚙️ Setări & Operatori',  read: 'setari_read',     write: null               },
+  { label: '⚖️ Legal AI',            read: 'legal_read',      write: 'legal_generate'   },
 ];
 
 // Presetări rapide
@@ -88,6 +92,7 @@ export const PRESETS = {
 // Ce permisiune trebuie pentru a vedea fiecare modul din sidebar
 // null = mereu vizibil (Dashboard)
 export const MODULE_PERMISSION = {
+  legal: 'legal_read',
   dashboard:   null,
   companies:   'companii_read',
   b2c:         'companii_read',

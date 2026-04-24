@@ -38,6 +38,7 @@ import TemplatesPage from './pages/TemplatesPage';
 import PassportImportPage from './pages/PassportImportPage';
 import AvizImportPage from './pages/AvizImportPage';
 import B2CPage from './pages/B2CPage';
+import LegalPage from './pages/LegalPage';
 
 // Component afișat când utilizatorul nu are acces la o pagină
 const AccessDenied = () => (
@@ -118,6 +119,7 @@ function App() {
             <Route path="/templates"      element={<ProtectedPage moduleId="templates">   <TemplatesPage   showNotification={showNotification} /></ProtectedPage>} />
             <Route path="/import-pasapoarte" element={<ProtectedPage moduleId="imigrare_read"><PassportImportPage showNotification={showNotification} /></ProtectedPage>} />
             <Route path="/b2c"            element={<ProtectedPage moduleId="b2c">          <B2CPage         showNotification={showNotification} /></ProtectedPage>} />
+            <Route path="/legal"          element={<ProtectedPage moduleId="legal">        <LegalPage       showNotification={showNotification} /></ProtectedPage>} />
             <Route path="/interviews"     element={<Navigate to="/recrutare" replace />} />
             <Route path="/jobs"           element={<Navigate to="/recrutare" replace />} />
             <Route path="/placements"     element={<Navigate to="/recrutare" replace />} />
