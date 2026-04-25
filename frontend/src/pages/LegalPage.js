@@ -511,21 +511,24 @@ const LegalPage = ({ showNotification }) => {
                   <Scale size={32} color="#c4b5fd" />
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <h3 style={{ margin: '0 0 8px', color: '#1f2937', fontSize: '1.1rem' }}>Bun venit la Claude Legis</h3>
-                  <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.9rem', maxWidth: '500px' }}>
-                    Descrie ce document ai nevoie în limbaj natural. Agentul caută automat datele din CRM, articolele de lege relevante și generează documentul complet.
+                  <h3 style={{ margin: '0 0 8px', color: '#1f2937', fontSize: '1.1rem' }}>Bun venit. Sunt Legis, consultantul tău juridic.</h3>
+                  <p style={{ margin: '0 0 4px', color: '#6b7280', fontSize: '0.9rem', maxWidth: '520px' }}>
+                    Descrie-mi situația cu care te confrunți. Voi analiza din punct de vedere juridic, îți voi spune exact ce drepturi există, ce termene trebuie respectate și ce soluție îți recomand.
+                  </p>
+                  <p style={{ margin: '0 0 20px', color: '#9ca3af', fontSize: '0.82rem', maxWidth: '520px' }}>
+                    Dacă e nevoie de documente, le generez eu automat cu datele din CRM.
                   </p>
                 </div>
                 {/* Exemple rapide */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', maxWidth: '600px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', maxWidth: '660px' }}>
                   {[
-                    '📝 Demisie pentru Nguyen Van An de la Allegria, 2 luni salariu neachitat',
-                    '🏛️ Sesizare ITM Bihor — candidații fără echipament de protecție',
-                    '📋 Adresă oficială GJC către IGI pentru prelungire permis',
-                    '⚖️ Ce drepturi are un angajat care nu a primit salariul?',
-                    '📜 Contestație amendă primită de la ITM',
+                    'Un candidat nu a primit salariul de 2 luni. Ce poate face legal?',
+                    'ITM-ul a dat o amendă companiei Allegria. Poate fi contestată?',
+                    'Un angajator a trimis acasă un muncitor vietnamez fără nicio explicație. Ce facem?',
+                    'Care sunt pașii pentru a sesiza ITM pentru condiții de muncă necorespunzătoare?',
+                    'Candidatul Ion Popescu vrea să demisioneze fără preaviz. Are dreptul?',
                   ].map((ex, i) => (
-                    <button key={i} onClick={() => handleAgentSend(ex.replace(/^[^\s]+\s/, ''))}
+                    <button key={i} onClick={() => handleAgentSend(ex)}
                       style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '20px', cursor: 'pointer', fontSize: '0.82rem', color: '#374151', transition: 'all 0.15s', textAlign: 'left' }}
                       onMouseEnter={e => { e.target.style.background = '#f5f3ff'; e.target.style.borderColor = '#7c3aed'; }}
                       onMouseLeave={e => { e.target.style.background = '#fff'; e.target.style.borderColor = '#e5e7eb'; }}>
@@ -642,7 +645,7 @@ const LegalPage = ({ showNotification }) => {
                     handleAgentSend();
                   }
                 }}
-                placeholder="Descrie ce document ai nevoie... (ex: 'Demisie pentru Ion Popescu de la Allegria, salariu neachitat')"
+                placeholder="Descrie situația juridică... (ex: 'Un candidat nu a primit salariul de 3 luni, angajatorul nu răspunde la telefon')"
                 rows={2}
                 disabled={agentLoading}
                 style={{
@@ -667,7 +670,7 @@ const LegalPage = ({ showNotification }) => {
               </button>
             </div>
             <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '6px', textAlign: 'center' }}>
-              Enter = trimite · Shift+Enter = linie nouă · Agentul poate căuta în CRM și genera documente automat
+              Enter = trimite · Shift+Enter = linie nouă · Consultantul caută automat în legislație și CRM
             </div>
           </div>
         </div>
